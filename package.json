@@ -1,0 +1,14 @@
+{
+  "name": "macau-pos",
+  "private": true,
+  "scripts": {
+    "dev:admin": "pnpm --filter admin dev",
+    "dev:cashier": "pnpm --filter cashier dev",
+    "dev": "pnpm --filter admin dev & pnpm --filter cashier dev",
+    "build": "pnpm -r build",
+    "db:generate": "pnpm --filter @macau-pos/database db:generate",
+    "db:migrate": "pnpm --filter @macau-pos/database db:migrate",
+    "db:seed": "pnpm --filter @macau-pos/database db:seed",
+    "db:studio": "pnpm --filter @macau-pos/database db:studio"
+  }
+}

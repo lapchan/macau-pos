@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  transpilePackages: ["@macau-pos/database"],
+  serverExternalPackages: ["pg"],
 };
 
 export default nextConfig;

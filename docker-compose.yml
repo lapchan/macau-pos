@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: macau-pos-db
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: macau_pos_dev
+      POSTGRES_USER: pos_dev
+      POSTGRES_PASSWORD: pos_dev_123
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:
