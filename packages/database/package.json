@@ -10,16 +10,18 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx src/seed.ts",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:import-yp": "tsx src/import-yp.ts"
   },
   "dependencies": {
+    "dotenv": "^16.5.0",
     "drizzle-orm": "^0.44.2",
     "pg": "^8.16.0",
-    "dotenv": "^16.5.0"
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "drizzle-kit": "^0.31.4",
     "@types/pg": "^8.15.4",
+    "drizzle-kit": "^0.31.4",
     "tsx": "^4.20.0",
     "typescript": "^5.9.3"
   }

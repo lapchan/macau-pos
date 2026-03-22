@@ -4,10 +4,14 @@ import {
   products,
   categories,
   tenants,
+  orders,
+  orderItems,
+  payments,
   eq,
   and,
   isNull,
   asc,
+  desc,
   DEMO_TENANT_SLUG,
 } from "@macau-pos/database";
 
@@ -49,6 +53,46 @@ export async function getActiveProducts() {
       )
     )
     .orderBy(asc(products.sortOrder));
+}
+
+export async function getRecentOrders(limit = 50) {
+  const tenantId = await getTenantId();
+  return db
+    .select({
+      id: orders.id,
+      orderNumber: orders.orderNumber,
+      status: orders.status,
+      subtotal: orders.subtotal,
+      total: orders.total,
+      itemCount: orders.itemCount,
+      currency: orders.currency,
+      createdAt: orders.createdAt,
+      paymentMethod: payments.method,
+    })
+    .from(orders)
+    .leftJoin(payments, eq(orders.id, payments.orderId))
+    .where(eq(orders.tenantId, tenantId))
+    .orderBy(desc(orders.createdAt))
+    .limit(limit);
+}
+
+export async function getOrderWithItems(orderId: string) {
+  const tenantId = await getTenantId();
+
+  const [order] = await db
+    .select()
+    .from(orders)
+    .where(and(eq(orders.id, orderId), eq(orders.tenantId, tenantId)))
+    .limit(1);
+
+  if (!order) return null;
+
+  const [items, [payment]] = await Promise.all([
+    db.select().from(orderItems).where(eq(orderItems.orderId, orderId)),
+    db.select().from(payments).where(eq(payments.orderId, orderId)).limit(1),
+  ]);
+
+  return { order, items, payment: payment ?? null };
 }
 
 export async function getActiveCategories() {

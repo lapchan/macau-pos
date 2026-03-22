@@ -13,3 +13,17 @@ export const productStatusEnum = pgEnum("product_status", [
   "inactive",
   "sold_out",
 ]);
+
+export const orderStatusEnum = pgEnum("order_status", [
+  "pending",
+  "completed",
+  "refunded",
+  "voided",
+]);
+
+export const paymentMethodEnum = pgEnum("payment_method", [
+  "tap",
+  "insert",
+  "qr",
+  "cash",
+]);

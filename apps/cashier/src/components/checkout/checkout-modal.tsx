@@ -9,6 +9,7 @@ import {
   Check, AlertCircle, Loader2, Printer, Mail, XCircle,
   ChevronLeft, Minus, Plus, Sun, Moon, Receipt,
 } from "lucide-react";
+import { createOrder } from "@/lib/actions";
 
 type CheckoutState =
   | "review"
@@ -53,14 +54,29 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete }: Pro
     return () => window.removeEventListener("keydown", handleKey);
   }, [state, onClose]);
 
-  const processPayment = useCallback((method: string) => {
+  const processPayment = useCallback(async (method: "tap" | "insert" | "qr" | "cash") => {
     setState("processing");
-    setTimeout(() => {
-      const num = `CS-${Date.now().toString().slice(-6)}`;
-      setOrderNum(num);
-      setState(Math.random() > 0.1 ? "success" : "failed");
-    }, 2200);
-  }, []);
+    const result = await createOrder({
+      cart: cart.map((item) => ({
+        productId: item.id,
+        name: item.name,
+        nameCn: item.nameCn,
+        unitPrice: item.price,
+        quantity: item.quantity,
+      })),
+      paymentMethod: method,
+      subtotal,
+      total,
+      cashReceived: method === "cash" ? cashValue : undefined,
+      changeGiven: method === "cash" && cashValue > total ? cashValue - total : undefined,
+    });
+    if (result.success) {
+      setOrderNum(result.orderNumber);
+      setState("success");
+    } else {
+      setState("failed");
+    }
+  }, [cart, subtotal, total, cashValue]);
 
   const handleCashConfirm = useCallback(() => {
     if (cashValue >= total) processPayment("cash");

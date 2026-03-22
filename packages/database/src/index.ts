@@ -6,4 +6,4 @@ export * from "./schema";
 export * from "./constants";
 
 // Drizzle operators (re-export for convenience)
-export { eq, ne, gt, gte, lt, lte, and, or, isNull, isNotNull, inArray, sql, desc, asc } from "drizzle-orm";
+export { eq, ne, gt, gte, lt, lte, and, or, isNull, isNotNull, inArray, sql, desc, asc, count, sum } from "drizzle-orm";

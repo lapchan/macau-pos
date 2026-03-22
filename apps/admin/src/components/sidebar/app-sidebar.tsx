@@ -22,11 +22,13 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Banknote,
+  Receipt,
 } from "lucide-react";
 
 const mainNav = [
   { icon: Home, label: "Home", href: "/", id: "home" },
   { icon: Package, label: "Items & services", href: "/items", id: "items" },
+  { icon: Receipt, label: "Orders", href: "/orders", id: "orders" },
   { icon: CreditCard, label: "Payments & invoices", href: "/payments", id: "payments" },
   { icon: Globe, label: "Online", href: "/online", id: "online" },
   { icon: Users, label: "Customers", href: "/customers", id: "customers" },
