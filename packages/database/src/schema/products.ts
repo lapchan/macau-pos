@@ -7,8 +7,10 @@ import {
   boolean,
   timestamp,
   index,
+  uniqueIndex,
   jsonb,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { tenants } from "./tenants";
 import { categories } from "./categories";
 import { productStatusEnum } from "./enums";
@@ -34,10 +36,14 @@ export const products = pgTable(
     description: varchar("description", { length: 1000 }),
     descTranslations: jsonb("desc_translations").$type<Record<string, string>>().default({}),
 
+    // URL slug for storefront (auto-generated from EN translation)
+    slug: varchar("slug", { length: 200 }),
+
     // Identifiers
     sku: varchar("sku", { length: 100 }),
     barcode: varchar("barcode", { length: 100 }),
-    image: varchar("image", { length: 500 }),
+    image: varchar("image", { length: 500 }), // legacy single image (admin/cashier still read this)
+    images: jsonb("images").$type<{ url: string; alt?: string; altTranslations?: Record<string, string>; variantId?: string; sortOrder: number }[]>().default([]),
 
     // Pricing
     sellingPrice: decimal("selling_price", {
@@ -76,6 +82,8 @@ export const products = pgTable(
     ),
     index("idx_products_tenant_status").on(table.tenantId, table.status),
     index("idx_products_barcode").on(table.tenantId, table.barcode),
+    uniqueIndex("idx_products_tenant_slug").on(table.tenantId, table.slug)
+      .where(sql`${table.slug} IS NOT NULL AND ${table.deletedAt} IS NULL`),
   ]
 );
 

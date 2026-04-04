@@ -18,3 +18,14 @@ export * from "./order-items";
 export * from "./payments";
 export * from "./terminals";
 export * from "./terminal-cash-log";
+
+// Storefront tables
+export * from "./customers";
+export * from "./customer-sessions";
+export * from "./customer-addresses";
+export * from "./carts";
+export * from "./cart-items";
+export * from "./verification-codes";
+export * from "./storefront-configs";
+export * from "./storefront-pages";
+export * from "./delivery-zones";

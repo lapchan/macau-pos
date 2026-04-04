@@ -6,8 +6,10 @@ import {
   boolean,
   timestamp,
   index,
+  uniqueIndex,
   jsonb,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { tenants } from "./tenants";
 
 export const categories = pgTable(
@@ -19,6 +21,8 @@ export const categories = pgTable(
       .references(() => tenants.id, { onDelete: "cascade" }),
     // Sub-category support: null = top-level, uuid = child of parent
     parentCategoryId: uuid("parent_category_id"),
+    // URL slug for storefront (auto-generated from EN translation)
+    slug: varchar("slug", { length: 100 }),
     // Category name — always displayed
     name: varchar("name", { length: 100 }).notNull(),
     // Optional translations: { "en": "Beverages", "pt": "Bebidas" }
@@ -36,6 +40,8 @@ export const categories = pgTable(
   },
   (table) => [
     index("idx_categories_tenant").on(table.tenantId, table.sortOrder),
+    uniqueIndex("idx_categories_tenant_slug").on(table.tenantId, table.slug)
+      .where(sql`${table.slug} IS NOT NULL`),
   ]
 );
 
