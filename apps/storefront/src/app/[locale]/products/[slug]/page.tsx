@@ -22,15 +22,28 @@ export default async function ProductDetailPage({ params }: Props) {
     ? [{ url: product.image, alt: product.name }]
     : [];
 
-  // Fetch related products (same category, exclude current)
-  const { products: related } = await getStorefrontProducts(tenant.id, {
+  // Fetch related products (same category first, then popular fallback)
+  let { products: related } = await getStorefrontProducts(tenant.id, {
     categorySlug: product.categorySlug || undefined,
-    pageSize: 4,
+    pageSize: 8,
     sortBy: "popular",
   });
 
+  // Exclude current product
+  related = related.filter((p) => p.id !== product.id);
+
+  // If same category has too few, backfill with popular products
+  if (related.length < 4) {
+    const { products: popular } = await getStorefrontProducts(tenant.id, {
+      pageSize: 8,
+      sortBy: "popular",
+    });
+    const existingIds = new Set([product.id, ...related.map((p) => p.id)]);
+    const backfill = popular.filter((p) => !existingIds.has(p.id));
+    related = [...related, ...backfill];
+  }
+
   const relatedProducts = related
-    .filter((p) => p.id !== product.id)
     .slice(0, 4)
     .map((p) => ({
       id: p.id,
