@@ -1,8 +1,9 @@
 import { resolveTenant } from "@/lib/tenant-resolver";
 import { getDeliveryZonesForCheckout } from "@/lib/storefront-queries";
-import { notFound } from "next/navigation";
-import CheckoutForm from "@/components/checkout/checkout-form";
-import { db, locations, eq } from "@macau-pos/database";
+import { getCart } from "@/lib/actions/cart";
+import { notFound, redirect } from "next/navigation";
+import { db, locations, eq, getDisplayName } from "@macau-pos/database";
+import CheckoutClient from "./client";
 
 export default async function CheckoutPage({
   params,
@@ -13,7 +14,12 @@ export default async function CheckoutPage({
   const tenant = await resolveTenant();
   if (!tenant) notFound();
 
-  // Get first location for delivery zones
+  const cart = await getCart();
+  if (!cart || cart.items.length === 0) {
+    redirect(`/${locale}/cart`);
+  }
+
+  // Get delivery zones
   const locs = await db
     .select()
     .from(locations)
@@ -24,24 +30,26 @@ export default async function CheckoutPage({
     ? await getDeliveryZonesForCheckout(tenant.id, locs[0].id)
     : [];
 
-  // Map delivery zones to the format CheckoutForm expects
   const zones = deliveryZones.map((z) => ({
     id: z.id,
     name: ((z.nameTranslations as Record<string, string>)?.[locale]) || z.name,
     fee: parseFloat(String(z.fee)),
-    minOrder: parseFloat(String(z.minOrder)),
     freeAbove: z.freeAbove ? parseFloat(String(z.freeAbove)) : null,
-    estimatedMinutes: z.estimatedMinutes,
   }));
 
-  // TODO: Load cart subtotal from DB
-  const subtotal = 0;
+  const items = cart.items.map((item) => ({
+    id: item.id,
+    name: getDisplayName(item.name, item.translations, locale),
+    price: item.price,
+    quantity: item.quantity,
+    image: item.image,
+  }));
 
   return (
-    <CheckoutForm
-      locale={locale}
+    <CheckoutClient
+      items={items}
       deliveryZones={zones}
-      subtotal={subtotal}
+      locale={locale}
     />
   );
 }
