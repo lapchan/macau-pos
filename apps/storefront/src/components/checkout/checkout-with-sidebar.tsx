@@ -262,7 +262,7 @@ export default function CheckoutWithSidebar({
 
             {/* Form */}
             <form
-              className="mt-6"
+              className="mt-8"
               onSubmit={async (e) => {
                 e.preventDefault();
                 if (!onSubmit) return;
@@ -283,49 +283,64 @@ export default function CheckoutWithSidebar({
                 setSubmitting(false);
               }}
             >
-              <div className="grid grid-cols-12 gap-x-4 gap-y-6">
-                {/* Contact */}
-                <div className="col-span-full">
-                  <label htmlFor="email" className="block text-sm/6 font-medium text-gray-700">
-                    {t(locale, "電郵地址", "Email address", "Email", "メールアドレス")}
-                  </label>
-                  <div className="mt-1">
-                    <input id="email" name="email" type="email" autoComplete="email" className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+              {/* ---- Shipping information section ---- */}
+              <h3 className="text-lg font-semibold text-gray-900">
+                {t(locale, "收件資訊", "Shipping information", "Informações de envio", "配送情報")}
+              </h3>
+
+              <div className="mt-6 space-y-8">
+                {/* First name / Last name — two columns */}
+                <div className="grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="first-name" className="block text-sm font-semibold text-gray-700">
+                      {t(locale, "名字", "First name", "Nome", "名")}
+                    </label>
+                    <div className="mt-2">
+                      <input id="first-name" name="first-name" type="text" autoComplete="given-name" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors" />
+                    </div>
+                  </div>
+                  <div>
+                    <label htmlFor="last-name" className="block text-sm font-semibold text-gray-700">
+                      {t(locale, "姓氏", "Last name", "Sobrenome", "姓")}
+                    </label>
+                    <div className="mt-2">
+                      <input id="last-name" name="last-name" type="text" autoComplete="family-name" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors" />
+                    </div>
                   </div>
                 </div>
 
-                {/* Name */}
-                <div className="col-span-full">
-                  <label htmlFor="name" className="block text-sm/6 font-medium text-gray-700">
-                    {t(locale, "收件人姓名", "Recipient name", "Nome", "お名前")}
+                {/* Email */}
+                <div>
+                  <label htmlFor="email" className="block text-sm font-semibold text-gray-700">
+                    {t(locale, "電郵地址", "Email address", "Email", "メールアドレス")}
                   </label>
-                  <div className="mt-1">
-                    <input id="name" name="name" type="text" autoComplete="name" className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                  <div className="mt-2">
+                    <input id="email" name="email" type="email" autoComplete="email" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors" />
                   </div>
                 </div>
 
                 {/* Phone */}
-                <div className="col-span-full">
-                  <label htmlFor="phone" className="block text-sm/6 font-medium text-gray-700">
-                    {t(locale, "聯絡電話", "Phone number", "Telefone", "電話番号")}
+                <div>
+                  <label htmlFor="phone" className="block text-sm font-semibold text-gray-700">
+                    {t(locale, "聯絡電話", "Phone", "Telefone", "電話番号")}
                   </label>
-                  <div className="mt-1">
-                    <input id="phone" name="phone" type="tel" autoComplete="tel" placeholder="+853 6XXX XXXX" className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                  <div className="mt-2">
+                    <input id="phone" name="phone" type="tel" autoComplete="tel" placeholder="+853 6XXX XXXX" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors" />
                   </div>
                 </div>
 
                 {/* Delivery method */}
-                <div className="col-span-full">
-                  <label className="block text-sm/6 font-medium text-gray-700">
-                    {t(locale, "配送方式", "Delivery method", "Método", "配送方法")}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700">
+                    {t(locale, "配送方式", "Delivery method", "Método de entrega", "配送方法")}
                   </label>
-                  <div className="mt-2 grid grid-cols-2 gap-3">
+                  <div className="mt-3 grid grid-cols-2 gap-4">
                     {(["delivery", "pickup"] as const).map((method) => (
                       <button
                         key={method}
                         type="button"
                         onClick={() => setDeliveryMethod(method)}
-                        className={`rounded-md border px-3 py-2 text-sm font-medium ${deliveryMethod === method ? "border-indigo-500 bg-indigo-50 text-indigo-700" : "border-gray-300 text-gray-700 hover:bg-gray-50"}`}
+                        className={`rounded-lg border-2 px-4 py-3 text-sm font-medium transition-colors ${deliveryMethod === method ? "border-indigo-500 bg-indigo-50 text-indigo-700" : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"}`}
                       >
                         {method === "delivery"
                           ? t(locale, "送貨", "Delivery", "Entrega", "配送")
@@ -338,16 +353,16 @@ export default function CheckoutWithSidebar({
 
                 {/* Delivery zone */}
                 {deliveryMethod === "delivery" && deliveryZones.length > 0 && (
-                  <div className="col-span-full">
-                    <label htmlFor="zone" className="block text-sm/6 font-medium text-gray-700">
-                      {t(locale, "送貨區域", "Delivery zone", "Zona", "配送エリア")}
+                  <div>
+                    <label htmlFor="zone" className="block text-sm font-semibold text-gray-700">
+                      {t(locale, "送貨區域", "Delivery zone", "Zona de entrega", "配送エリア")}
                     </label>
-                    <div className="mt-1">
+                    <div className="mt-2">
                       <select
                         id="zone"
                         value={selectedZone}
                         onChange={(e) => setSelectedZone(e.target.value)}
-                        className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                        className="appearance-none block w-full rounded-lg border border-gray-300 bg-white bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%236b7280%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.22%208.22a.75.75%200%200%201%201.06%200L10%2011.94l3.72-3.72a.75.75%200%201%201%201.06%201.06l-4.25%204.25a.75.75%200%200%201-1.06%200L5.22%209.28a.75.75%200%200%201%200-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem_1.25rem] bg-[position:right_0.75rem_center] bg-no-repeat px-4 py-3 pr-10 text-base text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors"
                       >
                         {deliveryZones.map((z) => (
                           <option key={z.id} value={z.id}>
@@ -360,54 +375,78 @@ export default function CheckoutWithSidebar({
                   </div>
                 )}
 
-                {/* Address (delivery only) */}
+                {/* Address fields (delivery only) */}
                 {deliveryMethod === "delivery" && (
                   <>
-                    <div className="col-span-full">
-                      <label htmlFor="address" className="block text-sm/6 font-medium text-gray-700">
+                    <div>
+                      <label htmlFor="address" className="block text-sm font-semibold text-gray-700">
                         {t(locale, "地址", "Address", "Endereço", "住所")}
                       </label>
-                      <div className="mt-1">
-                        <input id="address" name="address" type="text" autoComplete="street-address" className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                      <div className="mt-2">
+                        <input id="address" name="address" type="text" autoComplete="street-address" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors" />
                       </div>
                     </div>
 
-                    <div className="col-span-full sm:col-span-4">
-                      <label htmlFor="district" className="block text-sm/6 font-medium text-gray-700">
-                        {t(locale, "區域", "District", "Distrito", "地区")}
+                    <div>
+                      <label htmlFor="address2" className="block text-sm font-semibold text-gray-700">
+                        {t(locale, "地址補充", "Apartment, suite, etc.", "Complemento", "建物名・部屋番号")}
                       </label>
-                      <div className="mt-1">
-                        <input id="district" name="district" type="text" className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                      <div className="mt-2">
+                        <input id="address2" name="address2" type="text" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors" />
                       </div>
                     </div>
 
-                    <div className="col-span-full sm:col-span-4">
-                      <label className="block text-sm/6 font-medium text-gray-700">
-                        {t(locale, "城市", "City", "Cidade", "都市")}
-                      </label>
-                      <div className="mt-1">
-                        <input type="text" defaultValue="Macau" readOnly className="block w-full rounded-md bg-gray-50 px-3 py-2 text-base text-gray-500 outline-1 -outline-offset-1 outline-gray-300 sm:text-sm/6" />
+                    {/* City / Country — two columns */}
+                    <div className="grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700">
+                          {t(locale, "城市", "City", "Cidade", "都市")}
+                        </label>
+                        <div className="mt-2">
+                          <input type="text" defaultValue="Macau" readOnly className="block w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-500 cursor-not-allowed" />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700">
+                          {t(locale, "國家/地區", "Country", "País", "国/地域")}
+                        </label>
+                        <div className="mt-2">
+                          <select className="appearance-none block w-full rounded-lg border border-gray-300 bg-white bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%236b7280%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.22%208.22a.75.75%200%200%201%201.06%200L10%2011.94l3.72-3.72a.75.75%200%201%201%201.06%201.06l-4.25%204.25a.75.75%200%200%201-1.06%200L5.22%209.28a.75.75%200%200%201%200-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem_1.25rem] bg-[position:right_0.75rem_center] bg-no-repeat px-4 py-3 pr-10 text-base text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors">
+                            <option>Macau (澳門)</option>
+                          </select>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="col-span-full sm:col-span-4">
-                      <label htmlFor="postal" className="block text-sm/6 font-medium text-gray-700">
-                        {t(locale, "郵政編碼", "Postal code", "CEP", "郵便番号")}
-                      </label>
-                      <div className="mt-1">
-                        <input id="postal" name="postal" type="text" autoComplete="postal-code" className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                    {/* District / Postal — two columns */}
+                    <div className="grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2">
+                      <div>
+                        <label htmlFor="district" className="block text-sm font-semibold text-gray-700">
+                          {t(locale, "區域", "State / Province", "Estado", "地区")}
+                        </label>
+                        <div className="mt-2">
+                          <input id="district" name="district" type="text" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors" />
+                        </div>
+                      </div>
+                      <div>
+                        <label htmlFor="postal" className="block text-sm font-semibold text-gray-700">
+                          {t(locale, "郵政編碼", "Postal code", "CEP", "郵便番号")}
+                        </label>
+                        <div className="mt-2">
+                          <input id="postal" name="postal" type="text" autoComplete="postal-code" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors" />
+                        </div>
                       </div>
                     </div>
                   </>
                 )}
 
                 {/* Notes */}
-                <div className="col-span-full">
-                  <label htmlFor="notes" className="block text-sm/6 font-medium text-gray-700">
+                <div>
+                  <label htmlFor="notes" className="block text-sm font-semibold text-gray-700">
                     {t(locale, "備註", "Order notes", "Notas", "備考")}
                   </label>
-                  <div className="mt-1">
-                    <input id="notes" name="notes" type="text" placeholder={t(locale, "可選", "Optional", "Opcional", "任意")} className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6" />
+                  <div className="mt-2">
+                    <input id="notes" name="notes" type="text" placeholder={t(locale, "可選", "Optional", "Opcional", "任意")} className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors" />
                   </div>
                 </div>
               </div>
@@ -416,7 +455,7 @@ export default function CheckoutWithSidebar({
               <button
                 type="submit"
                 disabled={submitting}
-                className="mt-6 w-full rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-gray-300"
+                className="mt-10 w-full rounded-lg border border-transparent bg-indigo-600 px-6 py-3.5 text-base font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-gray-300 transition-colors"
               >
                 {submitting
                   ? "..."
