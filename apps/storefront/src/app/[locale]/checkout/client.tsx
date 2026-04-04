@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import CheckoutWithSidebar from "@/components/checkout/checkout-with-sidebar";
+import CheckoutSplit from "@/components/checkout/checkout-split";
 import { createOrder } from "@/lib/actions/order";
 
 type Props = {
@@ -14,7 +14,7 @@ export default function CheckoutClient({ items, deliveryZones, locale }: Props) 
   const router = useRouter();
 
   return (
-    <CheckoutWithSidebar
+    <CheckoutSplit
       items={items}
       deliveryZones={deliveryZones}
       locale={locale}
