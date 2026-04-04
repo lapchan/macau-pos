@@ -2,7 +2,6 @@ import { resolveTenant } from "@/lib/tenant-resolver";
 import { getStorefrontProducts, getStorefrontCategories } from "@/lib/storefront-queries";
 import { getDisplayName } from "@macau-pos/database";
 import { notFound } from "next/navigation";
-import ProductCard from "@/components/product/product-card";
 import ProductFilters from "./filters";
 
 type Props = {
@@ -42,7 +41,10 @@ export default async function ProductsPage({ params, searchParams }: Props) {
     : null;
   const pageTitle = currentCategory
     ? getDisplayName(currentCategory.name, currentCategory.translations as Record<string, string>, locale)
-    : t(locale, "全部商品", "All Products", "Todos os Produtos", "全商品");
+    : t(locale, "全部商品", "New Arrivals", "Novidades", "新着商品");
+  const pageSubtitle = currentCategory
+    ? `${total} ${t(locale, "件商品", "products", "produtos", "商品")}`
+    : t(locale, "瀏覽我們的精選商品，找到您喜愛的好物。", "Checkout out our latest products, curated for you.", "Confira nossos produtos mais recentes.", "最新商品をチェックしてください。");
 
   // Build URL helper
   const buildUrl = (overrides: Record<string, string | undefined>) => {
@@ -72,27 +74,26 @@ export default async function ProductsPage({ params, searchParams }: Props) {
   return (
     <div className="bg-white">
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Header */}
-        <div className="flex items-baseline justify-between border-b border-gray-200 pt-24 pb-6">
-          <h1 className="text-4xl font-bold tracking-tight text-gray-900">{pageTitle}</h1>
+        {/* ============================================================ */}
+        {/* Hero header with background                                  */}
+        {/* ============================================================ */}
+        <div className="relative overflow-hidden rounded-lg bg-gray-900 px-6 py-16 sm:py-24 text-center mt-6">
+          {/* Subtle gradient background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-gray-800 to-gray-950" />
+          <div className="relative">
+            <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">{pageTitle}</h1>
+            <p className="mt-4 text-base text-gray-300">{pageSubtitle}</p>
+          </div>
+        </div>
 
-          <div className="flex items-center">
-            {/* Sort dropdown (desktop) */}
-            <div className="relative hidden sm:block">
-              <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-500">{t(locale, "排序", "Sort", "Ordenar", "並べ替え")}</span>
-                {sortOptions.map((opt) => (
-                  <a
-                    key={opt.value}
-                    href={opt.href}
-                    className={`text-sm ${sortBy === opt.value ? "font-medium text-gray-900" : "text-gray-500 hover:text-gray-700"}`}
-                  >
-                    {opt.label}
-                  </a>
-                ))}
-              </div>
-            </div>
-
+        {/* ============================================================ */}
+        {/* Filter bar + content                                         */}
+        {/* ============================================================ */}
+        <div className="flex items-center justify-between border-b border-gray-200 pt-10 pb-6">
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500">{total} {t(locale, "件商品", "products", "produtos", "商品")}</span>
+          </div>
+          <div className="flex items-center gap-4">
             {/* Mobile filter button */}
             <ProductFilters
               categories={categoryLinks}
@@ -110,109 +111,151 @@ export default async function ProductsPage({ params, searchParams }: Props) {
 
           <div className="grid grid-cols-1 gap-x-8 gap-y-10 lg:grid-cols-4">
             {/* ============================================================ */}
-            {/* Desktop sidebar filters                                      */}
+            {/* Sidebar filters (desktop)                                    */}
             {/* ============================================================ */}
-            <form className="hidden lg:block">
-              {/* Category links */}
-              <h3 className="sr-only">Categories</h3>
-              <ul role="list" className="space-y-4 border-b border-gray-200 pb-6 text-sm font-medium text-gray-900">
-                <li>
-                  <a
-                    href={buildUrl({ category: undefined, page: undefined })}
-                    className={!categorySlug ? "text-indigo-600 font-semibold" : "hover:text-gray-600"}
-                  >
-                    {t(locale, "全部", "All", "Todos", "すべて")}
-                  </a>
-                </li>
-                {categoryLinks.map((cat) => (
-                  <li key={cat.slug}>
-                    <a
-                      href={cat.href}
-                      className={cat.active ? "text-indigo-600 font-semibold" : "hover:text-gray-600"}
-                    >
-                      {cat.name}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-
-              {/* Price filter section */}
-              <details className="border-b border-gray-200 py-6">
-                <summary className="flex w-full items-center justify-between cursor-pointer py-3 text-sm text-gray-400 hover:text-gray-500 [&::-webkit-details-marker]:hidden">
-                  <span className="font-medium text-gray-900">{t(locale, "價格", "Price", "Preço", "価格")}</span>
-                  <span className="ml-6 flex items-center">
-                    <svg viewBox="0 0 20 20" fill="currentColor" className="size-5"><path d="M10.75 4.75a.75.75 0 0 0-1.5 0v4.5h-4.5a.75.75 0 0 0 0 1.5h4.5v4.5a.75.75 0 0 0 1.5 0v-4.5h4.5a.75.75 0 0 0 0-1.5h-4.5v-4.5Z" /></svg>
-                  </span>
-                </summary>
-                <div className="pt-6 space-y-4">
-                  {[
-                    { label: `${t(locale, "低於", "Under", "Abaixo de", "")} MOP 10`, href: buildUrl({ sort: "price_asc", page: undefined }) },
-                    { label: "MOP 10 - 25", href: buildUrl({ sort: "price_asc", page: undefined }) },
-                    { label: "MOP 25 - 50", href: buildUrl({ sort: "price_asc", page: undefined }) },
-                    { label: "MOP 50 - 100", href: buildUrl({ sort: "price_asc", page: undefined }) },
-                    { label: `MOP 100+`, href: buildUrl({ sort: "price_desc", page: undefined }) },
-                  ].map((range) => (
-                    <div key={range.label} className="flex gap-3">
-                      <div className="flex h-5 shrink-0 items-center">
-                        <input type="checkbox" className="size-4 rounded-sm border-gray-300 text-indigo-600 focus:ring-indigo-500" />
-                      </div>
-                      <label className="text-sm text-gray-600">{range.label}</label>
+            <aside className="hidden lg:block">
+              {/* Categories — checkbox style */}
+              <form>
+                {/* Category section */}
+                <fieldset>
+                  <legend className="block text-sm font-medium text-gray-900">
+                    {t(locale, "分類", "Category", "Categoria", "カテゴリー")}
+                  </legend>
+                  <div className="space-y-3 pt-6">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={!categorySlug}
+                        readOnly
+                        className="size-4 rounded-sm border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <a href={buildUrl({ category: undefined, page: undefined })} className="text-sm text-gray-600">
+                        {t(locale, "全部", "All", "Todos", "すべて")}
+                      </a>
                     </div>
-                  ))}
-                </div>
-              </details>
+                    {categoryLinks.map((cat) => (
+                      <div key={cat.slug} className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={cat.active}
+                          readOnly
+                          className="size-4 rounded-sm border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <a href={cat.href} className="text-sm text-gray-600">
+                          {cat.name}
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                </fieldset>
 
-              {/* Sort filter (desktop sidebar) */}
-              <details className="border-b border-gray-200 py-6" open>
-                <summary className="flex w-full items-center justify-between cursor-pointer py-3 text-sm text-gray-400 hover:text-gray-500 [&::-webkit-details-marker]:hidden">
-                  <span className="font-medium text-gray-900">{t(locale, "排序", "Sort by", "Ordenar", "並べ替え")}</span>
-                  <span className="ml-6 flex items-center">
-                    <svg viewBox="0 0 20 20" fill="currentColor" className="size-5"><path d="M4 10a.75.75 0 0 1 .75-.75h10.5a.75.75 0 0 1 0 1.5H4.75A.75.75 0 0 1 4 10Z" clipRule="evenodd" fillRule="evenodd" /></svg>
-                  </span>
-                </summary>
-                <div className="pt-6 space-y-4">
-                  {sortOptions.map((opt) => (
-                    <a key={opt.value} href={opt.href} className={`flex items-center gap-3 text-sm ${sortBy === opt.value ? "font-medium text-gray-900" : "text-gray-600 hover:text-gray-900"}`}>
-                      <span className={`size-4 rounded-full border-2 flex items-center justify-center ${sortBy === opt.value ? "border-indigo-600" : "border-gray-300"}`}>
-                        {sortBy === opt.value && <span className="size-2 rounded-full bg-indigo-600" />}
-                      </span>
-                      {opt.label}
-                    </a>
-                  ))}
-                </div>
-              </details>
-            </form>
+                {/* Sort section */}
+                <fieldset className="mt-8 border-t border-gray-200 pt-8">
+                  <legend className="block text-sm font-medium text-gray-900">
+                    {t(locale, "排序", "Sort", "Ordenar", "並べ替え")}
+                  </legend>
+                  <div className="space-y-3 pt-6">
+                    {sortOptions.map((opt) => (
+                      <div key={opt.value} className="flex items-center gap-3">
+                        <input
+                          type="checkbox"
+                          checked={sortBy === opt.value}
+                          readOnly
+                          className="size-4 rounded-sm border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <a href={opt.href} className="text-sm text-gray-600">
+                          {opt.label}
+                        </a>
+                      </div>
+                    ))}
+                  </div>
+                </fieldset>
+              </form>
+            </aside>
 
             {/* ============================================================ */}
-            {/* Product grid                                                 */}
+            {/* Product grid — with details (name + desc + price)            */}
             {/* ============================================================ */}
             <div className="lg:col-span-3">
-              {/* Result count */}
-              <p className="mb-6 text-sm text-gray-500">
-                {total} {t(locale, "件商品", "products", "produtos", "商品")}
-              </p>
-
               {products.length === 0 ? (
                 <div className="text-center py-16">
                   <p className="text-sm text-gray-500">
                     {t(locale, "找不到商品", "No products found", "Nenhum produto encontrado", "商品が見つかりません")}
                   </p>
                   <a href={`/${locale}/products`} className="mt-4 inline-block text-sm font-medium text-indigo-600 hover:text-indigo-500">
-                    {t(locale, "查看全部商品", "View all products", "Ver todos os produtos", "すべての商品を見る")}
+                    {t(locale, "查看全部商品", "View all products", "Ver todos", "すべて見る")}
                   </a>
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 xl:gap-x-8">
-                    {products.map((product) => (
-                      <ProductCard
-                        key={product.id}
-                        product={product as any}
-                        locale={locale}
-                        variant="with-inline"
-                        showCategory={!categorySlug}
-                      />
-                    ))}
+                  <div className="grid grid-cols-1 gap-y-12 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-3 xl:gap-x-8">
+                    {products.map((product) => {
+                      const name = getDisplayName(product.name, product.translations as Record<string, string>, locale);
+                      const price = parseFloat(String(product.sellingPrice));
+                      const originalPrice = product.originalPrice ? parseFloat(String(product.originalPrice)) : null;
+                      const catName = product.categoryName
+                        ? getDisplayName(product.categoryName, product.categoryTranslations as Record<string, string>, locale)
+                        : null;
+                      const inStock = product.stock === null || (product.stock !== null && product.stock > 0);
+                      const href = product.slug ? `/${locale}/products/${product.slug}` : "#";
+
+                      return (
+                        <div key={product.id}>
+                          <div className="relative">
+                            {/* Image */}
+                            <div className="relative h-72 w-full overflow-hidden rounded-lg">
+                              {product.image ? (
+                                <a href={href}>
+                                  <img
+                                    src={product.image}
+                                    alt={name}
+                                    className="size-full object-cover object-center transition-opacity hover:opacity-75"
+                                  />
+                                </a>
+                              ) : (
+                                <a href={href} className="flex size-full items-center justify-center bg-gray-100 text-gray-300 hover:bg-gray-50">
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                                    <circle cx="9" cy="9" r="2" />
+                                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                                  </svg>
+                                </a>
+                              )}
+
+                              {/* Sold out badge */}
+                              {!inStock && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-white/60 rounded-lg">
+                                  <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">
+                                    {t(locale, "售罄", "Sold out", "Esgotado", "売り切れ")}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Product details */}
+                            <div className="relative mt-4">
+                              <h3 className="text-sm font-medium text-gray-900">
+                                <a href={href}>{name}</a>
+                              </h3>
+                              {catName && !categorySlug && (
+                                <p className="mt-1 text-sm text-gray-500">{catName}</p>
+                              )}
+                            </div>
+
+                            {/* Price overlay at bottom of image */}
+                            <div className="absolute inset-x-0 top-0 flex h-72 items-end justify-end overflow-hidden rounded-lg p-4">
+                              <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-black opacity-50" />
+                              <div className="relative flex items-center gap-2">
+                                <p className="text-lg font-semibold text-white">MOP {price.toFixed(2)}</p>
+                                {originalPrice && originalPrice > price && (
+                                  <p className="text-sm text-gray-300 line-through">MOP {originalPrice.toFixed(2)}</p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   {/* Pagination */}
