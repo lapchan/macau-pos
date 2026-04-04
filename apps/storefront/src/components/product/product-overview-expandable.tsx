@@ -26,7 +26,8 @@ type ProductDetail = {
 
 type DetailSection = {
   title: string;
-  items: string[];
+  items?: string[];
+  content?: string;
   defaultOpen?: boolean;
 };
 
@@ -53,8 +54,8 @@ const t = (locale: string, tc: string, en: string, pt: string, ja: string) => {
   return m[locale] || en;
 };
 
-// Expandable disclosure section
-function DisclosureSection({ title, items, defaultOpen = false }: { title: string; items: string[]; defaultOpen?: boolean }) {
+// Expandable disclosure section — supports bullet items OR rich text content
+function DisclosureSection({ title, items, content, defaultOpen = false }: { title: string; items?: string[]; content?: string; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen);
 
   return (
@@ -79,11 +80,15 @@ function DisclosureSection({ title, items, defaultOpen = false }: { title: strin
       </h3>
       {open && (
         <div className="pb-6">
-          <ul role="list" className="list-disc space-y-1 pl-5 text-sm/6 text-gray-500 marker:text-gray-300">
-            {items.map((item, i) => (
-              <li key={i} className="pl-2">{item}</li>
-            ))}
-          </ul>
+          {content ? (
+            <div className="text-sm/6 text-gray-500 whitespace-pre-line">{content}</div>
+          ) : items ? (
+            <ul role="list" className="list-disc space-y-1 pl-5 text-sm/6 text-gray-500 marker:text-gray-300">
+              {items.map((item, i) => (
+                <li key={i} className="pl-2">{item}</li>
+              ))}
+            </ul>
+          ) : null}
         </div>
       )}
     </div>
@@ -112,17 +117,14 @@ export default function ProductOverviewExpandable({
   const price = parseFloat(String(product.sellingPrice));
   const inStock = product.stock == null || product.stock > 0;
 
-  // Default detail sections if none provided
-  const sections = detailSections || [
-    {
-      title: t(locale, "產品特色", "Features", "Características", "特徴"),
-      items: [
-        t(locale, "優質材料製造", "Premium quality materials", "Materiais de qualidade premium", "高品質素材"),
-        t(locale, "精心設計", "Carefully designed", "Design cuidadoso", "丁寧なデザイン"),
-        t(locale, "耐用持久", "Durable and long-lasting", "Durável e duradouro", "耐久性あり"),
-      ],
+  // Default detail sections — 商品描述 first, then shipping/returns
+  const sections: DetailSection[] = detailSections || [
+    // Product description as first expandable section (like Savewo's layout)
+    ...(description ? [{
+      title: t(locale, "商品描述", "Product Description", "Descrição", "商品説明"),
+      content: description,
       defaultOpen: true,
-    },
+    }] : []),
     {
       title: t(locale, "送貨資訊", "Shipping", "Envio", "配送情報"),
       items: [
@@ -258,13 +260,13 @@ export default function ProductOverviewExpandable({
               </div>
             </div>
 
-            {/* Description */}
+            {/* Short description (first sentence/paragraph) */}
             {description && (
               <div className="mt-6">
                 <h3 className="sr-only">{t(locale, "描述", "Description", "Descrição", "説明")}</h3>
-                <div className="space-y-6 text-base text-gray-700">
-                  <p>{description}</p>
-                </div>
+                <p className="text-base text-gray-700 line-clamp-3">
+                  {description.split("\n")[0]}
+                </p>
               </div>
             )}
 
@@ -312,6 +314,7 @@ export default function ProductOverviewExpandable({
                     key={i}
                     title={section.title}
                     items={section.items}
+                    content={section.content}
                     defaultOpen={section.defaultOpen}
                   />
                 ))}
@@ -319,20 +322,6 @@ export default function ProductOverviewExpandable({
             </section>
           </div>
         </div>
-
-        {/* ============================================================ */}
-        {/* Full product description section                             */}
-        {/* ============================================================ */}
-        {description && (
-          <section className="mt-16 border-t border-gray-200 pt-10">
-            <h2 className="text-xl font-bold text-gray-900">
-              {t(locale, "商品描述", "Product Description", "Descrição do Produto", "商品説明")}
-            </h2>
-            <div className="mt-6 prose prose-sm prose-gray max-w-none text-base leading-relaxed text-gray-700 whitespace-pre-line">
-              {description}
-            </div>
-          </section>
-        )}
 
         {/* ============================================================ */}
         {/* Related products — "Customers also bought"                   */}
