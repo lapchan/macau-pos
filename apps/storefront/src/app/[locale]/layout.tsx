@@ -1,6 +1,7 @@
 import { resolveTenant } from "@/lib/tenant-resolver";
 import { getStorefrontConfig, getStorefrontCategories } from "@/lib/storefront-queries";
-import { getCartCount } from "@/lib/actions/cart";
+import { getCart } from "@/lib/actions/cart";
+import { getDisplayName } from "@macau-pos/database";
 import StoreHeader from "@/components/layout/store-header";
 import StoreFooter from "@/components/layout/store-footer";
 import { notFound } from "next/navigation";
@@ -23,11 +24,21 @@ export default async function LocaleLayout({
   const tenant = await resolveTenant();
   if (!tenant) notFound();
 
-  const [config, categories, cartCount] = await Promise.all([
+  const [config, categories, cart] = await Promise.all([
     getStorefrontConfig(tenant.id),
     getStorefrontCategories(tenant.id),
-    getCartCount(),
+    getCart(),
   ]);
+
+  const cartCount = cart?.itemCount || 0;
+  const cartItems = (cart?.items || []).map((item) => ({
+    id: item.id,
+    name: getDisplayName(item.name, item.translations, locale),
+    price: item.price,
+    quantity: item.quantity,
+    image: item.image,
+    slug: item.slug,
+  }));
 
   const branding = config.branding as Record<string, unknown>;
   const accentColor = (branding?.accentColor as string) || tenant.accentColor || "#0071e3";
@@ -49,6 +60,7 @@ export default async function LocaleLayout({
         accentColor={accentColor}
         categories={categories as any}
         cartCount={cartCount}
+        cartItems={cartItems}
       />
 
       <main>{children}</main>

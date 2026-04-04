@@ -5,9 +5,9 @@ import {
   Bars3Icon,
   XMarkIcon,
   MagnifyingGlassIcon,
-  ShoppingBagIcon,
   QuestionMarkCircleIcon,
 } from "@heroicons/react/24/outline";
+import CartPopover from "@/components/cart/cart-popover";
 
 type Category = {
   id: string;
@@ -17,6 +17,16 @@ type Category = {
   icon: string | null;
 };
 
+type CartItem = {
+  id: string;
+  name: string;
+  variant?: string;
+  price: number;
+  quantity: number;
+  image?: string | null;
+  slug?: string | null;
+};
+
 type Props = {
   locale: string;
   tenantName: string;
@@ -24,6 +34,7 @@ type Props = {
   accentColor: string;
   categories: Category[];
   cartCount?: number;
+  cartItems?: CartItem[];
 };
 
 const t = (locale: string, tc: string, en: string, pt: string, ja: string) => {
@@ -31,7 +42,7 @@ const t = (locale: string, tc: string, en: string, pt: string, ja: string) => {
   return m[locale] || en;
 };
 
-export default function StoreHeader({ locale, tenantName, tenantLogo, accentColor, categories, cartCount = 0 }: Props) {
+export default function StoreHeader({ locale, tenantName, tenantLogo, accentColor, categories, cartCount = 0, cartItems = [] }: Props) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -233,15 +244,13 @@ export default function StoreHeader({ locale, tenantName, tenantLogo, accentColo
                         {t(locale, "幫助", "Help", "Ajuda", "ヘルプ")}
                       </a>
 
-                      {/* Cart */}
+                      {/* Cart popover */}
                       <div className="ml-4 flow-root lg:ml-8">
-                        <a href={`/${locale}/cart`} className="group -m-2 flex items-center p-2">
-                          <ShoppingBagIcon className="size-6 shrink-0 text-white" aria-hidden="true" />
-                          <span className="ml-2 text-sm font-medium text-white">{cartCount}</span>
-                          <span className="sr-only">
-                            {t(locale, "購物車", "items in cart, view bag", "itens no carrinho", "カート内のアイテム")}
-                          </span>
-                        </a>
+                        <CartPopover
+                          items={cartItems}
+                          itemCount={cartCount}
+                          locale={locale}
+                        />
                       </div>
                     </div>
                   </div>
