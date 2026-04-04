@@ -19,7 +19,11 @@ export const localeFlags: Record<Locale, string> = {
 type TranslationKeys = {
   // Header
   search: string;
+  cancel: string;
+  addFilter: string;
   member: string;
+  lock: string;
+  logout: string;
   language: string;
 
   // Categories
@@ -37,6 +41,12 @@ type TranslationKeys = {
   outOfStock: string;
   noResults: string;
   tryOther: string;
+  variants: string;
+  variantsAvailable: string;
+  selectOptions: string;
+  addToCartWith: string;
+  inStock: string;
+  unlimitedStock: string;
 
   // Cart
   cart: string;
@@ -97,12 +107,84 @@ type TranslationKeys = {
   // History
   history: string;
   receipts: string;
+
+  // Receipt template
+  receiptOrder: string;
+  receiptDate: string;
+  receiptSubtotal: string;
+  receiptTax: string;
+  receiptTotal: string;
+  receiptPayment: string;
+  receiptCashReceived: string;
+  receiptChange: string;
+  receiptThankYou: string;
+  receiptReprint: string;
+  receiptPrinting: string;
+
+  // History page
+  orderHistory: string;
+  historyOrders: string;
+  noOrdersYet: string;
+  ordersWillAppear: string;
+  historyItems: string;
+  historyItem: string;
+  historyPayment: string;
+  status_completed: string;
+  status_pending: string;
+  status_refunded: string;
+  status_voided: string;
+
+  // History filters
+  filterThisShift: string;
+  filterToday: string;
+  filterYesterday: string;
+  filterLast7Days: string;
+  filterClear: string;
+  searchOrderNumber: string;
+  noMatchingOrders: string;
+  tryAdjustFilters: string;
+  loadingOrders: string;
+  currentShift: string;
+
+  // Error
+  paymentFailedHint: string;
+
+  // Shift
+  shiftStart: string;
+  shiftStartSub: string;
+  shiftOpeningFloat: string;
+  shiftFloatHint: string;
+  shiftStartBtn: string;
+  shiftStarting: string;
+  shiftFloatZero: string;
+  shiftSummary: string;
+  shiftDuration: string;
+  shiftOrders: string;
+  shiftSales: string;
+  shiftPaymentBreakdown: string;
+  shiftExpectedCash: string;
+  shiftEndBtn: string;
+  shiftEnd: string;
+  shiftEndSub: string;
+  shiftActualCash: string;
+  shiftVariance: string;
+  shiftWithinTolerance: string;
+  shiftOverTolerance: string;
+  shiftNotes: string;
+  shiftNotesPlaceholder: string;
+  shiftCloseBtn: string;
+  shiftClosing: string;
+  shiftClosed: string;
 };
 
 const translations: Record<Locale, TranslationKeys> = {
   tc: {
     search: "搜尋商品...",
+    cancel: "取消",
+    addFilter: "新增篩選...",
     member: "會員",
+    lock: "鎖定",
+    logout: "登出",
     language: "語言",
     all: "全部",
     beverages: "飲品",
@@ -116,6 +198,12 @@ const translations: Record<Locale, TranslationKeys> = {
     outOfStock: "售罄",
     noResults: "找不到商品",
     tryOther: "嘗試其他搜尋字詞",
+    variants: "多款",
+    variantsAvailable: "{count} 款可選",
+    selectOptions: "請選擇規格",
+    addToCartWith: "加入購物車 · MOP {price}",
+    inStock: "{count} 件有貨",
+    unlimitedStock: "庫存充足",
     cart: "購物車",
     emptyCart: "購物車是空的",
     tapToAdd: "點擊商品以添加",
@@ -168,10 +256,72 @@ const translations: Record<Locale, TranslationKeys> = {
     terminalMode: "終端模式",
     history: "紀錄",
     receipts: "單據",
+    receiptOrder: "訂單",
+    receiptDate: "日期",
+    receiptSubtotal: "小計",
+    receiptTax: "稅額",
+    receiptTotal: "合計",
+    receiptPayment: "付款方式",
+    receiptCashReceived: "收到現金",
+    receiptChange: "找零",
+    receiptThankYou: "多謝光臨！",
+    receiptReprint: "重印收據",
+    receiptPrinting: "列印中...",
+    orderHistory: "訂單紀錄",
+    historyOrders: "張訂單",
+    noOrdersYet: "暫無訂單",
+    ordersWillAppear: "完成訂單後會顯示在此處",
+    historyItems: "件",
+    historyItem: "件",
+    historyPayment: "付款方式",
+    status_completed: "已完成",
+    status_pending: "處理中",
+    status_refunded: "已退款",
+    status_voided: "已作廢",
+    filterThisShift: "本班",
+    filterToday: "今天",
+    filterYesterday: "昨天",
+    filterLast7Days: "近7天",
+    filterClear: "清除",
+    searchOrderNumber: "搜尋訂單編號...",
+    noMatchingOrders: "沒有符合的訂單",
+    tryAdjustFilters: "請調整篩選條件",
+    loadingOrders: "載入中...",
+    currentShift: "本班",
+    paymentFailedHint: "請重試或選擇其他付款方式",
+    shiftStart: "開始輪更",
+    shiftStartSub: "登入後開始你的輪更",
+    shiftOpeningFloat: "開班金額 (MOP)",
+    shiftFloatHint: "開始前請點算現金",
+    shiftStartBtn: "開始輪更",
+    shiftStarting: "開始中...",
+    shiftFloatZero: "如無現金可輸入 0",
+    shiftSummary: "輪更摘要",
+    shiftDuration: "時長",
+    shiftOrders: "訂單",
+    shiftSales: "銷售",
+    shiftPaymentBreakdown: "付款方式明細",
+    shiftExpectedCash: "應有現金",
+    shiftEndBtn: "結束輪更",
+    shiftEnd: "結束輪更",
+    shiftEndSub: "請點算現金",
+    shiftActualCash: "實際現金",
+    shiftVariance: "差異",
+    shiftWithinTolerance: "在容許範圍內 (±MOP 5)",
+    shiftOverTolerance: "超出容許範圍 — 需經理審批",
+    shiftNotes: "備註（選填）",
+    shiftNotesPlaceholder: "添加輪更備註...",
+    shiftCloseBtn: "結束輪更",
+    shiftClosing: "結束中...",
+    shiftClosed: "輪更已結束",
   },
   sc: {
     search: "搜索商品...",
+    cancel: "取消",
+    addFilter: "添加筛选...",
     member: "会员",
+    lock: "锁定",
+    logout: "登出",
     language: "语言",
     all: "全部",
     beverages: "饮品",
@@ -185,6 +335,12 @@ const translations: Record<Locale, TranslationKeys> = {
     outOfStock: "售罄",
     noResults: "找不到商品",
     tryOther: "尝试其他搜索词",
+    variants: "多款",
+    variantsAvailable: "{count} 款可选",
+    selectOptions: "请选择规格",
+    addToCartWith: "加入购物车 · MOP {price}",
+    inStock: "{count} 件有货",
+    unlimitedStock: "库存充足",
     cart: "购物车",
     emptyCart: "购物车是空的",
     tapToAdd: "点击商品添加",
@@ -237,10 +393,72 @@ const translations: Record<Locale, TranslationKeys> = {
     terminalMode: "终端模式",
     history: "记录",
     receipts: "单据",
+    receiptOrder: "订单",
+    receiptDate: "日期",
+    receiptSubtotal: "小计",
+    receiptTax: "税额",
+    receiptTotal: "合计",
+    receiptPayment: "付款方式",
+    receiptCashReceived: "收到现金",
+    receiptChange: "找零",
+    receiptThankYou: "感谢光临！",
+    receiptReprint: "重印收据",
+    receiptPrinting: "打印中...",
+    orderHistory: "订单记录",
+    historyOrders: "张订单",
+    noOrdersYet: "暂无订单",
+    ordersWillAppear: "完成订单后会显示在此处",
+    historyItems: "件",
+    historyItem: "件",
+    historyPayment: "付款方式",
+    status_completed: "已完成",
+    status_pending: "处理中",
+    status_refunded: "已退款",
+    status_voided: "已作废",
+    filterThisShift: "本班",
+    filterToday: "今天",
+    filterYesterday: "昨天",
+    filterLast7Days: "近7天",
+    filterClear: "清除",
+    searchOrderNumber: "搜索订单编号...",
+    noMatchingOrders: "没有符合的订单",
+    tryAdjustFilters: "请调整筛选条件",
+    loadingOrders: "加载中...",
+    currentShift: "本班",
+    paymentFailedHint: "请重试或选择其他付款方式",
+    shiftStart: "开始轮更",
+    shiftStartSub: "登入后开始你的轮更",
+    shiftOpeningFloat: "开班金额 (MOP)",
+    shiftFloatHint: "开始前请点算现金",
+    shiftStartBtn: "开始轮更",
+    shiftStarting: "开始中...",
+    shiftFloatZero: "如无现金可输入 0",
+    shiftSummary: "轮更摘要",
+    shiftDuration: "时长",
+    shiftOrders: "订单",
+    shiftSales: "销售",
+    shiftPaymentBreakdown: "付款方式明细",
+    shiftExpectedCash: "应有现金",
+    shiftEndBtn: "结束轮更",
+    shiftEnd: "结束轮更",
+    shiftEndSub: "请点算现金",
+    shiftActualCash: "实际现金",
+    shiftVariance: "差异",
+    shiftWithinTolerance: "在容许范围内 (±MOP 5)",
+    shiftOverTolerance: "超出容许范围 — 需经理审批",
+    shiftNotes: "备注（选填）",
+    shiftNotesPlaceholder: "添加轮更备注...",
+    shiftCloseBtn: "结束轮更",
+    shiftClosing: "结束中...",
+    shiftClosed: "轮更已结束",
   },
   en: {
     search: "Search items...",
+    cancel: "Cancel",
+    addFilter: "Add filter...",
     member: "Member",
+    lock: "Lock",
+    logout: "Logout",
     language: "Language",
     all: "All",
     beverages: "Drinks",
@@ -254,6 +472,12 @@ const translations: Record<Locale, TranslationKeys> = {
     outOfStock: "Sold out",
     noResults: "No items found",
     tryOther: "Try a different search",
+    variants: "Options",
+    variantsAvailable: "{count} variants available",
+    selectOptions: "Select options",
+    addToCartWith: "Add to cart · MOP {price}",
+    inStock: "{count} in stock",
+    unlimitedStock: "Unlimited stock",
     cart: "Cart",
     emptyCart: "Cart is empty",
     tapToAdd: "Tap items to add",
@@ -306,10 +530,72 @@ const translations: Record<Locale, TranslationKeys> = {
     terminalMode: "Terminal mode",
     history: "History",
     receipts: "Receipts",
+    receiptOrder: "Order",
+    receiptDate: "Date",
+    receiptSubtotal: "Subtotal",
+    receiptTax: "Tax",
+    receiptTotal: "Total",
+    receiptPayment: "Payment",
+    receiptCashReceived: "Cash received",
+    receiptChange: "Change",
+    receiptThankYou: "Thank you!",
+    receiptReprint: "Reprint receipt",
+    receiptPrinting: "Printing...",
+    orderHistory: "Order History",
+    historyOrders: "orders",
+    noOrdersYet: "No orders yet",
+    ordersWillAppear: "Orders will appear here once completed",
+    historyItems: "items",
+    historyItem: "item",
+    historyPayment: "Payment",
+    status_completed: "Completed",
+    status_pending: "Pending",
+    status_refunded: "Refunded",
+    status_voided: "Voided",
+    filterThisShift: "This Shift",
+    filterToday: "Today",
+    filterYesterday: "Yesterday",
+    filterLast7Days: "Last 7 Days",
+    filterClear: "Clear",
+    searchOrderNumber: "Search order number...",
+    noMatchingOrders: "No matching orders",
+    tryAdjustFilters: "Try adjusting your filters",
+    loadingOrders: "Loading...",
+    currentShift: "Current shift",
+    paymentFailedHint: "Please try again or use another method",
+    shiftStart: "Start Your Shift",
+    shiftStartSub: "Sign in to start your shift",
+    shiftOpeningFloat: "Opening Cash Float (MOP)",
+    shiftFloatHint: "Count your cash drawer before starting",
+    shiftStartBtn: "Start Shift",
+    shiftStarting: "Opening...",
+    shiftFloatZero: "Enter 0 if no cash float",
+    shiftSummary: "Shift Summary",
+    shiftDuration: "Duration",
+    shiftOrders: "Orders",
+    shiftSales: "Sales",
+    shiftPaymentBreakdown: "Payment Breakdown",
+    shiftExpectedCash: "Expected Cash",
+    shiftEndBtn: "End Shift",
+    shiftEnd: "End Shift",
+    shiftEndSub: "Count your cash drawer",
+    shiftActualCash: "Actual Cash Counted",
+    shiftVariance: "Variance",
+    shiftWithinTolerance: "Within tolerance (±MOP 5)",
+    shiftOverTolerance: "Exceeds tolerance — requires manager approval",
+    shiftNotes: "Notes (optional)",
+    shiftNotesPlaceholder: "Add any notes about this shift...",
+    shiftCloseBtn: "Close Shift",
+    shiftClosing: "Closing...",
+    shiftClosed: "Shift Closed",
   },
   pt: {
     search: "Pesquisar produtos...",
+    cancel: "Cancelar",
+    addFilter: "Adicionar filtro...",
     member: "Membro",
+    lock: "Bloquear",
+    logout: "Sair",
     language: "Idioma",
     all: "Todos",
     beverages: "Bebidas",
@@ -323,6 +609,12 @@ const translations: Record<Locale, TranslationKeys> = {
     outOfStock: "Esgotado",
     noResults: "Nenhum produto encontrado",
     tryOther: "Tente outra pesquisa",
+    variants: "Opções",
+    variantsAvailable: "{count} variantes disponíveis",
+    selectOptions: "Selecionar opções",
+    addToCartWith: "Adicionar · MOP {price}",
+    inStock: "{count} em estoque",
+    unlimitedStock: "Estoque ilimitado",
     cart: "Carrinho",
     emptyCart: "Carrinho vazio",
     tapToAdd: "Toque para adicionar",
@@ -375,10 +667,72 @@ const translations: Record<Locale, TranslationKeys> = {
     terminalMode: "Modo terminal",
     history: "Histórico",
     receipts: "Recibos",
+    receiptOrder: "Pedido",
+    receiptDate: "Data",
+    receiptSubtotal: "Subtotal",
+    receiptTax: "Imposto",
+    receiptTotal: "Total",
+    receiptPayment: "Pagamento",
+    receiptCashReceived: "Dinheiro recebido",
+    receiptChange: "Troco",
+    receiptThankYou: "Obrigado!",
+    receiptReprint: "Reimprimir recibo",
+    receiptPrinting: "A imprimir...",
+    orderHistory: "Histórico de Pedidos",
+    historyOrders: "pedidos",
+    noOrdersYet: "Sem pedidos ainda",
+    ordersWillAppear: "Os pedidos aparecerão aqui após a conclusão",
+    historyItems: "itens",
+    historyItem: "item",
+    historyPayment: "Pagamento",
+    status_completed: "Concluído",
+    status_pending: "Pendente",
+    status_refunded: "Reembolsado",
+    status_voided: "Anulado",
+    filterThisShift: "Este Turno",
+    filterToday: "Hoje",
+    filterYesterday: "Ontem",
+    filterLast7Days: "Últimos 7 Dias",
+    filterClear: "Limpar",
+    searchOrderNumber: "Pesquisar número do pedido...",
+    noMatchingOrders: "Nenhum pedido encontrado",
+    tryAdjustFilters: "Tente ajustar os filtros",
+    loadingOrders: "A carregar...",
+    currentShift: "Turno atual",
+    paymentFailedHint: "Por favor, tente novamente ou use outro método",
+    shiftStart: "Iniciar Turno",
+    shiftStartSub: "Inicie sessão para começar o turno",
+    shiftOpeningFloat: "Fundo de Caixa (MOP)",
+    shiftFloatHint: "Conte a gaveta antes de começar",
+    shiftStartBtn: "Iniciar Turno",
+    shiftStarting: "A iniciar...",
+    shiftFloatZero: "Insira 0 se não houver fundo",
+    shiftSummary: "Resumo do Turno",
+    shiftDuration: "Duração",
+    shiftOrders: "Pedidos",
+    shiftSales: "Vendas",
+    shiftPaymentBreakdown: "Métodos de Pagamento",
+    shiftExpectedCash: "Dinheiro Esperado",
+    shiftEndBtn: "Terminar Turno",
+    shiftEnd: "Terminar Turno",
+    shiftEndSub: "Conte a gaveta",
+    shiftActualCash: "Dinheiro Contado",
+    shiftVariance: "Variação",
+    shiftWithinTolerance: "Dentro da tolerância (±MOP 5)",
+    shiftOverTolerance: "Excede tolerância — aprovação do gerente necessária",
+    shiftNotes: "Notas (opcional)",
+    shiftNotesPlaceholder: "Adicionar notas sobre este turno...",
+    shiftCloseBtn: "Fechar Turno",
+    shiftClosing: "A fechar...",
+    shiftClosed: "Turno Fechado",
   },
   ja: {
     search: "商品を検索...",
+    cancel: "キャンセル",
+    addFilter: "フィルターを追加...",
     member: "会員",
+    lock: "ロック",
+    logout: "ログアウト",
     language: "言語",
     all: "すべて",
     beverages: "ドリンク",
@@ -392,6 +746,12 @@ const translations: Record<Locale, TranslationKeys> = {
     outOfStock: "売り切れ",
     noResults: "商品が見つかりません",
     tryOther: "他のキーワードをお試しください",
+    variants: "バリエーション",
+    variantsAvailable: "{count} 種類あり",
+    selectOptions: "オプションを選択",
+    addToCartWith: "カートに追加 · MOP {price}",
+    inStock: "{count} 在庫あり",
+    unlimitedStock: "在庫無制限",
     cart: "カート",
     emptyCart: "カートは空です",
     tapToAdd: "商品をタップして追加",
@@ -444,6 +804,64 @@ const translations: Record<Locale, TranslationKeys> = {
     terminalMode: "端末モード",
     history: "履歴",
     receipts: "レシート",
+    receiptOrder: "注文番号",
+    receiptDate: "日付",
+    receiptSubtotal: "小計",
+    receiptTax: "税額",
+    receiptTotal: "合計",
+    receiptPayment: "お支払い",
+    receiptCashReceived: "お預り",
+    receiptChange: "お釣り",
+    receiptThankYou: "ありがとうございました！",
+    receiptReprint: "レシート再印刷",
+    receiptPrinting: "印刷中...",
+    orderHistory: "注文履歴",
+    historyOrders: "件の注文",
+    noOrdersYet: "注文はまだありません",
+    ordersWillAppear: "注文が完了するとここに表示されます",
+    historyItems: "点",
+    historyItem: "点",
+    historyPayment: "支払い方法",
+    status_completed: "完了",
+    status_pending: "保留中",
+    status_refunded: "返金済み",
+    status_voided: "無効",
+    filterThisShift: "このシフト",
+    filterToday: "今日",
+    filterYesterday: "昨日",
+    filterLast7Days: "過去7日間",
+    filterClear: "クリア",
+    searchOrderNumber: "注文番号を検索...",
+    noMatchingOrders: "該当する注文がありません",
+    tryAdjustFilters: "フィルターを調整してください",
+    loadingOrders: "読み込み中...",
+    currentShift: "現在のシフト",
+    paymentFailedHint: "もう一度お試しいただくか、別の方法をご利用ください",
+    shiftStart: "シフト開始",
+    shiftStartSub: "サインインしてシフトを開始",
+    shiftOpeningFloat: "開始時現金 (MOP)",
+    shiftFloatHint: "開始前にレジの現金を数えてください",
+    shiftStartBtn: "シフト開始",
+    shiftStarting: "開始中...",
+    shiftFloatZero: "現金がない場合は0を入力",
+    shiftSummary: "シフト概要",
+    shiftDuration: "経過時間",
+    shiftOrders: "注文",
+    shiftSales: "売上",
+    shiftPaymentBreakdown: "支払方法内訳",
+    shiftExpectedCash: "想定現金",
+    shiftEndBtn: "シフト終了",
+    shiftEnd: "シフト終了",
+    shiftEndSub: "レジの現金を数えてください",
+    shiftActualCash: "実際の現金",
+    shiftVariance: "差異",
+    shiftWithinTolerance: "許容範囲内 (±MOP 5)",
+    shiftOverTolerance: "許容範囲超過 — マネージャー承認が必要",
+    shiftNotes: "メモ（任意）",
+    shiftNotesPlaceholder: "このシフトのメモを追加...",
+    shiftCloseBtn: "シフト終了",
+    shiftClosing: "終了中...",
+    shiftClosed: "シフト終了",
   },
 };
 
@@ -451,15 +869,21 @@ export function t(locale: Locale, key: keyof TranslationKeys): string {
   return translations[locale]?.[key] || translations.en[key] || key;
 }
 
+/**
+ * Get the product display name for a given locale.
+ *
+ * Logic:
+ * 1. If translations[locale] exists → show it
+ * 2. Otherwise → fall back to product.name (the merchant's default name)
+ *
+ * The `name` field is the merchant's primary product name — displayed
+ * regardless of system language when no translation is available.
+ */
 export function getProductName(
-  product: { name: string; nameCn: string; nameTc?: string; nameSc?: string; nameJa?: string; namePt?: string },
+  product: { name: string; translations?: Record<string, string> | null },
   locale: Locale
 ): string {
-  switch (locale) {
-    case "tc": return product.nameTc || product.nameCn || product.name;
-    case "sc": return product.nameSc || product.nameCn || product.name;
-    case "ja": return product.nameJa || product.nameCn || product.name;
-    case "pt": return product.namePt || product.name;
-    default: return product.name;
-  }
+  const trans = product.translations;
+  if (trans && trans[locale]) return trans[locale];
+  return product.name;
 }

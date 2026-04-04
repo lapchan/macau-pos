@@ -1,4 +1,5 @@
-import { pgTable, uuid, varchar, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, uuid, varchar, timestamp, text } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { subscriptionStatusEnum } from "./enums";
 
 export const tenants = pgTable("tenants", {
@@ -8,6 +9,18 @@ export const tenants = pgTable("tenants", {
   subscriptionStatus: subscriptionStatusEnum("subscription_status")
     .notNull()
     .default("trial"),
+  // Locales the merchant wants translation fields for (e.g. {en,pt,ja})
+  supportedLocales: text("supported_locales")
+    .array()
+    .notNull()
+    .default(sql`'{en}'`),
+
+  // Org-wide settings (shared across all locations)
+  currency: varchar("currency", { length: 10 }).notNull().default("MOP"),
+  defaultLocale: varchar("default_locale", { length: 10 }).default("tc"),
+  accentColor: varchar("accent_color", { length: 20 }).default("#4f6ef7"),
+  theme: varchar("theme", { length: 20 }).default("light"),
+
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

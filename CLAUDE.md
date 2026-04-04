@@ -17,5 +17,19 @@ Engineering personas (auto-selected per phase):
 - `.skills/references/engineering-frontend-developer.md`
 - `.skills/references/engineering-database-optimizer.md`
 - `.skills/references/engineering-data-engineer.md`
+- `.skills/references/engineering-code-reviewer.md`
+- `.skills/references/engineering-security-engineer.md`
+- `.skills/references/engineering-senior-developer.md`
+- `.skills/references/engineering-software-architect.md`
+
+Testing personas:
+- `.skills/references/testing-accessibility-auditor.md`
+- `.skills/references/testing-api-tester.md`
+- `.skills/references/testing-evidence-collector.md`
+- `.skills/references/testing-performance-benchmarker.md`
+- `.skills/references/testing-reality-checker.md`
+- `.skills/references/testing-test-results-analyzer.md`
+- `.skills/references/testing-tool-evaluator.md`
+- `.skills/references/testing-workflow-optimizer.md`
 
 Magic words: sg (save) · rg (resume) · fp (follow prompt) · nm (new module) · pr (review)

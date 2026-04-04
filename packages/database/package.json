@@ -14,12 +14,14 @@
     "db:import-yp": "tsx src/import-yp.ts"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
     "dotenv": "^16.5.0",
     "drizzle-orm": "^0.44.2",
     "pg": "^8.16.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
     "@types/pg": "^8.15.4",
     "drizzle-kit": "^0.31.4",
     "tsx": "^4.20.0",

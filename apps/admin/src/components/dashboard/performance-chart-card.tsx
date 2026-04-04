@@ -5,6 +5,8 @@ import { MetricCard } from "@/components/shared/metric-card";
 import { DateRangeSelector } from "@/components/shared/date-range-selector";
 import { FilterChip } from "@/components/shared/filter-chip";
 import { performanceData, metrics } from "@/data/mock";
+import { useLocale } from "@/i18n/context";
+import { t } from "@/i18n/locales";
 import {
   ResponsiveContainer,
   LineChart,
@@ -20,10 +22,14 @@ function CustomTooltip({
   active,
   payload,
   label,
+  thisPeriodLabel,
+  previousLabel,
 }: {
   active?: boolean;
   payload?: Array<{ value: number; dataKey: string; color: string }>;
   label?: string;
+  thisPeriodLabel: string;
+  previousLabel: string;
 }) {
   if (!active || !payload?.length) return null;
   return (
@@ -36,7 +42,7 @@ function CustomTooltip({
             style={{ backgroundColor: entry.color }}
           />
           <span className="text-text-secondary capitalize">
-            {entry.dataKey === "current" ? "This period" : "Previous"}
+            {entry.dataKey === "current" ? thisPeriodLabel : previousLabel}
           </span>
           <span className="font-medium text-text-primary ml-auto">
             MOP {entry.value.toLocaleString()}
@@ -48,42 +54,46 @@ function CustomTooltip({
 }
 
 export function PerformanceChartCard() {
+  const { locale } = useLocale();
+  const thisPeriodLabel = t(locale, "performance.thisPeriod");
+  const previousPeriodLabel = t(locale, "performance.previousPeriod");
+
   return (
     <Card>
       <CardHeader
-        title="Performance"
-        subtitle="Sales overview for selected period"
+        title={t(locale, "performance.title")}
+        subtitle={t(locale, "performance.subtitle")}
         action={<DateRangeSelector />}
       />
 
       {/* Filter chips */}
       <div className="flex items-center gap-2 mb-5">
-        <FilterChip label="All locations" active />
-        <FilterChip label="Compare: Previous period" />
+        <FilterChip label={t(locale, "performance.allLocations")} active />
+        <FilterChip label={t(locale, "performance.comparePrevious")} />
       </div>
 
       {/* Metrics row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-6 pb-6 border-b border-border">
         <MetricCard
-          label="Net sales"
+          label={t(locale, "performance.netSales")}
           value={metrics.netSales.value}
           change={metrics.netSales.change}
           up={metrics.netSales.up}
         />
         <MetricCard
-          label="Gross sales"
+          label={t(locale, "performance.grossSales")}
           value={metrics.grossSales.value}
           change={metrics.grossSales.change}
           up={metrics.grossSales.up}
         />
         <MetricCard
-          label="Transactions"
+          label={t(locale, "performance.transactions")}
           value={metrics.transactions.value}
           change={metrics.transactions.change}
           up={metrics.transactions.up}
         />
         <MetricCard
-          label="Avg. basket"
+          label={t(locale, "performance.avgBasket")}
           value={metrics.avgBasket.value}
           change={metrics.avgBasket.change}
           up={metrics.avgBasket.up}
@@ -114,7 +124,14 @@ export function PerformanceChartCard() {
               tickLine={false}
               tickFormatter={(v: number) => `${(v / 1000).toFixed(1)}k`}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip
+              content={
+                <CustomTooltip
+                  thisPeriodLabel={thisPeriodLabel}
+                  previousLabel={previousPeriodLabel}
+                />
+              }
+            />
             <Legend
               verticalAlign="top"
               align="right"
@@ -122,7 +139,7 @@ export function PerformanceChartCard() {
               iconSize={8}
               wrapperStyle={{ fontSize: "11px", paddingBottom: "8px" }}
               formatter={(value: string) =>
-                value === "current" ? "This period" : "Previous period"
+                value === "current" ? thisPeriodLabel : previousPeriodLabel
               }
             />
             <Line

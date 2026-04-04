@@ -7,6 +7,7 @@ import {
   boolean,
   timestamp,
   index,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { tenants } from "./tenants";
 import { categories } from "./categories";
@@ -23,11 +24,15 @@ export const products = pgTable(
       onDelete: "set null",
     }),
 
-    // Names (multilingual)
-    name: varchar("name", { length: 255 }).notNull(), // English
-    nameCn: varchar("name_cn", { length: 255 }), // Chinese Traditional
-    nameJa: varchar("name_ja", { length: 255 }), // Japanese
-    namePt: varchar("name_pt", { length: 255 }), // Portuguese
+    // Product name — always displayed, not tied to any language
+    name: varchar("name", { length: 255 }).notNull(),
+    // Optional translations: { "en": "Pocari Sweat", "pt": "..." }
+    // Shown INSTEAD of name when user's locale matches a key
+    translations: jsonb("translations").$type<Record<string, string>>().default({}),
+
+    // Description
+    description: varchar("description", { length: 1000 }),
+    descTranslations: jsonb("desc_translations").$type<Record<string, string>>().default({}),
 
     // Identifiers
     sku: varchar("sku", { length: 100 }),
@@ -47,6 +52,7 @@ export const products = pgTable(
     // Status & flags
     status: productStatusEnum("status").notNull().default("active"),
     isPopular: boolean("is_popular").notNull().default(false),
+    hasVariants: boolean("has_variants").notNull().default(false),
     sortOrder: integer("sort_order").notNull().default(0),
 
     // Optimistic locking

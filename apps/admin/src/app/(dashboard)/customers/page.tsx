@@ -5,6 +5,9 @@ import { cn } from "@/lib/cn";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardHeader } from "@/components/shared/card";
 import { customers, customerStats } from "@/data/mock";
+import { useLocale } from "@/i18n/context";
+import { t } from "@/i18n/locales";
+import { interpolate } from "@macau-pos/i18n";
 import {
   Search,
   Plus,
@@ -24,15 +27,16 @@ import {
 
 const tierConfig: Record<
   string,
-  { label: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string }
+  { labelKey: string; icon: React.ComponentType<{ className?: string }>; color: string; bg: string }
 > = {
-  regular: { label: "Regular", icon: User, color: "text-text-secondary", bg: "bg-surface-hover" },
-  silver: { label: "Silver", icon: Star, color: "text-text-secondary", bg: "bg-surface-hover" },
-  gold: { label: "Gold", icon: Award, color: "text-warning", bg: "bg-warning-light" },
-  vip: { label: "VIP", icon: Crown, color: "text-accent", bg: "bg-accent-light" },
+  regular: { labelKey: "customers.tierRegular", icon: User, color: "text-text-secondary", bg: "bg-surface-hover" },
+  silver: { labelKey: "customers.tierSilver", icon: Star, color: "text-text-secondary", bg: "bg-surface-hover" },
+  gold: { labelKey: "customers.tierGold", icon: Award, color: "text-warning", bg: "bg-warning-light" },
+  vip: { labelKey: "customers.tierVip", icon: Crown, color: "text-accent", bg: "bg-accent-light" },
 };
 
 export default function CustomersPage() {
+  const { locale } = useLocale();
   const [search, setSearch] = useState("");
 
   const filtered = search
@@ -47,17 +51,17 @@ export default function CustomersPage() {
   return (
     <>
       <PageHeader
-        title="Customers"
-        subtitle={`${customerStats.total} registered members`}
+        title={t(locale, "customers.title")}
+        subtitle={interpolate(t(locale, "customers.memberCount"), { count: customerStats.total })}
       >
         <div className="flex items-center gap-2">
           <button className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-text-secondary border border-border rounded-[var(--radius-sm)] hover:bg-surface-hover transition-colors">
             <Download className="h-3.5 w-3.5" />
-            Export
+            {t(locale, "common.export")}
           </button>
           <button className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-text-primary rounded-[var(--radius-sm)] hover:opacity-90 active:scale-[0.98] transition-all">
             <Plus className="h-4 w-4" />
-            Add customer
+            {t(locale, "customers.addCustomer")}
           </button>
         </div>
       </PageHeader>
@@ -65,10 +69,10 @@ export default function CustomersPage() {
       {/* Stats row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
         {[
-          { icon: Users, label: "Total customers", value: customerStats.total.toLocaleString(), color: "text-text-primary" },
-          { icon: UserPlus, label: "New this month", value: `+${customerStats.newThisMonth}`, color: "text-success" },
-          { icon: Activity, label: "Active this week", value: customerStats.activeThisWeek.toLocaleString(), color: "text-accent" },
-          { icon: ShoppingBag, label: "Avg. spend", value: customerStats.avgSpend, color: "text-text-primary" },
+          { icon: Users, label: t(locale, "customers.totalCustomers"), value: customerStats.total.toLocaleString(), color: "text-text-primary" },
+          { icon: UserPlus, label: t(locale, "customers.newThisMonth"), value: `+${customerStats.newThisMonth}`, color: "text-success" },
+          { icon: Activity, label: t(locale, "customers.activeThisWeek"), value: customerStats.activeThisWeek.toLocaleString(), color: "text-accent" },
+          { icon: ShoppingBag, label: t(locale, "customers.avgSpend"), value: customerStats.avgSpend, color: "text-text-primary" },
         ].map((stat) => (
           <Card key={stat.label}>
             <div className="flex items-center gap-3">
@@ -94,40 +98,40 @@ export default function CustomersPage() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-tertiary pointer-events-none" />
           <input
             type="text"
-            placeholder="Search by name, phone, email..."
-            aria-label="Search customers"
+            placeholder={t(locale, "customers.searchPlaceholder")}
+            aria-label={t(locale, "common.search")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full h-9 pl-9 pr-3 text-sm bg-surface border border-border rounded-[var(--radius-sm)] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent focus:border-transparent transition-all"
           />
         </div>
         <span className="text-xs text-text-tertiary ml-auto">
-          {filtered.length} customer{filtered.length !== 1 ? "s" : ""}
+          {filtered.length}
         </span>
       </div>
 
       {/* Customer table */}
       <Card padding="none">
-        <table className="w-full text-sm" aria-label="Customers list">
+        <table className="w-full text-sm" aria-label={t(locale, "customers.title")}>
           <thead>
             <tr className="border-b border-border">
               <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                Customer
+                {t(locale, "customers.colCustomer")}
               </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                Tier
+                {t(locale, "customers.colTier")}
               </th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                Total spent
+                {t(locale, "customers.colTotalSpent")}
               </th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                Visits
+                {t(locale, "customers.colVisits")}
               </th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                Points
+                {t(locale, "customers.colPoints")}
               </th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-text-secondary uppercase tracking-wider">
-                Last visit
+                {t(locale, "customers.colLastVisit")}
               </th>
               <th className="w-10 px-4 py-3" />
             </tr>
@@ -169,11 +173,11 @@ export default function CustomersPage() {
                       )}
                     >
                       <TierIcon className="h-3 w-3" />
-                      {tier.label}
+                      {t(locale, tier.labelKey as any)}
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right font-medium tabular-nums text-text-primary">
-                    MOP {customer.totalSpent.toLocaleString()}
+                    {t(locale, "common.mop")} {customer.totalSpent.toLocaleString()}
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums text-text-secondary">
                     {customer.visits}
@@ -187,15 +191,15 @@ export default function CustomersPage() {
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <button
-                        title="Send message"
-                        aria-label={`Send message to ${customer.name}`}
+                        title={t(locale, "customers.sendMessage")}
+                        aria-label={`${t(locale, "customers.sendMessage")} ${customer.name}`}
                         className="p-1 rounded-[var(--radius-sm)] text-text-tertiary hover:text-text-secondary hover:bg-surface-hover transition-colors"
                       >
                         <Mail className="h-3.5 w-3.5" />
                       </button>
                       <button
-                        title="More"
-                        aria-label={`More actions for ${customer.name}`}
+                        title={t(locale, "customers.moreActions")}
+                        aria-label={`${t(locale, "customers.moreActions")} ${customer.name}`}
                         className="p-1 rounded-[var(--radius-sm)] text-text-tertiary hover:text-text-secondary hover:bg-surface-hover transition-colors"
                       >
                         <MoreHorizontal className="h-3.5 w-3.5" />

@@ -136,24 +136,6 @@ export const products: Product[] = [
   { id: "P012", name: "Dove Soap Bar 100g", nameCn: "多芬香皂 100g", category: "Personal Care", price: 15.0, cost: 8.5, stock: 62, sku: "PRC-001", status: "archived", updatedAt: "2026-03-15" },
 ];
 
-// ─── Terminal status ────────────────────────────────────────
-export const terminalStatus = {
-  total: 24,
-  online: 19,
-  offline: 2,
-  warning: 2,
-  refillNeeded: 4,
-  paymentIssue: 1,
-  lastSync: "2 min ago",
-  terminals: [
-    { id: "T-001", name: "Lobby A", status: "online" as const, sales: 142 },
-    { id: "T-002", name: "Floor 2 East", status: "online" as const, sales: 98 },
-    { id: "T-003", name: "Entrance B", status: "warning" as const, sales: 67 },
-    { id: "T-004", name: "Staff Lounge", status: "offline" as const, sales: 0 },
-    { id: "T-005", name: "Taipa Branch", status: "refill" as const, sales: 203 },
-  ],
-};
-
 // ─── Customers ──────────────────────────────────────────────
 export type Customer = {
   id: string;
@@ -186,27 +168,4 @@ export const customerStats = {
   avgSpend: "MOP 72.40",
 };
 
-// ─── Terminals (full list) ──────────────────────────────────
-export type Terminal = {
-  id: string;
-  name: string;
-  location: string;
-  status: "online" | "offline" | "warning" | "maintenance";
-  stockLevel: number;
-  todaySales: number;
-  todayRevenue: number;
-  lastSync: string;
-  uptime: string;
-  model: string;
-};
-
-export const terminalsList: Terminal[] = [
-  { id: "T-001", name: "Lobby A", location: "G/F Main Lobby", status: "online", stockLevel: 82, todaySales: 142, todayRevenue: 2840, lastSync: "2 min ago", uptime: "99.8%", model: "TCN-D720" },
-  { id: "T-002", name: "Floor 2 East", location: "2/F East Wing", status: "online", stockLevel: 65, todaySales: 98, todayRevenue: 1960, lastSync: "1 min ago", uptime: "99.5%", model: "TCN-D720" },
-  { id: "T-003", name: "Entrance B", location: "G/F Side Entrance", status: "warning", stockLevel: 23, todaySales: 67, todayRevenue: 1340, lastSync: "5 min ago", uptime: "97.2%", model: "TCN-S800" },
-  { id: "T-004", name: "Staff Lounge", location: "B1 Staff Area", status: "offline", stockLevel: 45, todaySales: 0, todayRevenue: 0, lastSync: "3 hr ago", uptime: "85.1%", model: "TCN-D720" },
-  { id: "T-005", name: "Taipa Branch", location: "Taipa Shopfront", status: "online", stockLevel: 18, todaySales: 203, todayRevenue: 4060, lastSync: "1 min ago", uptime: "99.9%", model: "TCN-S800" },
-  { id: "T-006", name: "Cotai Plaza", location: "Cotai Strip L2", status: "online", stockLevel: 91, todaySales: 178, todayRevenue: 3560, lastSync: "30 sec ago", uptime: "99.7%", model: "TCN-CMC" },
-  { id: "T-007", name: "Coloane Store", location: "Coloane Village", status: "maintenance", stockLevel: 0, todaySales: 0, todayRevenue: 0, lastSync: "1 day ago", uptime: "72.3%", model: "TCN-D720" },
-  { id: "T-008", name: "NAPE Office", location: "NAPE Tower 5/F", status: "online", stockLevel: 56, todaySales: 45, todayRevenue: 900, lastSync: "3 min ago", uptime: "98.9%", model: "TCN-S800" },
-];
+// Terminal mock data removed — now using real database via terminal-queries.ts

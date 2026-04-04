@@ -6,6 +6,7 @@ import {
   boolean,
   timestamp,
   index,
+  jsonb,
 } from "drizzle-orm/pg-core";
 import { tenants } from "./tenants";
 
@@ -16,10 +17,12 @@ export const categories = pgTable(
     tenantId: uuid("tenant_id")
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
-    name: varchar("name", { length: 100 }).notNull(), // Chinese name (primary)
-    nameEn: varchar("name_en", { length: 100 }), // English
-    namePt: varchar("name_pt", { length: 100 }), // Portuguese
-    nameJa: varchar("name_ja", { length: 100 }), // Japanese
+    // Sub-category support: null = top-level, uuid = child of parent
+    parentCategoryId: uuid("parent_category_id"),
+    // Category name — always displayed
+    name: varchar("name", { length: 100 }).notNull(),
+    // Optional translations: { "en": "Beverages", "pt": "Bebidas" }
+    translations: jsonb("translations").$type<Record<string, string>>().default({}),
     icon: varchar("icon", { length: 50 }), // lucide icon name
     sortOrder: integer("sort_order").notNull().default(0),
     isActive: boolean("is_active").notNull().default(true),

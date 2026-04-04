@@ -2,6 +2,8 @@
 
 import { Card, CardHeader } from "@/components/shared/card";
 import { quickActions } from "@/data/mock";
+import { useLocale } from "@/i18n/context";
+import { t, type AdminTranslationKeys } from "@/i18n/locales";
 import {
   PackagePlus,
   CreditCard,
@@ -19,10 +21,20 @@ const iconMap: Record<string, LucideIcon> = {
   Monitor,
 };
 
+const actionLabelKeys: Record<string, keyof AdminTranslationKeys> = {
+  "add-item": "quickActions.addItem",
+  "take-payment": "quickActions.takePayment",
+  "create-discount": "quickActions.createDiscount",
+  "add-customer": "quickActions.addCustomer",
+  "connect-terminal": "quickActions.connectTerminal",
+};
+
 export function QuickActionsCard() {
+  const { locale } = useLocale();
+
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader title="Quick actions" />
+      <CardHeader title={t(locale, "quickActions.title")} />
       <div className="grid grid-cols-5 gap-2 flex-1 content-start">
         {quickActions.map((action) => {
           const Icon = iconMap[action.icon];
@@ -38,7 +50,7 @@ export function QuickActionsCard() {
                 />
               </div>
               <span className="text-xs font-medium text-text-secondary group-hover:text-text-primary text-center leading-tight">
-                {action.label}
+                {actionLabelKeys[action.id] ? t(locale, actionLabelKeys[action.id]) : action.label}
               </span>
             </button>
           );

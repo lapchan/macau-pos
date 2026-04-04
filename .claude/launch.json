@@ -3,16 +3,14 @@
   "configurations": [
     {
       "name": "admin-dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "cwd": "apps/admin",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-lc", "cd apps/admin && npx next dev --port 3100"],
       "port": 3100
     },
     {
       "name": "cashier-dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "cwd": "apps/cashier",
+      "runtimeExecutable": "/bin/bash",
+      "runtimeArgs": ["-lc", "cd apps/cashier && npx next dev --port 3200"],
       "port": 3200
     }
   ]

@@ -10,6 +10,8 @@ import {
   ChevronLeft, Minus, Plus, Sun, Moon, Receipt,
 } from "lucide-react";
 import { createOrder } from "@/lib/actions";
+import PrintReceipt from "@/components/receipt/print-receipt";
+import type { ReceiptData } from "@/lib/receipt-queries";
 
 type CheckoutState =
   | "review"
@@ -57,13 +59,19 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete }: Pro
   const processPayment = useCallback(async (method: "tap" | "insert" | "qr" | "cash") => {
     setState("processing");
     const result = await createOrder({
-      cart: cart.map((item) => ({
-        productId: item.id,
-        name: item.name,
-        nameCn: item.nameCn,
-        unitPrice: item.price,
-        quantity: item.quantity,
-      })),
+      cart: cart.map((item) => {
+        // Cart id may be "productId__variantId" for variant items
+        const [productId, variantId] = item.id.split("__");
+        return {
+          productId,
+          variantId: variantId || undefined,
+          variantName: variantId ? item.name : undefined,
+          name: item.name,
+          nameCn: item.translations?.tc || item.name,
+          unitPrice: item.price,
+          quantity: item.quantity,
+        };
+      }),
       paymentMethod: method,
       subtotal,
       total,
@@ -449,23 +457,50 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete }: Pro
 
                 {/* Receipt options */}
                 <div className="flex gap-2 mt-6">
-                  {[
-                    { icon: Printer, label: t(locale, "printReceipt") },
-                    { icon: Mail, label: t(locale, "emailReceipt") },
-                    { icon: XCircle, label: t(locale, "noReceipt") },
-                  ].map((opt) => (
-                    <button
-                      key={opt.label}
-                      className={cn(
-                        "flex items-center gap-2 h-10 px-4 rounded-[var(--radius-sm)] text-[13px] font-medium border transition-all active:scale-[0.97]",
-                        border, textSec,
-                        darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active"
-                      )}
-                    >
-                      <opt.icon className="h-4 w-4" />
-                      {opt.label}
-                    </button>
-                  ))}
+                  {/* Print Receipt — functional */}
+                  <PrintReceipt orderNumber={orderNum || undefined}>
+                    {({ onPrint, isPrinting }) => (
+                      <button
+                        onClick={onPrint}
+                        disabled={isPrinting}
+                        className={cn(
+                          "flex items-center gap-2 h-10 px-4 rounded-[var(--radius-sm)] text-[13px] font-medium border transition-all active:scale-[0.97]",
+                          border, textSec,
+                          darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active",
+                          isPrinting && "opacity-60"
+                        )}
+                      >
+                        <Printer className="h-4 w-4" />
+                        {isPrinting ? t(locale, "receiptPrinting") : t(locale, "printReceipt")}
+                      </button>
+                    )}
+                  </PrintReceipt>
+
+                  {/* Email Receipt — coming soon */}
+                  <button
+                    disabled
+                    title="Coming soon"
+                    className={cn(
+                      "flex items-center gap-2 h-10 px-4 rounded-[var(--radius-sm)] text-[13px] font-medium border opacity-50 cursor-not-allowed",
+                      border, textSec,
+                    )}
+                  >
+                    <Mail className="h-4 w-4" />
+                    {t(locale, "emailReceipt")}
+                  </button>
+
+                  {/* No Receipt */}
+                  <button
+                    onClick={handleDone}
+                    className={cn(
+                      "flex items-center gap-2 h-10 px-4 rounded-[var(--radius-sm)] text-[13px] font-medium border transition-all active:scale-[0.97]",
+                      border, textSec,
+                      darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active"
+                    )}
+                  >
+                    <XCircle className="h-4 w-4" />
+                    {t(locale, "noReceipt")}
+                  </button>
                 </div>
 
                 {/* Done button */}
@@ -487,7 +522,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete }: Pro
                 </div>
                 <p className={cn("text-[24px] font-bold mb-1", text)}>{t(locale, "paymentFailed")}</p>
                 <p className={cn("text-[14px] mb-6", textSec)}>
-                  {locale === "tc" ? "請重試或選擇其他付款方式" : locale === "sc" ? "请重试或选择其他付款方式" : locale === "ja" ? "もう一度お試しください" : locale === "pt" ? "Por favor, tente novamente" : "Please try again or use another method"}
+                  {t(locale, "paymentFailedHint")}
                 </p>
                 <div className="flex gap-3">
                   <button

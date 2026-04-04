@@ -3,6 +3,9 @@
 import { Card, CardHeader } from "@/components/shared/card";
 import { cn } from "@/lib/cn";
 import { setupSteps } from "@/data/mock";
+import { useLocale } from "@/i18n/context";
+import { t, type AdminTranslationKeys } from "@/i18n/locales";
+import { interpolate } from "@macau-pos/i18n";
 import {
   Check,
   ChevronRight,
@@ -19,7 +22,22 @@ const iconMap: Record<string, React.ComponentType<{ className?: string; strokeWi
   devices: Smartphone,
 };
 
+const stepLabelKeys: Record<string, keyof AdminTranslationKeys> = {
+  account: "setup.account",
+  pos: "setup.pos",
+  payments: "setup.payments",
+  devices: "setup.devices",
+};
+
+const stepDescKeys: Record<string, keyof AdminTranslationKeys> = {
+  account: "setup.accountDesc",
+  pos: "setup.posDesc",
+  payments: "setup.paymentsDesc",
+  devices: "setup.devicesDesc",
+};
+
 export function SetupProgressCard() {
+  const { locale } = useLocale();
   const completed = setupSteps.filter((s) => s.done).length;
   const total = setupSteps.length;
   const pct = Math.round((completed / total) * 100);
@@ -27,11 +45,11 @@ export function SetupProgressCard() {
   return (
     <Card>
       <CardHeader
-        title="Hello! Let's get you set up."
-        subtitle={`${completed} of ${total} steps completed`}
+        title={t(locale, "setup.greeting")}
+        subtitle={interpolate(t(locale, "setup.stepsCompleted"), { completed, total })}
         action={
           <button className="text-xs text-text-secondary hover:text-text-primary transition-colors">
-            I&apos;ll finish this later
+            {t(locale, "setup.finishLater")}
           </button>
         }
       />
@@ -40,7 +58,7 @@ export function SetupProgressCard() {
       <div className="mb-5">
         <div className="flex items-center justify-between mb-1.5">
           <span className="text-xs font-medium text-text-secondary">
-            Setup progress
+            {t(locale, "setup.setupProgress")}
           </span>
           <span className="text-xs font-semibold text-text-primary">
             {pct}%
@@ -90,10 +108,10 @@ export function SetupProgressCard() {
                     step.done ? "text-text-secondary" : "text-text-primary"
                   )}
                 >
-                  {step.label}
+                  {stepLabelKeys[step.id] ? t(locale, stepLabelKeys[step.id]) : step.label}
                 </p>
                 <p className="text-xs text-text-tertiary truncate">
-                  {step.description}
+                  {stepDescKeys[step.id] ? t(locale, stepDescKeys[step.id]) : step.description}
                 </p>
               </div>
               {!step.done && (
@@ -106,7 +124,7 @@ export function SetupProgressCard() {
 
       {/* View all */}
       <button className="w-full mt-4 py-2 text-xs font-medium text-accent hover:text-accent-dark transition-colors flex items-center justify-center gap-1">
-        View all steps
+        {t(locale, "setup.viewAllSteps")}
         <ChevronRight className="h-3 w-3" />
       </button>
     </Card>

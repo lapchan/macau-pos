@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import AppShell from "@/components/shared/app-shell";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -9,6 +10,9 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "CountingStars POS",
+  icons: {
+    icon: "/api/favicon?name=CountingStars&color=%234f6ef7",
+  },
 };
 
 export default function RootLayout({
@@ -18,7 +22,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.variable}>{children}</body>
+      <body className={inter.variable}>
+        <AppShell>{children}</AppShell>
+      </body>
     </html>
   );
 }

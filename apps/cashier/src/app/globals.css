@@ -91,5 +91,103 @@ body {
   100% { stroke-dashoffset: 0; }
 }
 .animate-slide-up { animation: slideUp 0.2s ease-out; }
-.animate-fade-in { animation: fadeIn 0.15s ease-out; }
+.animate-fade-in { animation: fadeSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-scale-in { animation: scaleIn 0.2s ease-out; }
+
+@keyframes fadeSlideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Mode switch subtitle crossfade */
+@keyframes modeSwitch {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-mode-switch { animation: modeSwitch 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
+
+/* PIN error shake — iOS style */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 50%, 90% { transform: translateX(-8px); }
+  30%, 70% { transform: translateX(8px); }
+}
+
+/* Variant picker bottom sheet */
+@keyframes variantSlideUp {
+  0% { transform: translateY(100%); }
+  100% { transform: translateY(0); }
+}
+@keyframes variantSlideDown {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(100%); }
+}
+
+/* Search spotlight — smooth spring-like open */
+@keyframes spotlightOpen {
+  0% {
+    opacity: 0;
+    transform: scale(0.85) translateY(-8px);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+@keyframes fadeSlideDown {
+  0% { opacity: 0; transform: translateY(-20px) scale(0.98); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ─── Receipt Print Styles ─── */
+@media print {
+  /* Hide all direct children of body except the receipt portal */
+  body > *:not(.receipt-print-area) { display: none !important; }
+  body {
+    overflow: visible !important;
+    background: white !important;
+  }
+  .receipt-print-area {
+    display: block !important;
+    position: static !important;
+  }
+
+  @page {
+    size: 80mm auto;
+    margin: 2mm;
+  }
+}
+
+/* Receipt layout — always hidden on screen, visible only when printing */
+.receipt-print-area {
+  display: none;
+  font-family: "Courier New", "Courier", monospace;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #000;
+  background: #fff;
+  width: 72mm;
+  padding: 4mm;
+}
+.receipt-print-area .receipt-divider {
+  border: none;
+  border-top: 1px dashed #000;
+  margin: 6px 0;
+}
+.receipt-print-area .receipt-double-divider {
+  border: none;
+  border-top: 2px solid #000;
+  margin: 6px 0;
+}
+.receipt-print-area .receipt-center { text-align: center; }
+.receipt-print-area .receipt-right { text-align: right; }
+.receipt-print-area .receipt-bold { font-weight: bold; }
+.receipt-print-area .receipt-large { font-size: 16px; }
+.receipt-print-area .receipt-small { font-size: 10px; }
+.receipt-print-area .receipt-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 4px;
+}
+.receipt-print-area .receipt-row-left { flex: 1; min-width: 0; }
+.receipt-print-area .receipt-row-right { text-align: right; white-space: nowrap; }

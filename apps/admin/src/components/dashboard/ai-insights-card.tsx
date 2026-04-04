@@ -3,6 +3,9 @@
 import { Card, CardHeader } from "@/components/shared/card";
 import { cn } from "@/lib/cn";
 import { aiInsights } from "@/data/mock";
+import { useLocale } from "@/i18n/context";
+import { t } from "@/i18n/locales";
+import { interpolate } from "@macau-pos/i18n";
 import {
   Sparkles,
   Package,
@@ -26,15 +29,17 @@ const severityStyles: Record<string, string> = {
 };
 
 export function AIInsightsCard() {
+  const { locale } = useLocale();
+
   return (
     <Card>
       <CardHeader
-        title="AI Insights"
-        subtitle="Powered by CountingStars AI"
+        title={t(locale, "insights.title")}
+        subtitle={t(locale, "insights.subtitle")}
         action={
           <div className="flex items-center gap-1 text-xs font-medium text-accent">
             <Sparkles className="h-3.5 w-3.5" />
-            <span>4 new</span>
+            <span>{interpolate(t(locale, "insights.newCount"), { count: 4 })}</span>
           </div>
         }
       />
@@ -73,7 +78,7 @@ export function AIInsightsCard() {
       </div>
 
       <button className="w-full mt-2 py-2 text-xs font-medium text-accent hover:text-accent-dark transition-colors flex items-center justify-center gap-1">
-        View all insights
+        {t(locale, "insights.viewAll")}
         <ChevronRight className="h-3 w-3" />
       </button>
     </Card>

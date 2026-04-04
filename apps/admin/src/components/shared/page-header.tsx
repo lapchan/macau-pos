@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect } from "react";
+import { useLocale } from "@/i18n/context";
+import { t } from "@/i18n/locales";
 
 interface PageHeaderProps {
   title: string;
@@ -9,9 +11,11 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({ title, subtitle, children }: PageHeaderProps) {
+  const { locale } = useLocale();
+
   useEffect(() => {
-    document.title = `${title} — CountingStars`;
-  }, [title]);
+    document.title = `${title} — ${t(locale, "meta.title")}`;
+  }, [title, locale]);
 
   return (
     <div className="flex items-center justify-between mb-6">

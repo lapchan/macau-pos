@@ -7,9 +7,21 @@ import { QuickActionsCard } from "@/components/dashboard/quick-actions-card";
 import { AIInsightsCard } from "@/components/dashboard/ai-insights-card";
 import { TerminalStatusCard } from "@/components/dashboard/terminal-status-card";
 import { CalendarDays } from "lucide-react";
+import { useLocale } from "@/i18n/context";
+import { t } from "@/i18n/locales";
 
 export default function HomePage() {
-  const today = new Date().toLocaleDateString("en-US", {
+  const { locale } = useLocale();
+
+  const dateLocaleMap: Record<string, string> = {
+    en: "en-US",
+    tc: "zh-HK",
+    sc: "zh-CN",
+    pt: "pt-PT",
+    ja: "ja-JP",
+  };
+
+  const today = new Date().toLocaleDateString(dateLocaleMap[locale] || "en-US", {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -18,7 +30,7 @@ export default function HomePage() {
 
   return (
     <>
-      <PageHeader title="Home" subtitle="Welcome back to your dashboard">
+      <PageHeader title={t(locale, "home.title")} subtitle={t(locale, "home.welcomeBack")}>
         <div className="flex items-center gap-2 text-sm text-text-secondary">
           <CalendarDays className="h-4 w-4 text-text-tertiary" />
           {today}

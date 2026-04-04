@@ -27,3 +27,30 @@ export const paymentMethodEnum = pgEnum("payment_method", [
   "qr",
   "cash",
 ]);
+
+export const shiftStatusEnum = pgEnum("shift_status", [
+  "open",
+  "pending_approval",
+  "closed",
+  "flagged",
+]);
+
+export const terminalStatusEnum = pgEnum("terminal_status", [
+  "active",
+  "disabled",
+  "maintenance",
+]);
+
+export const userRoleEnum = pgEnum("user_role", [
+  "platform_admin",
+  "merchant_owner",
+  "cashier",
+  "customer",
+  "promoter",
+  "accountant",
+  "potential_customer",
+]);
+
+export const posRoleEnum = pgEnum("pos_role", [
+  "store_manager",
+]);

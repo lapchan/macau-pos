@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
+import { type Locale, t } from "@/i18n/locales";
+import PrintReceipt from "@/components/receipt/print-receipt";
 import {
   ArrowLeft,
   Receipt,
@@ -13,6 +15,7 @@ import {
   ChevronUp,
   Clock,
   Package,
+  Printer,
 } from "lucide-react";
 
 type OrderRow = {
@@ -27,8 +30,21 @@ type OrderRow = {
   paymentMethod: string | null;
 };
 
+type OrderItemRow = {
+  id: string;
+  orderId: string;
+  name: string;
+  nameCn: string | null;
+  unitPrice: string;
+  quantity: number;
+  lineTotal: string;
+};
+
 type Props = {
   orders: OrderRow[];
+  orderItems: Record<string, OrderItemRow[]>;
+  locale: Locale;
+  shiftId?: string | null;
 };
 
 function formatCurrency(value: string | number) {
@@ -76,7 +92,7 @@ const statusColors: Record<string, string> = {
   voided: "bg-gray-100 text-gray-500 border-gray-200",
 };
 
-export default function HistoryClient({ orders }: Props) {
+export default function HistoryClient({ orders, orderItems, locale, shiftId }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const toggleExpand = (id: string) => {
@@ -100,13 +116,33 @@ export default function HistoryClient({ orders }: Props) {
               CS
             </div>
             <h1 className="text-[15px] font-semibold text-gray-900">
-              Order History
+              {t(locale, "orderHistory")}
             </h1>
           </div>
 
-          <div className="ml-auto flex items-center gap-1.5 text-xs text-gray-400">
-            <Receipt className="h-3.5 w-3.5" />
-            <span>{orders.length} orders</span>
+          <div className="ml-auto flex items-center gap-2">
+            {shiftId ? (
+              <Link
+                href="/history"
+                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-full bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+              >
+                <Clock className="h-3 w-3" />
+                {t(locale, "currentShift") || "Current shift"}
+                <span className="text-indigo-400">×</span>
+              </Link>
+            ) : (
+              <Link
+                href={`/history?shiftId=current`}
+                className="flex items-center gap-1 px-2.5 py-1 text-[11px] font-medium rounded-full bg-gray-100 text-gray-500 hover:bg-gray-200 transition-colors"
+              >
+                <Clock className="h-3 w-3" />
+                {t(locale, "currentShift") || "Current shift"}
+              </Link>
+            )}
+            <span className="flex items-center gap-1 text-xs text-gray-400">
+              <Receipt className="h-3.5 w-3.5" />
+              {orders.length} {t(locale, "historyOrders")}
+            </span>
           </div>
         </div>
       </header>
@@ -119,10 +155,10 @@ export default function HistoryClient({ orders }: Props) {
               <Package className="h-8 w-8 text-gray-300" />
             </div>
             <p className="text-[15px] font-medium text-gray-400">
-              No orders yet
+              {t(locale, "noOrdersYet")}
             </p>
             <p className="text-sm text-gray-300 mt-1">
-              Orders will appear here once completed
+              {t(locale, "ordersWillAppear")}
             </p>
           </div>
         ) : (
@@ -184,7 +220,7 @@ export default function HistoryClient({ orders }: Props) {
                             statusClass
                           )}
                         >
-                          {order.status}
+                          {t(locale, `status_${order.status}` as any)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-0.5">
@@ -196,7 +232,7 @@ export default function HistoryClient({ orders }: Props) {
                           ·
                         </span>
                         <span className="text-[12px] text-gray-400">
-                          {order.itemCount} item{order.itemCount !== 1 ? "s" : ""}
+                          {order.itemCount} {order.itemCount !== 1 ? t(locale, "historyItems") : t(locale, "historyItem")}
                         </span>
                       </div>
                     </div>
@@ -228,17 +264,37 @@ export default function HistoryClient({ orders }: Props) {
                   {isExpanded && (
                     <div className="px-4 pb-4 pt-0">
                       <div className="border-t border-gray-100 pt-3">
-                        {/* Placeholder: line items would require a separate fetch */}
+                        {/* Line items */}
+                        {orderItems[order.id] && orderItems[order.id].length > 0 && (
+                          <div className="space-y-1.5 mb-3">
+                            {orderItems[order.id].map((item) => (
+                              <div key={item.id} className="flex items-center justify-between text-[13px]">
+                                <div className="flex-1 min-w-0">
+                                  <span className="text-gray-700 font-medium truncate block">
+                                    {item.nameCn && locale !== "en" ? item.nameCn : item.name}
+                                  </span>
+                                  <span className="text-[11px] text-gray-400">
+                                    {item.quantity} x {formatCurrency(item.unitPrice)}
+                                  </span>
+                                </div>
+                                <span className="text-gray-600 font-medium tabular-nums shrink-0 ml-3">
+                                  {formatCurrency(item.lineTotal)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
                         <div className="space-y-2">
                           {/* Summary info */}
                           <div className="flex items-center justify-between text-[13px]">
-                            <span className="text-gray-400">Subtotal</span>
+                            <span className="text-gray-400">{t(locale, "subtotal")}</span>
                             <span className="text-gray-600 font-medium">
                               {formatCurrency(order.subtotal)}
                             </span>
                           </div>
                           <div className="flex items-center justify-between text-[13px]">
-                            <span className="text-gray-400">Payment</span>
+                            <span className="text-gray-400">{t(locale, "historyPayment")}</span>
                             <span className="flex items-center gap-1.5 text-gray-600 font-medium">
                               <PayIcon className="h-3.5 w-3.5 text-gray-400" />
                               {payLabel}
@@ -246,7 +302,7 @@ export default function HistoryClient({ orders }: Props) {
                           </div>
                           <div className="border-t border-dashed border-gray-100 pt-2 mt-2 flex items-center justify-between text-[14px]">
                             <span className="font-semibold text-gray-700">
-                              Total
+                              {t(locale, "total")}
                             </span>
                             <span className="font-bold text-gray-900">
                               {formatCurrency(order.total)}
@@ -254,10 +310,24 @@ export default function HistoryClient({ orders }: Props) {
                           </div>
                         </div>
 
-                        {/* Time */}
-                        <div className="mt-3 flex items-center gap-1.5 text-[11px] text-gray-300">
-                          <Clock className="h-3 w-3" />
-                          <span>{formatDate(order.createdAt)}</span>
+                        {/* Time + Print button */}
+                        <div className="mt-3 flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 text-[11px] text-gray-300">
+                            <Clock className="h-3 w-3" />
+                            <span>{formatDate(order.createdAt)}</span>
+                          </div>
+                          <PrintReceipt orderNumber={order.orderNumber}>
+                            {({ onPrint, isPrinting }) => (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onPrint(); }}
+                                disabled={isPrinting}
+                                className="flex items-center gap-1.5 h-8 px-3 rounded-lg text-[12px] font-medium text-gray-500 border border-gray-200 hover:bg-gray-50 hover:text-gray-700 transition-colors active:scale-[0.97] disabled:opacity-50"
+                              >
+                                <Printer className="h-3.5 w-3.5" />
+                                {isPrinting ? t(locale, "receiptPrinting") : t(locale, "receiptReprint")}
+                              </button>
+                            )}
+                          </PrintReceipt>
                         </div>
                       </div>
                     </div>

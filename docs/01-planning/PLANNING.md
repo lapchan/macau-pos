@@ -138,8 +138,9 @@ YP SHOPS is a full-featured POS (Point of Sale) system built by Macau Yellow Pag
 | **Permission/role management** | P1 | Fine-grained permissions per role |
 | **Product import/export** | P1 | Bulk import via Excel template, export catalog |
 | **Self-pickup points** | P1 | Configure pickup locations |
+| **Staff Daily Settlement (員工每日結數)** | P1 | Shift open/close, cash float, cash count, variance detection, manager approval. Schema ready: `shifts` table + `shift_id`/`cashier_id` on orders (added in Phase 1 as future-proofing). |
 
-**Deliverable:** Merchant has inventory visibility, member retention tools, and business insights.
+**Deliverable:** Merchant has inventory visibility, member retention tools, business insights, and **cash accountability per shift**.
 
 ---
 

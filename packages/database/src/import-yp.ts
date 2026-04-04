@@ -1,15 +1,9 @@
 /**
  * Import products from YP.mo Excel export into the database.
+ * Updated for JSONB translations schema.
  *
  * Usage:
  *   npx tsx src/import-yp.ts /path/to/export.xlsx
- *
- * Excel columns (工作表1):
- *   记录ID | ID | 招牌名TC | 招牌名EN | 狀態 | 售價 | 原價 | 是否不限庫存
- *   自定義分類 | 商城分類 | 簡介TC | 簡介EN | 排序 | 庫存 | 每人限購
- *   運費 | 服務承諾 | 打印機 | 包裝費 | 加料 | 自定義二級分類 | 活動標籤
- *   規格分類 | 規格貨品明細 | 條碼 | 庫存商品 | 單位 | 採購單位 | 包裝換算
- *   採購成本 | 預警庫存
  */
 
 import dotenv from "dotenv";
@@ -21,9 +15,9 @@ dotenv.config({ path: resolve(__dirname, "../../../.env") });
 
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
+import XLSX from "xlsx";
 import { tenants, categories, products } from "./schema";
 import { eq } from "drizzle-orm";
-import { readFileSync } from "fs";
 
 const { Pool } = pg;
 
@@ -51,8 +45,6 @@ const CATEGORY_ICONS: Record<string, string> = {
 };
 
 interface ExcelRow {
-  recordId: number;
-  sku: string;
   nameTc: string;
   nameEn: string;
   status: string;
@@ -60,26 +52,21 @@ interface ExcelRow {
   originalPrice: number;
   unlimitedStock: boolean;
   category: string;
-  mallCategory: string;
   descTc: string;
   descEn: string;
   sortOrder: number;
   stock: number;
   barcode: string;
-  unit: string;
-  purchaseUnit: string;
-  packConversion: number;
-  purchaseCost: number;
-  warningStock: number;
+  sku: string;
 }
 
-function parseFile(filePath: string): ExcelRow[] {
-  // Support both JSON (pre-converted from Python) and raw parsing
-  const content = readFileSync(filePath, "utf-8");
-  const rows: any[] = JSON.parse(content);
+function parseXlsx(filePath: string): ExcelRow[] {
+  const workbook = XLSX.readFile(filePath);
+  const sheetName = workbook.SheetNames[0];
+  const sheet = workbook.Sheets[sheetName];
+  const rows: any[] = XLSX.utils.sheet_to_json(sheet);
 
   return rows.map((row) => ({
-    recordId: row["记录ID"] || 0,
     sku: String(row["ID"] || ""),
     nameTc: String(row["招牌名TC"] || ""),
     nameEn: String(row["招牌名EN"] || ""),
@@ -88,17 +75,11 @@ function parseFile(filePath: string): ExcelRow[] {
     originalPrice: Number(row["原價"]) || 0,
     unlimitedStock: row["是否不限庫存"] === true || row["是否不限庫存"] === "True",
     category: String(row["自定義分類"] || "(uncategorized)"),
-    mallCategory: String(row["商城分類"] || ""),
     descTc: String(row["簡介TC"] || ""),
     descEn: String(row["簡介EN"] || ""),
     sortOrder: Number(row["排序"]) || 0,
     stock: Number(row["庫存"]) || 0,
     barcode: String(row["條碼"] || ""),
-    unit: String(row["單位"] || ""),
-    purchaseUnit: String(row["採購單位"] || ""),
-    packConversion: Number(row["包裝換算"]) || 1,
-    purchaseCost: Number(row["採購成本"]) || 0,
-    warningStock: Number(row["預警庫存"]) || 0,
   }));
 }
 
@@ -110,33 +91,24 @@ async function importProducts() {
   }
 
   console.log(`📂 Reading: ${filePath}`);
-  const rows = parseFile(filePath);
+  const rows = parseXlsx(filePath);
   console.log(`📋 Found ${rows.length} products\n`);
 
   // Connect to DB
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   const db = drizzle(pool);
 
-  // Get or create tenant
+  // Get tenant
   const [tenant] = await db
-    .insert(tenants)
-    .values({
-      name: "CountingStars",
-      slug: "countingstars",
-      subscriptionStatus: "active",
-    })
-    .onConflictDoNothing({ target: tenants.slug })
-    .returning();
+    .select({ id: tenants.id })
+    .from(tenants)
+    .where(eq(tenants.slug, "countingstars"));
 
-  const tenantId =
-    tenant?.id ||
-    (
-      await db
-        .select({ id: tenants.id })
-        .from(tenants)
-        .where(eq(tenants.slug, "countingstars"))
-    )[0].id;
-
+  if (!tenant) {
+    console.error("❌ Tenant 'countingstars' not found. Run db:seed first.");
+    process.exit(1);
+  }
+  const tenantId = tenant.id;
   console.log(`🏪 Tenant: CountingStars (${tenantId})\n`);
 
   // Extract unique categories
@@ -153,14 +125,14 @@ async function importProducts() {
   await db.delete(categories).where(eq(categories.tenantId, tenantId));
   console.log(`\n🗑  Cleared existing products and categories`);
 
-  // Insert categories
+  // Insert categories with JSONB translations
   const insertedCategories = await db
     .insert(categories)
     .values(
       uniqueCategories.map((name, i) => ({
         tenantId,
-        name,
-        nameEn: name, // Same as TC for now (these are brand/type names)
+        name, // Chinese name as default
+        translations: {}, // No English translation for brand names like "Chiikawa", "labubu"
         icon: CATEGORY_ICONS[name] || "Package",
         sortOrder: i,
       }))
@@ -172,26 +144,35 @@ async function importProducts() {
   );
   console.log(`✅ Inserted ${insertedCategories.length} categories`);
 
-  // Insert products in batches of 50
+  // Insert products in batches of 50 with JSONB translations
   const BATCH_SIZE = 50;
   let totalInserted = 0;
 
   for (let i = 0; i < rows.length; i += BATCH_SIZE) {
     const batch = rows.slice(i, i + BATCH_SIZE);
-    const values = batch.map((row, idx) => ({
-      tenantId,
-      categoryId: catMap[row.category] || null,
-      name: row.nameEn || row.nameTc, // English name (fallback to TC)
-      nameCn: row.nameTc,
-      sku: row.sku || null,
-      barcode: row.barcode || null,
-      sellingPrice: row.sellingPrice.toFixed(2),
-      originalPrice: row.originalPrice.toFixed(2),
-      stock: row.unlimitedStock ? null : row.stock,
-      status: row.status === "PUBLISHED" ? ("active" as const) : ("draft" as const),
-      isPopular: false,
-      sortOrder: i + idx,
-    }));
+    const values = batch.map((row, idx) => {
+      // Build translations JSONB — only include non-empty values
+      const translations: Record<string, string> = {};
+      if (row.nameEn && row.nameEn.trim()) translations.en = row.nameEn.trim();
+
+      return {
+        tenantId,
+        categoryId: catMap[row.category] || null,
+        // Chinese name as default (or English if no Chinese)
+        name: row.nameTc || row.nameEn,
+        translations,
+        description: row.descTc || null,
+        descTranslations: row.descEn ? { en: row.descEn } : {},
+        sku: row.sku || null,
+        barcode: row.barcode || null,
+        sellingPrice: row.sellingPrice.toFixed(2),
+        originalPrice: row.originalPrice.toFixed(2),
+        stock: row.unlimitedStock ? null : row.stock,
+        status: row.status === "PUBLISHED" ? ("active" as const) : ("draft" as const),
+        isPopular: false,
+        sortOrder: i + idx,
+      };
+    });
 
     await db.insert(products).values(values);
     totalInserted += batch.length;

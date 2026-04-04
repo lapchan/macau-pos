@@ -3,6 +3,9 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   description: "Modern POS & retail operations platform",
+  icons: {
+    icon: "/api/favicon?name=CountingStars&color=%234f6ef7",
+  },
 };
 
 export default function RootLayout({
