@@ -225,10 +225,10 @@ export default function CheckoutWithSidebar({
         {/* ============================================================ */}
         {/* Checkout form                                                */}
         {/* ============================================================ */}
-        <section aria-labelledby="payment-heading" className="flex-auto overflow-y-auto px-4 pt-12 pb-16 sm:px-6 sm:pt-16 lg:px-8 lg:pt-0 lg:pb-24">
+        <section aria-labelledby="payment-heading" className="flex-auto overflow-y-auto px-6 pt-12 pb-16 sm:px-10 sm:pt-16 lg:px-16 lg:pt-0 lg:pb-24 xl:px-24">
           <h2 id="payment-heading" className="sr-only">Payment and shipping details</h2>
 
-          <div className="mx-auto max-w-lg lg:pt-16">
+          <div className="max-w-2xl lg:pt-16">
             {/* Quick pay buttons */}
             <div className="flex flex-col gap-3">
               {[
