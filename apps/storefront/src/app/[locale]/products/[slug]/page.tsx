@@ -1,5 +1,5 @@
 import { resolveTenant } from "@/lib/tenant-resolver";
-import { getProductBySlug } from "@/lib/storefront-queries";
+import { getProductBySlug, getStorefrontProducts } from "@/lib/storefront-queries";
 import { notFound } from "next/navigation";
 import ProductDetailClient from "./client";
 
@@ -22,6 +22,24 @@ export default async function ProductDetailPage({ params }: Props) {
     ? [{ url: product.image, alt: product.name }]
     : [];
 
+  // Fetch related products (same category, exclude current)
+  const { products: related } = await getStorefrontProducts(tenant.id, {
+    categorySlug: product.categorySlug || undefined,
+    pageSize: 4,
+    sortBy: "popular",
+  });
+
+  const relatedProducts = related
+    .filter((p) => p.id !== product.id)
+    .slice(0, 4)
+    .map((p) => ({
+      id: p.id,
+      slug: p.slug,
+      name: (p.translations as Record<string, string>)?.[locale] || p.name,
+      price: parseFloat(String(p.sellingPrice)),
+      image: p.image,
+    }));
+
   return (
     <ProductDetailClient
       product={{
@@ -32,6 +50,7 @@ export default async function ProductDetailPage({ params }: Props) {
         categoryTranslations: product.categoryTranslations as Record<string, string>,
       }}
       locale={locale}
+      relatedProducts={relatedProducts}
     />
   );
 }
