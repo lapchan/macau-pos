@@ -22,7 +22,7 @@ import { fetchProductVariants } from "@/lib/actions";
 import {
   LayoutGrid, Coffee, Cookie, Snowflake, Milk, Home, Heart, Flame,
   Search, Plus, Minus, Trash2, ShoppingBag, CreditCard,
-  User, X, Languages, Check,
+  User, X, Languages, Check, Settings, Calculator, Star, LibraryBig, Delete, StickyNote,
   ChevronDown, Palette, LogOut, Lock, Clock, Receipt,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -77,6 +77,10 @@ type Props = {
 
 export default function POSClient({ initialProducts, initialCategories, userName, userId, terminalName, terminalCode, activeShiftId }: Props) {
   const [locale, setLocale] = useState<Locale>("tc");
+  const [activeView, setActiveView] = useState<"library" | "keypad" | "favorites">("library");
+  const [keypadValue, setKeypadValue] = useState("0");
+  const [keypadNote, setKeypadNote] = useState("");
+  const [showKeypadNote, setShowKeypadNote] = useState(false);
   const [activeCategory, setActiveCategory] = useState("all");
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTags, setSearchTags] = useState<string[]>([]);
@@ -85,6 +89,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
   const [showHistory, setShowHistory] = useState(false);
   const [showLangMenu, setShowLangMenu] = useState(false);
   const [showThemeMenu, setShowThemeMenu] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [currentTheme, setCurrentTheme] = useState("default");
   const [addedId, setAddedId] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -209,6 +214,42 @@ export default function POSClient({ initialProducts, initialCategories, userName
     return list;
   }, [initialProducts, activeCategory, searchTags, spotlightInput]);
 
+  // Keypad helpers — value stored as cents (integer string)
+  const handleKeypadPress = useCallback((key: string) => {
+    setKeypadValue(prev => {
+      if (key === "C") return "0";
+      if (key === "⌫") {
+        const next = prev.slice(0, -1);
+        return next === "" ? "0" : next;
+      }
+      if (prev === "0") return key;
+      if (prev.length >= 8) return prev; // max 999,999.99
+      return prev + key;
+    });
+  }, []);
+
+  const keypadDisplayPrice = useMemo(() => {
+    const cents = parseInt(keypadValue, 10);
+    return (cents / 100).toFixed(2);
+  }, [keypadValue]);
+
+  const handleKeypadAddToCart = useCallback(() => {
+    const cents = parseInt(keypadValue, 10);
+    if (cents <= 0) return;
+    const price = cents / 100;
+    const customId = `custom_${Date.now()}`;
+    const customProduct: Product = {
+      id: customId,
+      name: keypadNote || t(locale, "customItem"),
+      price,
+      category: "custom",
+      inStock: true,
+    };
+    setCart(prev => [...prev, { ...customProduct, quantity: 1 }]);
+    setKeypadValue("0");
+    setKeypadNote("");
+  }, [keypadValue, keypadNote, locale]);
+
   const addToCart = useCallback((product: Product) => {
     if (!product.inStock) return;
 
@@ -331,24 +372,35 @@ export default function POSClient({ initialProducts, initialCategories, userName
     >
       {/* ============ LEFT: PRODUCT AREA ============ */}
       <main className="flex-1 flex flex-col min-w-0">
-        {/* Header bar */}
-        <header className="h-[60px] flex items-center gap-3 px-5 bg-pos-surface border-b border-pos-border shrink-0">
-          {/* Logo */}
-          <div className="flex items-center gap-2.5 mr-3">
-            <div
-              className="h-8 w-8 rounded-[var(--radius-sm)] flex items-center justify-center font-bold text-[11px] text-white"
-              style={{ backgroundColor: "var(--color-pos-accent)" }}
-            >
-              CS
-            </div>
-            <span className="text-[15px] font-semibold text-pos-text hidden lg:block">
-              CountingStars
-            </span>
-          </div>
+        {/* Row 1: View tabs (Keypad / Library / Favorites) + Search */}
+        <header className="h-[52px] flex items-center gap-1 px-5 bg-pos-surface border-b border-pos-border shrink-0">
+          {/* View tabs */}
+          <nav className="flex items-center gap-1">
+            {([
+              { key: "keypad" as const, label: t(locale, "keypad"), icon: Calculator },
+              { key: "library" as const, label: t(locale, "library"), icon: LibraryBig },
+              { key: "favorites" as const, label: t(locale, "favorites"), icon: Star },
+            ]).map(({ key, label, icon: TabIcon }) => (
+              <button
+                key={key}
+                onClick={() => setActiveView(key)}
+                className={cn(
+                  "h-9 px-4 flex items-center gap-2 text-[15px] font-medium rounded-[var(--radius-sm)] transition-colors whitespace-nowrap",
+                  activeView === key
+                    ? "text-pos-text"
+                    : "text-pos-text-muted hover:text-pos-text-secondary"
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </nav>
 
-          {/* Search — icon button or active search tag */}
+          {/* Spacer */}
+          <div className="flex-1" />
+
           {/* Search tags + search button */}
-          <div className="flex items-center gap-1.5 flex-1 min-w-0 overflow-x-auto scrollbar-none" ref={searchBtnRef}>
+          <div className="flex items-center gap-1.5 shrink-0 overflow-x-auto scrollbar-none" ref={searchBtnRef}>
             {searchTags.map((tag, i) => (
               <div
                 key={i}
@@ -373,79 +425,158 @@ export default function POSClient({ initialProducts, initialCategories, userName
             <button
               onClick={() => setSearchOpen(true)}
               aria-label={t(locale, "search")}
-              className={cn(
-                "h-8 flex items-center gap-1.5 px-2.5 text-[13px] rounded-[var(--radius-md)] transition-colors shrink-0",
-                searchTags.length > 0
-                  ? "text-pos-text-muted hover:bg-pos-surface-hover"
-                  : "bg-pos-bg text-pos-text-muted border border-pos-border hover:bg-pos-surface-hover"
-              )}
+              className="h-9 w-9 flex items-center justify-center rounded-full bg-pos-bg border border-pos-border text-pos-text-muted hover:bg-pos-surface-hover transition-colors"
             >
               <Search className="h-4 w-4" />
-              {searchTags.length === 0 && <span className="hidden sm:inline">{t(locale, "search")}</span>}
             </button>
           </div>
-
-          {/* Current user + shift indicator */}
-          {userName && (
-            <button
-              onClick={shiftId ? () => setShowShiftSummary(true) : undefined}
-              className={cn(
-                "h-9 px-3 flex items-center gap-2 text-[13px] border rounded-[var(--radius-sm)] ml-auto shrink-0 transition-colors",
-                shiftId
-                  ? "text-pos-text-secondary border-pos-accent/30 bg-pos-accent-light hover:bg-pos-accent-light/80 cursor-pointer"
-                  : "text-pos-text-secondary border-pos-border bg-pos-surface"
-              )}
-            >
-              <div className="relative">
-                <div
-                  className="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-semibold text-white"
-                  style={{ backgroundColor: "var(--color-pos-accent)" }}
-                >
-                  {userName.charAt(0).toUpperCase()}
-                </div>
-                {shiftId && (
-                  <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-pos-surface" />
-                )}
-              </div>
-              <span className="hidden lg:inline max-w-[100px] truncate">{userName}</span>
-              {shiftId && <ShiftTimer shiftId={shiftId} />}
-            </button>
-          )}
         </header>
 
-        {/* Category tabs */}
-        <div className="h-[52px] flex items-center gap-1.5 px-5 bg-pos-surface border-b border-pos-border shrink-0 overflow-x-auto hide-scrollbar">
-          {initialCategories.map((cat) => {
-            const Icon = iconMap[cat.icon] || LayoutGrid;
-            const isActive = activeCategory === cat.id;
-            return (
+        {/* Row 2: Category filter tabs (only in Library view) */}
+        {activeView === "library" && (
+          <div className="h-[48px] flex items-center gap-1.5 px-5 bg-pos-surface border-b border-pos-border shrink-0 overflow-x-auto hide-scrollbar">
+            {initialCategories.map((cat) => {
+              const Icon = iconMap[cat.icon] || LayoutGrid;
+              const isActive = activeCategory === cat.id;
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3.5 h-8 rounded-[var(--radius-full)] text-[13px] font-medium whitespace-nowrap transition-all shrink-0",
+                    isActive
+                      ? "text-white shadow-sm"
+                      : "text-pos-text-secondary bg-pos-bg hover:bg-pos-surface-active"
+                  )}
+                  style={isActive ? { backgroundColor: "var(--color-pos-accent)" } : undefined}
+                >
+                  <Icon className="h-3.5 w-3.5" strokeWidth={2} />
+                  {t(locale, cat.nameKey as any)}
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        {/* ============ VIEW CONTENT ============ */}
+
+        {/* Keypad view */}
+        {activeView === "keypad" && (
+          <div className="flex-1 flex flex-col px-8 py-6">
+            {/* Price display */}
+            <div className="flex-1 flex flex-col justify-center">
+              <p className="text-[64px] font-bold text-pos-text tracking-tight text-left tabular-nums">
+                <span className="text-[40px] text-pos-text-muted mr-1">MOP</span>
+                {keypadDisplayPrice}
+              </p>
+              {keypadNote && (
+                <p className="text-[15px] text-pos-text-muted mt-2 text-left truncate">{keypadNote}</p>
+              )}
+            </div>
+
+            {/* Keypad grid */}
+            <div className="grid grid-cols-3 gap-3 pb-2">
+              {/* Row 1: + Note (full row) */}
               <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className={cn(
-                  "flex items-center gap-1.5 px-3.5 h-8 rounded-[var(--radius-full)] text-[13px] font-medium whitespace-nowrap transition-all shrink-0",
-                  isActive
-                    ? "text-white shadow-sm"
-                    : "text-pos-text-secondary bg-pos-bg hover:bg-pos-surface-active"
-                )}
-                style={isActive ? { backgroundColor: "var(--color-pos-accent)" } : undefined}
+                onClick={() => setShowKeypadNote(true)}
+                className="h-[72px] col-span-3 flex items-center justify-center gap-2 text-[16px] font-medium text-pos-text-secondary rounded-[var(--radius-md)] bg-pos-bg hover:bg-pos-surface-hover active:scale-[0.97] transition-all"
               >
-                <Icon className="h-3.5 w-3.5" strokeWidth={2} />
-                {t(locale, cat.nameKey as any)}
+                <StickyNote className="h-5 w-5" />
+                {t(locale, "addNote")}
               </button>
-            );
-          })}
-        </div>
 
-        {/* Product count */}
-        <div className="px-5 py-3 flex items-center justify-between shrink-0">
-          <span className="text-[13px] text-pos-text-secondary">
-            {filtered.length} {t(locale, "items")}
-          </span>
-        </div>
+              {/* Row 2–4: number keys 1-9 */}
+              {["1","2","3","4","5","6","7","8","9"].map(n => (
+                <button
+                  key={n}
+                  onClick={() => handleKeypadPress(n)}
+                  className="h-[72px] flex items-center justify-center text-[28px] font-medium text-pos-text rounded-[var(--radius-md)] bg-pos-bg hover:bg-pos-surface-hover active:scale-[0.97] transition-all"
+                >
+                  {n}
+                </button>
+              ))}
 
-        {/* Product grid */}
-        <div className="flex-1 overflow-y-auto px-5 pb-5">
+              {/* Row 5: C, 0, Add */}
+              <button
+                onClick={() => handleKeypadPress("C")}
+                className="h-[72px] flex items-center justify-center text-[22px] font-semibold text-pos-text-muted rounded-[var(--radius-md)] bg-pos-bg hover:bg-pos-surface-hover active:scale-[0.97] transition-all"
+              >
+                C
+              </button>
+              <button
+                onClick={() => handleKeypadPress("0")}
+                className="h-[72px] flex items-center justify-center text-[28px] font-medium text-pos-text rounded-[var(--radius-md)] bg-pos-bg hover:bg-pos-surface-hover active:scale-[0.97] transition-all"
+              >
+                0
+              </button>
+              <button
+                onClick={handleKeypadAddToCart}
+                disabled={parseInt(keypadValue, 10) <= 0}
+                className="h-[72px] flex items-center justify-center text-[28px] font-semibold text-white rounded-[var(--radius-md)] active:scale-[0.97] transition-all disabled:opacity-40"
+                style={{ backgroundColor: "var(--color-pos-accent)" }}
+              >
+                <Plus className="h-7 w-7" />
+              </button>
+            </div>
+
+            {/* Note input modal */}
+            {showKeypadNote && (
+              <>
+                <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setShowKeypadNote(false)} />
+                <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90%] max-w-[400px] bg-pos-surface border border-pos-border rounded-[var(--radius-lg)] shadow-xl p-5 animate-scale-in">
+                  <p className="text-[15px] font-semibold text-pos-text mb-3">{t(locale, "addNote")}</p>
+                  <input
+                    type="text"
+                    autoFocus
+                    value={keypadNote}
+                    onChange={e => setKeypadNote(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") setShowKeypadNote(false); }}
+                    placeholder={t(locale, "keypadNotePlaceholder")}
+                    className="w-full h-11 px-3 text-[14px] text-pos-text bg-pos-bg border border-pos-border rounded-[var(--radius-md)] outline-none focus:border-pos-accent transition-colors"
+                  />
+                  <div className="flex justify-end gap-2 mt-4">
+                    <button
+                      onClick={() => { setKeypadNote(""); setShowKeypadNote(false); }}
+                      className="h-9 px-4 text-[13px] text-pos-text-secondary rounded-[var(--radius-md)] hover:bg-pos-surface-hover transition-colors"
+                    >
+                      {t(locale, "clear")}
+                    </button>
+                    <button
+                      onClick={() => setShowKeypadNote(false)}
+                      className="h-9 px-4 text-[13px] font-medium text-white rounded-[var(--radius-md)] transition-colors"
+                      style={{ backgroundColor: "var(--color-pos-accent)" }}
+                    >
+                      {t(locale, "confirm")}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Favorites view */}
+        {activeView === "favorites" && (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <Star className="h-12 w-12 text-pos-text-muted/30 mx-auto mb-3" strokeWidth={1.25} />
+              <p className="text-[15px] font-medium text-pos-text">{t(locale, "favorites")}</p>
+              <p className="text-[13px] text-pos-text-muted mt-1">{t(locale, "favoritesDesc")}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Library view — Product count */}
+        {activeView === "library" && (
+          <div className="px-5 py-3 flex items-center justify-between shrink-0">
+            <span className="text-[13px] text-pos-text-secondary">
+              {filtered.length} {t(locale, "items")}
+            </span>
+          </div>
+        )}
+
+        {/* Library view — Product grid */}
+        {activeView === "library" && <div className="flex-1 overflow-y-auto px-5 pb-5">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2">
             {filtered.map((product) => {
               const inCart = cart.find((item) => item.id === product.id);
@@ -540,27 +671,58 @@ export default function POSClient({ initialProducts, initialCategories, userName
               <p className="text-[13px] text-pos-text-muted mt-1">{t(locale, "tryOther")}</p>
             </div>
           )}
-        </div>
+        </div>}
 
         {/* ============ BOTTOM BAR: Settings & Controls ============ */}
         <div className="h-[48px] flex items-center gap-1.5 px-5 bg-pos-surface border-t border-pos-border shrink-0">
-          {/* Theme selector */}
+          {/* User button */}
+          {userName && (
+            <button
+              onClick={shiftId ? () => setShowShiftSummary(true) : undefined}
+              className={cn(
+                "h-9 px-3 flex items-center gap-2 text-[13px] border rounded-[var(--radius-sm)] shrink-0 transition-colors",
+                shiftId
+                  ? "text-pos-text-secondary border-pos-accent/30 bg-pos-accent-light hover:bg-pos-accent-light/80 cursor-pointer"
+                  : "text-pos-text-secondary border-pos-border bg-pos-surface"
+              )}
+            >
+              <div className="relative">
+                <div
+                  className="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-semibold text-white"
+                  style={{ backgroundColor: "var(--color-pos-accent)" }}
+                >
+                  {userName.charAt(0).toUpperCase()}
+                </div>
+                {shiftId && (
+                  <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-pos-surface" />
+                )}
+              </div>
+              <span className="hidden lg:inline max-w-[100px] truncate">{userName}</span>
+              {shiftId && <ShiftTimer shiftId={shiftId} />}
+            </button>
+          )}
+
+          {/* Settings (theme + language) */}
           <div className="relative">
             <button
-              onClick={() => { setShowThemeMenu(!showThemeMenu); setShowLangMenu(false); }}
-              aria-label="Change theme"
+              onClick={() => { setShowSettingsMenu(!showSettingsMenu); }}
+              aria-label="Settings"
               className="h-9 px-2.5 flex items-center gap-1.5 text-[13px] text-pos-text-secondary rounded-[var(--radius-sm)] hover:bg-pos-surface-hover transition-colors"
             >
-              <Palette className="h-4 w-4" />
+              <Settings className="h-4 w-4" />
             </button>
-            {showThemeMenu && (
+            {showSettingsMenu && (
               <>
-                <div className="fixed inset-0 z-10" onClick={() => setShowThemeMenu(false)} />
-                <div className="absolute left-0 bottom-full mb-1.5 z-20 bg-pos-surface border border-pos-border rounded-[var(--radius-md)] shadow-lg py-1.5 min-w-[180px] animate-scale-in">
+                <div className="fixed inset-0 z-10" onClick={() => setShowSettingsMenu(false)} />
+                <div className="absolute left-0 bottom-full mb-1.5 z-20 bg-pos-surface border border-pos-border rounded-[var(--radius-md)] shadow-lg py-1.5 min-w-[200px] animate-scale-in">
+                  {/* Theme section */}
+                  <div className="px-3 py-1.5 text-[11px] font-medium text-pos-text-muted uppercase tracking-wide">
+                    <div className="flex items-center gap-1.5"><Palette className="h-3 w-3" />{t(locale, "theme")}</div>
+                  </div>
                   {Object.entries(merchantThemes).map(([key, theme]) => (
                     <button
                       key={key}
-                      onClick={() => { setCurrentTheme(key); setShowThemeMenu(false); }}
+                      onClick={() => { setCurrentTheme(key); }}
                       className={cn(
                         "w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors",
                         currentTheme === key ? "bg-pos-surface-active text-pos-text" : "text-pos-text-secondary hover:bg-pos-surface-hover"
@@ -571,29 +733,18 @@ export default function POSClient({ initialProducts, initialCategories, userName
                       {currentTheme === key && <Check className="h-3.5 w-3.5 ml-auto text-pos-accent" />}
                     </button>
                   ))}
-                </div>
-              </>
-            )}
-          </div>
 
-          {/* Language selector */}
-          <div className="relative">
-            <button
-              onClick={() => { setShowLangMenu(!showLangMenu); setShowThemeMenu(false); }}
-              aria-label={t(locale, "language")}
-              className="h-9 px-2.5 flex items-center gap-1.5 text-[13px] text-pos-text-secondary rounded-[var(--radius-sm)] hover:bg-pos-surface-hover transition-colors"
-            >
-              <Languages className="h-4 w-4" />
-              <Flag code={locale} size={18} />
-            </button>
-            {showLangMenu && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setShowLangMenu(false)} />
-                <div className="absolute left-0 bottom-full mb-1.5 z-20 bg-pos-surface border border-pos-border rounded-[var(--radius-md)] shadow-lg py-1.5 min-w-[170px] animate-scale-in">
+                  {/* Divider */}
+                  <div className="my-1.5 border-t border-pos-border" />
+
+                  {/* Language section */}
+                  <div className="px-3 py-1.5 text-[11px] font-medium text-pos-text-muted uppercase tracking-wide">
+                    <div className="flex items-center gap-1.5"><Languages className="h-3 w-3" />{t(locale, "language")}</div>
+                  </div>
                   {(Object.keys(localeNames) as Locale[]).map((l) => (
                     <button
                       key={l}
-                      onClick={() => { setLocale(l); setShowLangMenu(false); }}
+                      onClick={() => { setLocale(l); }}
                       className={cn(
                         "w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors",
                         locale === l ? "bg-pos-surface-active text-pos-text" : "text-pos-text-secondary hover:bg-pos-surface-hover"
@@ -608,7 +759,6 @@ export default function POSClient({ initialProducts, initialCategories, userName
               </>
             )}
           </div>
-
 
           {/* Order history */}
           <button

@@ -25,6 +25,17 @@ type TranslationKeys = {
   lock: string;
   logout: string;
   language: string;
+  theme: string;
+  settings: string;
+  keypad: string;
+  keypadDesc: string;
+  customItem: string;
+  addNote: string;
+  keypadNotePlaceholder: string;
+  confirm: string;
+  library: string;
+  favorites: string;
+  favoritesDesc: string;
 
   // Categories
   all: string;
@@ -186,6 +197,17 @@ const translations: Record<Locale, TranslationKeys> = {
     lock: "鎖定",
     logout: "登出",
     language: "語言",
+    theme: "主題",
+    settings: "設定",
+    keypad: "鍵盤",
+    keypadDesc: "自訂品項及定價",
+    customItem: "自訂品項",
+    addNote: "備註",
+    keypadNotePlaceholder: "輸入品項描述...",
+    confirm: "確認",
+    library: "商品庫",
+    favorites: "收藏",
+    favoritesDesc: "尚未收藏任何商品",
     all: "全部",
     beverages: "飲品",
     snacks: "零食",
@@ -323,6 +345,17 @@ const translations: Record<Locale, TranslationKeys> = {
     lock: "锁定",
     logout: "登出",
     language: "语言",
+    theme: "主题",
+    settings: "设置",
+    keypad: "键盘",
+    keypadDesc: "自定义品项及定价",
+    customItem: "自定义品项",
+    addNote: "备注",
+    keypadNotePlaceholder: "输入品项描述...",
+    confirm: "确认",
+    library: "商品库",
+    favorites: "收藏",
+    favoritesDesc: "尚未收藏任何商品",
     all: "全部",
     beverages: "饮品",
     snacks: "零食",
@@ -460,6 +493,17 @@ const translations: Record<Locale, TranslationKeys> = {
     lock: "Lock",
     logout: "Logout",
     language: "Language",
+    theme: "Theme",
+    settings: "Settings",
+    keypad: "Keypad",
+    keypadDesc: "Create custom items and pricing",
+    customItem: "Custom Item",
+    addNote: "Note",
+    keypadNotePlaceholder: "Enter item description...",
+    confirm: "Confirm",
+    library: "Library",
+    favorites: "Favorites",
+    favoritesDesc: "No favorites yet",
     all: "All",
     beverages: "Drinks",
     snacks: "Snacks",
@@ -597,6 +641,17 @@ const translations: Record<Locale, TranslationKeys> = {
     lock: "Bloquear",
     logout: "Sair",
     language: "Idioma",
+    theme: "Tema",
+    settings: "Definições",
+    keypad: "Teclado",
+    keypadDesc: "Criar itens e preços personalizados",
+    customItem: "Item personalizado",
+    addNote: "Nota",
+    keypadNotePlaceholder: "Descrição do item...",
+    confirm: "Confirmar",
+    library: "Biblioteca",
+    favorites: "Favoritos",
+    favoritesDesc: "Ainda sem favoritos",
     all: "Todos",
     beverages: "Bebidas",
     snacks: "Lanches",
@@ -734,6 +789,17 @@ const translations: Record<Locale, TranslationKeys> = {
     lock: "ロック",
     logout: "ログアウト",
     language: "言語",
+    theme: "テーマ",
+    settings: "設定",
+    keypad: "キーパッド",
+    keypadDesc: "カスタム商品と価格を作成",
+    customItem: "カスタム商品",
+    addNote: "メモ",
+    keypadNotePlaceholder: "商品の説明を入力...",
+    confirm: "確認",
+    library: "ライブラリ",
+    favorites: "お気に入り",
+    favoritesDesc: "お気に入りはまだありません",
     all: "すべて",
     beverages: "ドリンク",
     snacks: "スナック",
