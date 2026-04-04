@@ -11,7 +11,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:seed": "tsx src/seed.ts",
     "db:studio": "drizzle-kit studio",
-    "db:import-yp": "tsx src/import-yp.ts"
+    "db:import-yp": "tsx src/import-yp.ts",
+    "db:seed-storefront": "tsx src/seed-storefront.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",

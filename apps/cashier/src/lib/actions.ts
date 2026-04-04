@@ -13,7 +13,7 @@ import { getAuthSession } from "./auth-actions";
 import { getActiveShift } from "./shift-actions";
 
 type CartItemInput = {
-  productId: string;
+  productId?: string;
   name: string;
   translations?: Record<string, string>;
   unitPrice: number;
@@ -101,7 +101,7 @@ export async function createOrder(
       await tx.insert(orderItems).values(
         input.cart.map((item) => ({
           orderId: order.id,
-          productId: item.productId,
+          productId: item.productId || null,
           name: item.name,
           translations: item.translations || {},
           unitPrice: item.unitPrice.toFixed(2),

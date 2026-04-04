@@ -22,8 +22,8 @@ import { fetchProductVariants } from "@/lib/actions";
 import {
   LayoutGrid, Coffee, Cookie, Snowflake, Milk, Home, Heart, Flame,
   Search, Plus, Minus, Trash2, ShoppingBag, CreditCard,
-  User, X, Languages, Check, Settings, Calculator, Star, LibraryBig, Delete, StickyNote,
-  ChevronDown, Palette, LogOut, Lock, Clock, Receipt,
+  User, UserPlus, X, Languages, Check, Settings, Calculator, Star, LibraryBig, Delete, StickyNote,
+  ChevronDown, ChevronRight, Palette, LogOut, Lock, Clock, Receipt, Smartphone, QrCode,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -96,6 +96,14 @@ export default function POSClient({ initialProducts, initialCategories, userName
   const [locking, setLocking] = useState(false);
   const [shiftId, setShiftId] = useState<string | null>(activeShiftId || null);
   const [showShiftSummary, setShowShiftSummary] = useState(false);
+  const [showCustomerSearch, setShowCustomerSearch] = useState(false);
+  const [customerSearchInput, setCustomerSearchInput] = useState("");
+  const [linkedCustomer, setLinkedCustomer] = useState<{
+    name: string;
+    phone?: string;
+    tier?: string;
+    points?: number;
+  } | null>(null);
   const [showShiftClose, setShowShiftClose] = useState(false);
   const [locked, setLocked] = useState(() => {
     if (typeof window !== "undefined") {
@@ -462,16 +470,30 @@ export default function POSClient({ initialProducts, initialCategories, userName
 
         {/* Keypad view */}
         {activeView === "keypad" && (
-          <div className="flex-1 flex flex-col px-8 py-6">
+          <div className="flex-1 flex flex-col px-8 py-6" style={{ contain: "layout" }}>
             {/* Price display */}
-            <div className="flex-1 flex flex-col justify-center">
-              <p className="text-[64px] font-bold text-pos-text tracking-tight text-left tabular-nums">
-                <span className="text-[40px] text-pos-text-muted mr-1">MOP</span>
-                {keypadDisplayPrice}
+            <div className="flex-1 flex flex-col justify-center min-h-0">
+              <div className="flex items-center justify-between">
+                <p className="text-[64px] font-bold text-pos-text tracking-tight text-left tabular-nums leading-none">
+                  <span className="text-[40px] text-pos-text-muted mr-1">MOP</span>
+                  {keypadDisplayPrice}
+                </p>
+                <button
+                  onClick={() => handleKeypadPress("⌫")}
+                  className={cn(
+                    "h-12 w-12 flex items-center justify-center rounded-full text-pos-text-muted hover:bg-pos-surface-hover active:scale-[0.95] transition-all",
+                    parseInt(keypadValue, 10) === 0 && "invisible"
+                  )}
+                >
+                  <Delete className="h-6 w-6" />
+                </button>
+              </div>
+              <p className={cn(
+                "text-[15px] mt-2 text-left truncate h-[22px]",
+                keypadNote ? "text-pos-text-muted" : "text-transparent"
+              )}>
+                {keypadNote || "\u00A0"}
               </p>
-              {keypadNote && (
-                <p className="text-[15px] text-pos-text-muted mt-2 text-left truncate">{keypadNote}</p>
-              )}
             </div>
 
             {/* Keypad grid */}
@@ -833,8 +855,8 @@ export default function POSClient({ initialProducts, initialCategories, userName
 
       {/* ============ RIGHT: CART + PAYMENT ============ */}
       <aside className="w-[360px] bg-pos-cart-bg border-l border-pos-border flex flex-col shrink-0 shadow-[-1px_0_3px_rgba(0,0,0,0.04)]">
-        {/* Cart header */}
-        <div className="h-[60px] flex items-center justify-between px-5 bg-pos-cart-header border-b border-pos-border shrink-0">
+        {/* Cart header — aligned with main pane row 1 */}
+        <div className="h-[52px] flex items-center justify-between px-5 bg-pos-cart-header border-b border-pos-border shrink-0">
           <div className="flex items-center gap-2">
             <ShoppingBag className="h-[18px] w-[18px] text-pos-text-secondary" />
             <h3 className="text-[15px] font-semibold text-pos-text">{t(locale, "cart")}</h3>
@@ -854,6 +876,48 @@ export default function POSClient({ initialProducts, initialCategories, userName
               className="text-[13px] text-pos-text-muted hover:text-pos-danger transition-colors"
             >
               {t(locale, "clear")}
+            </button>
+          )}
+        </div>
+
+        {/* Customer awareness bar — aligned with main pane row 2 */}
+        <div className="h-[48px] flex items-center px-3 border-b border-pos-border shrink-0">
+          {linkedCustomer ? (
+            <div className="flex items-center gap-2.5 flex-1 min-w-0">
+              <div
+                className="h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-semibold text-white shrink-0"
+                style={{ backgroundColor: "var(--color-pos-accent)" }}
+              >
+                {linkedCustomer.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-medium text-pos-text leading-tight">{linkedCustomer.name}</p>
+                {linkedCustomer.tier && (
+                  <p className="text-[11px] text-pos-text-muted leading-tight">
+                    <span className="inline-flex items-center gap-0.5">
+                      <Star className="h-2.5 w-2.5 text-amber-500 fill-amber-500" />
+                      {linkedCustomer.tier}
+                    </span>
+                    {linkedCustomer.points !== undefined && (
+                      <span> · {linkedCustomer.points.toLocaleString()} pts</span>
+                    )}
+                  </p>
+                )}
+              </div>
+              <button
+                onClick={() => setLinkedCustomer(null)}
+                className="h-6 w-6 flex items-center justify-center rounded-full text-pos-text-muted hover:text-pos-danger hover:bg-pos-danger-light transition-colors shrink-0"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => { setCustomerSearchInput(""); setShowCustomerSearch(true); }}
+              className="w-full flex items-center justify-center gap-2 h-full text-[13px] text-pos-text-muted hover:text-pos-text-secondary transition-colors"
+            >
+              <UserPlus className="h-3.5 w-3.5" />
+              {t(locale, "addCustomer")}
             </button>
           )}
         </div>
@@ -1002,6 +1066,107 @@ export default function POSClient({ initialProducts, initialCategories, userName
         />
       )}
 
+
+      {/* ============ CUSTOMER SEARCH SPOTLIGHT ============ */}
+      {showCustomerSearch && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/40 animate-[fadeIn_0.2s_ease-out]"
+            onClick={() => setShowCustomerSearch(false)}
+          />
+          <div className="fixed inset-x-0 top-0 z-50 flex justify-center pt-[8vh] px-4 animate-[spotlightOpen_0.25s_cubic-bezier(0.16,1,0.3,1)]">
+            <div className="w-full max-w-md bg-pos-surface rounded-2xl shadow-2xl overflow-hidden relative">
+              {/* Close */}
+              <button
+                onClick={() => setShowCustomerSearch(false)}
+                className="absolute top-3 right-3 h-9 w-9 flex items-center justify-center rounded-full bg-pos-text-muted/15 text-pos-text-secondary hover:bg-pos-text-muted/25 hover:text-pos-text transition-colors z-10"
+              >
+                <X className="h-5 w-5" strokeWidth={2.5} />
+              </button>
+
+              {/* Phone input */}
+              <div className="flex items-center px-4">
+                <Smartphone className="h-5 w-5 text-pos-text-muted shrink-0 ml-1" />
+                <input
+                  type="tel"
+                  autoFocus
+                  value={customerSearchInput}
+                  onChange={(e) => setCustomerSearchInput(e.target.value.replace(/[^0-9+ ]/g, ""))}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setShowCustomerSearch(false);
+                    if (e.key === "Enter" && customerSearchInput.trim()) {
+                      // Mock: simulate finding a customer
+                      setLinkedCustomer({
+                        name: "陳小明 Chan Siu Man",
+                        phone: customerSearchInput.trim(),
+                        tier: "Gold Member",
+                        points: 1280,
+                      });
+                      setShowCustomerSearch(false);
+                    }
+                  }}
+                  placeholder={t(locale, "searchByPhone")}
+                  style={{ outline: "none" }}
+                  className="flex-1 h-14 pl-3 pr-12 text-[18px] bg-transparent text-pos-text placeholder:text-pos-text-muted"
+                />
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-pos-border" />
+
+              {/* Actions */}
+              <div className="p-3 space-y-1">
+                {/* Mock search result */}
+                {customerSearchInput.length >= 4 && (
+                  <button
+                    onClick={() => {
+                      setLinkedCustomer({
+                        name: "陳小明 Chan Siu Man",
+                        phone: customerSearchInput.trim(),
+                        tier: "Gold Member",
+                        points: 1280,
+                      });
+                      setShowCustomerSearch(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-md)] hover:bg-pos-surface-hover transition-colors"
+                  >
+                    <div
+                      className="h-9 w-9 rounded-full flex items-center justify-center text-[13px] font-semibold text-white shrink-0"
+                      style={{ backgroundColor: "var(--color-pos-accent)" }}
+                    >
+                      陳
+                    </div>
+                    <div className="flex-1 min-w-0 text-left">
+                      <p className="text-[14px] font-medium text-pos-text">陳小明 Chan Siu Man</p>
+                      <p className="text-[12px] text-pos-text-muted">
+                        <span className="inline-flex items-center gap-1">
+                          <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+                          Gold Member · 1,280 pts
+                        </span>
+                      </p>
+                    </div>
+                  </button>
+                )}
+
+                {/* Scan membership option */}
+                <button
+                  onClick={() => {
+                    // TODO: activate camera/scanner
+                    setShowCustomerSearch(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-md)] hover:bg-pos-surface-hover transition-colors text-pos-text-secondary"
+                >
+                  <div className="h-9 w-9 rounded-full bg-pos-bg flex items-center justify-center shrink-0">
+                    <QrCode className="h-4 w-4" />
+                  </div>
+                  <p className="text-[14px] font-medium">{t(locale, "scanMembership")}</p>
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
       {/* ============ SEARCH SPOTLIGHT ============ */}
       {searchOpen && (
         <>
@@ -1017,13 +1182,10 @@ export default function POSClient({ initialProducts, initialCategories, userName
           {/* Search panel — centered, animated from button origin */}
           <div className="fixed inset-x-0 top-0 z-50 flex justify-center pt-[8vh] px-4 animate-[spotlightOpen_0.25s_cubic-bezier(0.16,1,0.3,1)]">
             <div className="w-full max-w-xl bg-pos-surface rounded-2xl shadow-2xl overflow-hidden relative">
-              {/* Close button — circled × upper right (always visible) */}
+              {/* Close button */}
               <button
                 onClick={() => {
-                  // Save current input as tag if non-empty
-                  if (spotlightInput.trim()) {
-                    setSearchTags(prev => [...prev, spotlightInput.trim()]);
-                  }
+                  if (spotlightInput.trim()) setSearchTags(prev => [...prev, spotlightInput.trim()]);
                   setSpotlightInput("");
                   setSearchOpen(false);
                 }}
@@ -1033,7 +1195,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
                 <X className="h-5 w-5" strokeWidth={2.5} />
               </button>
 
-              {/* Active tags inside spotlight */}
+              {/* Active tags */}
               {searchTags.length > 0 && (
                 <div className="flex items-center gap-1.5 px-5 pt-3 flex-wrap">
                   {searchTags.map((tag, i) => (
@@ -1059,7 +1221,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
                 </div>
               )}
 
-              {/* Large search input */}
+              {/* Search input */}
               <div className="flex items-center px-4">
                 <Search className="h-5 w-5 text-pos-text-muted shrink-0 ml-1" />
                 <input

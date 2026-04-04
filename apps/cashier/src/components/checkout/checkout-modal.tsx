@@ -34,34 +34,42 @@ const CASH_PRESETS = [10, 20, 50, 100, 200, 500];
 
 export default function CheckoutModal({ cart, locale, onClose, onComplete }: Props) {
   const [state, setState] = useState<CheckoutState>("review");
+  const [closing, setClosing] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
-  const [cashAmount, setCashAmount] = useState("");
+  const [cashCents, setCashCents] = useState("0");
   const [orderNum, setOrderNum] = useState("");
+
+  const handleClose = useCallback(() => {
+    setClosing(true);
+    setTimeout(() => onClose(), 300);
+  }, [onClose]);
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const total = subtotal; // Tax/discounts would be calculated here
 
-  const cashValue = parseFloat(cashAmount) || 0;
+  const cashValue = parseInt(cashCents, 10) / 100;
+  const cashDisplay = (parseInt(cashCents, 10) / 100).toFixed(2);
   const changeDue = cashValue - total;
 
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
-        if (state === "review") onClose();
+        if (state === "review") handleClose();
         else if (!["processing", "success"].includes(state)) setState("review");
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [state, onClose]);
+  }, [state, handleClose]);
 
   const processPayment = useCallback(async (method: "tap" | "insert" | "qr" | "cash") => {
     setState("processing");
     const result = await createOrder({
       cart: cart.map((item) => {
+        const isCustom = item.id.startsWith("custom_");
         // Cart id may be "productId__variantId" for variant items
-        const [productId, variantId] = item.id.split("__");
+        const [productId, variantId] = isCustom ? [undefined, undefined] : item.id.split("__");
         return {
           productId,
           variantId: variantId || undefined,
@@ -104,20 +112,22 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete }: Pro
   const borderStrong = darkMode ? "border-zinc-700" : "border-pos-border-strong";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex flex-col justify-end">
       {/* Backdrop */}
       <div
         className={cn(
           "absolute inset-0 transition-opacity duration-300",
-          darkMode ? "bg-black/95" : "bg-black/40 backdrop-blur-sm"
+          darkMode ? "bg-black/95" : "bg-black/40 backdrop-blur-sm",
+          closing && "opacity-0"
         )}
-        onClick={state === "review" ? onClose : undefined}
+        onClick={state === "review" ? handleClose : undefined}
       />
 
-      {/* Modal */}
+      {/* Bottom sheet */}
       <div
         className={cn(
-          "relative w-full max-w-[960px] h-[calc(100vh-48px)] max-h-[680px] rounded-[var(--radius-xl)] shadow-2xl flex flex-col overflow-hidden animate-scale-in",
+          "relative w-full h-full rounded-t-[var(--radius-xl)] shadow-2xl flex flex-col overflow-hidden",
+          closing ? "animate-sheet-down" : "animate-sheet-up",
           bg
         )}
       >
@@ -157,7 +167,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete }: Pro
             {/* Close */}
             {!["processing", "success"].includes(state) && (
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className={cn("h-8 w-8 flex items-center justify-center rounded-[var(--radius-sm)] transition-colors", textSec, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
                 aria-label={t(locale, "cancel")}
               >
@@ -358,30 +368,61 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete }: Pro
                   </p>
                 </div>
 
-                {/* Cash received input */}
-                <div className={cn("rounded-[var(--radius-md)] border-2 p-4 mb-4 overflow-hidden", border, surface, "has-[:focus]:border-[var(--color-pos-accent)]")}>
+                {/* Cash received display */}
+                <div className={cn("rounded-[var(--radius-md)] border p-4 mb-4", border, surface)}>
                   <p className={cn("text-[12px] font-medium mb-2", textSec)}>{t(locale, "cashReceived")}</p>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-baseline gap-2">
                     <span className={cn("text-[13px]", textMuted)}>MOP</span>
-                    <input
-                      type="number"
-                      value={cashAmount}
-                      onChange={(e) => setCashAmount(e.target.value)}
-                      placeholder="0.00"
-                      autoFocus
-                      className={cn(
-                        "flex-1 text-[28px] font-bold tabular-nums bg-transparent border-none outline-none focus:outline-none focus-visible:outline-none [&:focus-visible]:outline-none",
-                        text,
-                        "placeholder:text-pos-text-muted"
-                      )}
-                    />
+                    <span className={cn("text-[28px] font-bold tabular-nums", text)}>{cashDisplay}</span>
                   </div>
+                </div>
+
+                {/* Number pad */}
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  {["1","2","3","4","5","6","7","8","9"].map(n => (
+                    <button
+                      key={n}
+                      onClick={() => setCashCents(prev => {
+                        if (prev === "0") return n;
+                        if (prev.length >= 8) return prev;
+                        return prev + n;
+                      })}
+                      className={cn("h-12 rounded-[var(--radius-sm)] text-[20px] font-medium transition-all active:scale-[0.97]", surface, text, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
+                    >
+                      {n}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setCashCents("0")}
+                    className={cn("h-12 rounded-[var(--radius-sm)] text-[16px] font-semibold transition-all active:scale-[0.97]", surface, textMuted, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
+                  >
+                    C
+                  </button>
+                  <button
+                    onClick={() => setCashCents(prev => {
+                      if (prev === "0") return "0";
+                      if (prev.length >= 8) return prev;
+                      return prev + "0";
+                    })}
+                    className={cn("h-12 rounded-[var(--radius-sm)] text-[20px] font-medium transition-all active:scale-[0.97]", surface, text, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
+                  >
+                    0
+                  </button>
+                  <button
+                    onClick={() => setCashCents(prev => {
+                      const next = prev.slice(0, -1);
+                      return next === "" ? "0" : next;
+                    })}
+                    className={cn("h-12 rounded-[var(--radius-sm)] text-[16px] font-medium transition-all active:scale-[0.97]", surface, textSec, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
+                  >
+                    ⌫
+                  </button>
                 </div>
 
                 {/* Preset amounts */}
                 <div className="grid grid-cols-4 gap-2 mb-4">
                   <button
-                    onClick={() => setCashAmount(total.toFixed(2))}
+                    onClick={() => setCashCents(String(Math.round(total * 100)))}
                     className={cn("h-11 rounded-[var(--radius-sm)] text-[13px] font-semibold border transition-all active:scale-[0.97]", border, surface, text, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
                   >
                     {t(locale, "exactAmount")}
@@ -389,7 +430,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete }: Pro
                   {CASH_PRESETS.filter((v) => v >= total).slice(0, 3).map((val) => (
                     <button
                       key={val}
-                      onClick={() => setCashAmount(val.toString())}
+                      onClick={() => setCashCents(String(val * 100))}
                       className={cn("h-11 rounded-[var(--radius-sm)] text-[13px] font-semibold border transition-all active:scale-[0.97]", border, surface, text, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
                     >
                       ${val}
@@ -397,15 +438,18 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete }: Pro
                   ))}
                 </div>
 
-                {/* Change due */}
-                {cashValue > 0 && cashValue >= total && (
-                  <div className={cn("rounded-[var(--radius-md)] p-4 mb-5 text-center animate-slide-up", darkMode ? "bg-emerald-950/40" : "bg-pos-success-light")}>
-                    <p className={cn("text-[12px] font-medium", textSec)}>{t(locale, "changeDue")}</p>
-                    <p className="text-[28px] font-bold tabular-nums text-pos-success">
-                      MOP {changeDue.toFixed(2)}
-                    </p>
-                  </div>
-                )}
+                {/* Change due — always renders to prevent layout shift */}
+                <div className={cn(
+                  "rounded-[var(--radius-md)] p-4 mb-5 text-center transition-opacity duration-200",
+                  cashValue > 0 && cashValue >= total
+                    ? cn("opacity-100", darkMode ? "bg-emerald-950/40" : "bg-pos-success-light")
+                    : "opacity-0"
+                )}>
+                  <p className={cn("text-[12px] font-medium", textSec)}>{t(locale, "changeDue")}</p>
+                  <p className="text-[28px] font-bold tabular-nums text-pos-success">
+                    MOP {changeDue > 0 ? changeDue.toFixed(2) : "0.00"}
+                  </p>
+                </div>
 
                 {/* Confirm */}
                 <button

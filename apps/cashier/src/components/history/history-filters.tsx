@@ -76,40 +76,50 @@ export default function HistoryFilters({ filters, onChange, locale, hasShift }: 
     filters.search.trim() !== "";
 
   return (
-    <div className="space-y-2.5">
-      {/* Search bar */}
+    <div>
+      {/* Spotlight search overlay */}
       {showSearch && (
-        <div className="px-4 animate-[fadeSlideUp_0.2s_ease-out]">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-pos-text-muted" />
-            <input
-              type="text"
-              value={filters.search}
-              onChange={(e) => handleSearch(e.target.value)}
-              placeholder={t(locale, "searchOrderNumber")}
-              autoFocus
-              className="w-full h-10 pl-10 pr-10 rounded-[var(--radius-md)] bg-pos-surface border border-pos-border text-[13px] text-pos-text placeholder:text-pos-text-muted focus:outline-none focus:border-pos-accent focus:ring-1 focus:ring-pos-accent/30 transition-colors"
-            />
-            {filters.search && (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-black/40 animate-[fadeIn_0.2s_ease-out]"
+            onClick={() => setShowSearch(false)}
+          />
+          <div className="fixed inset-x-0 top-0 z-50 flex justify-center pt-[8vh] px-4 animate-[spotlightOpen_0.25s_cubic-bezier(0.16,1,0.3,1)]">
+            <div className="w-full max-w-xl bg-pos-surface rounded-2xl shadow-2xl overflow-hidden relative">
               <button
-                onClick={() => handleSearch("")}
-                className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 flex items-center justify-center rounded-full bg-pos-border-strong/40 text-pos-text-muted hover:bg-pos-border-strong/60 transition-colors"
+                onClick={() => setShowSearch(false)}
+                className="absolute top-3 right-3 h-9 w-9 flex items-center justify-center rounded-full bg-pos-text-muted/15 text-pos-text-secondary hover:bg-pos-text-muted/25 hover:text-pos-text transition-colors z-10"
               >
-                <X className="h-3 w-3" />
+                <X className="h-5 w-5" strokeWidth={2.5} />
               </button>
-            )}
+              <div className="flex items-center px-4">
+                <Search className="h-5 w-5 text-pos-text-muted shrink-0 ml-1" />
+                <input
+                  type="text"
+                  autoFocus
+                  value={filters.search}
+                  onChange={(e) => handleSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") setShowSearch(false);
+                  }}
+                  placeholder={t(locale, "searchOrderNumber")}
+                  style={{ outline: "none" }}
+                  className="flex-1 h-14 pl-3 pr-12 text-[18px] bg-transparent text-pos-text placeholder:text-pos-text-muted"
+                />
+              </div>
+            </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Horizontal scroll chips */}
       <div className="flex items-center gap-1.5 px-4 overflow-x-auto hide-scrollbar">
         {/* Search toggle */}
         <button
-          onClick={() => setShowSearch(!showSearch)}
+          onClick={() => setShowSearch(true)}
           className={cn(
             "shrink-0 h-8 w-8 flex items-center justify-center rounded-full border transition-all duration-150",
-            showSearch || filters.search
+            filters.search
               ? "bg-pos-accent border-pos-accent text-white"
               : "bg-pos-surface border-pos-border text-pos-text-secondary hover:border-pos-border-strong"
           )}

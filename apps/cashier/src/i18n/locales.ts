@@ -36,6 +36,11 @@ type TranslationKeys = {
   library: string;
   favorites: string;
   favoritesDesc: string;
+  addCustomer: string;
+  searchByPhone: string;
+  scanMembership: string;
+  noCustomerFound: string;
+  customerLinked: string;
 
   // Categories
   all: string;
@@ -208,6 +213,11 @@ const translations: Record<Locale, TranslationKeys> = {
     library: "商品庫",
     favorites: "收藏",
     favoritesDesc: "尚未收藏任何商品",
+    addCustomer: "新增顧客",
+    searchByPhone: "輸入手機號碼搜尋...",
+    scanMembership: "掃描會員碼",
+    noCustomerFound: "找不到顧客",
+    customerLinked: "已連結顧客",
     all: "全部",
     beverages: "飲品",
     snacks: "零食",
@@ -356,6 +366,11 @@ const translations: Record<Locale, TranslationKeys> = {
     library: "商品库",
     favorites: "收藏",
     favoritesDesc: "尚未收藏任何商品",
+    addCustomer: "添加顾客",
+    searchByPhone: "输入手机号码搜索...",
+    scanMembership: "扫描会员码",
+    noCustomerFound: "找不到顾客",
+    customerLinked: "已关联顾客",
     all: "全部",
     beverages: "饮品",
     snacks: "零食",
@@ -504,6 +519,11 @@ const translations: Record<Locale, TranslationKeys> = {
     library: "Library",
     favorites: "Favorites",
     favoritesDesc: "No favorites yet",
+    addCustomer: "Add Customer",
+    searchByPhone: "Enter phone number...",
+    scanMembership: "Scan membership",
+    noCustomerFound: "No customer found",
+    customerLinked: "Customer linked",
     all: "All",
     beverages: "Drinks",
     snacks: "Snacks",
@@ -652,6 +672,11 @@ const translations: Record<Locale, TranslationKeys> = {
     library: "Biblioteca",
     favorites: "Favoritos",
     favoritesDesc: "Ainda sem favoritos",
+    addCustomer: "Adicionar Cliente",
+    searchByPhone: "Introduzir número de telefone...",
+    scanMembership: "Digitalizar membro",
+    noCustomerFound: "Cliente não encontrado",
+    customerLinked: "Cliente associado",
     all: "Todos",
     beverages: "Bebidas",
     snacks: "Lanches",
@@ -800,6 +825,11 @@ const translations: Record<Locale, TranslationKeys> = {
     library: "ライブラリ",
     favorites: "お気に入り",
     favoritesDesc: "お気に入りはまだありません",
+    addCustomer: "顧客を追加",
+    searchByPhone: "電話番号を入力...",
+    scanMembership: "会員コードをスキャン",
+    noCustomerFound: "顧客が見つかりません",
+    customerLinked: "顧客をリンクしました",
     all: "すべて",
     beverages: "ドリンク",
     snacks: "スナック",

@@ -93,6 +93,16 @@ body {
 .animate-slide-up { animation: slideUp 0.2s ease-out; }
 .animate-fade-in { animation: fadeSlideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1) both; }
 .animate-scale-in { animation: scaleIn 0.2s ease-out; }
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+@keyframes sheetDown {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+.animate-sheet-up { animation: sheetUp 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
+.animate-sheet-down { animation: sheetDown 0.3s cubic-bezier(0.4, 0, 1, 1) forwards; }
 
 @keyframes fadeSlideUp {
   from { opacity: 0; transform: translateY(12px); }
