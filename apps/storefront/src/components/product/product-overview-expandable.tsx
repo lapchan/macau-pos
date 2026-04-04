@@ -155,9 +155,30 @@ export default function ProductOverviewExpandable({
     }
   };
 
+  const catName = product.categoryName
+    ? (product.categoryTranslations?.[locale] || product.categoryName)
+    : null;
+
   return (
     <div className="bg-white">
       <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24 lg:max-w-7xl lg:px-8">
+        {/* Breadcrumb — full width */}
+        <nav aria-label="Breadcrumb" className="mb-8 border-b border-gray-200 pb-4">
+          <ol className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-gray-500">
+            <li><a href={`/${locale}`} className="hover:text-gray-700">{t(locale, "首頁", "Home", "Início", "ホーム")}</a></li>
+            <li><span className="text-gray-300">/</span></li>
+            <li><a href={`/${locale}/products`} className="hover:text-gray-700">{t(locale, "商品", "Products", "Produtos", "商品")}</a></li>
+            {catName && product.categorySlug && (
+              <>
+                <li><span className="text-gray-300">/</span></li>
+                <li><a href={`/${locale}/categories/${product.categorySlug}`} className="hover:text-gray-700">{catName}</a></li>
+              </>
+            )}
+            <li><span className="text-gray-300">/</span></li>
+            <li className="text-gray-900 font-medium">{name}</li>
+          </ol>
+        </nav>
+
         <div className="lg:grid lg:grid-cols-2 lg:items-start lg:gap-x-8">
           {/* ============================================================ */}
           {/* Image gallery with tabs                                      */}
@@ -298,6 +319,20 @@ export default function ProductOverviewExpandable({
             </section>
           </div>
         </div>
+
+        {/* ============================================================ */}
+        {/* Full product description section                             */}
+        {/* ============================================================ */}
+        {description && (
+          <section className="mt-16 border-t border-gray-200 pt-10">
+            <h2 className="text-xl font-bold text-gray-900">
+              {t(locale, "商品描述", "Product Description", "Descrição do Produto", "商品説明")}
+            </h2>
+            <div className="mt-6 prose prose-sm prose-gray max-w-none text-base leading-relaxed text-gray-700 whitespace-pre-line">
+              {description}
+            </div>
+          </section>
+        )}
 
         {/* ============================================================ */}
         {/* Related products — "Customers also bought"                   */}
