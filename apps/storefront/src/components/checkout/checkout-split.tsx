@@ -75,7 +75,7 @@ export default function CheckoutSplit({
     <div className="bg-white">
       {/* Background color split for large screens */}
       <div aria-hidden="true" className="fixed top-0 left-0 hidden h-full w-1/2 bg-white lg:block" />
-      <div aria-hidden="true" className="fixed top-0 right-0 hidden h-full w-1/2 bg-indigo-900 lg:block" />
+      <div aria-hidden="true" className="fixed top-0 right-0 hidden h-full w-1/2 bg-gray-50 border-l border-gray-200 lg:block" />
 
       <div className="relative mx-auto grid max-w-7xl grid-cols-1 gap-x-16 lg:grid-cols-2 lg:px-8 lg:pt-16">
         <h1 className="sr-only">Checkout</h1>
@@ -85,7 +85,7 @@ export default function CheckoutSplit({
         {/* ============================================================ */}
         <section
           aria-labelledby="summary-heading"
-          className="bg-indigo-900 py-12 text-indigo-300 md:px-10 lg:col-start-2 lg:row-start-1 lg:mx-auto lg:w-full lg:max-w-lg lg:bg-transparent lg:px-0 lg:pt-0 lg:pb-24"
+          className="bg-gray-50 py-12 text-gray-500 md:px-10 lg:col-start-2 lg:row-start-1 lg:mx-auto lg:w-full lg:max-w-lg lg:bg-transparent lg:px-0 lg:pt-0 lg:pb-24"
         >
           <div className="mx-auto max-w-2xl px-4 lg:max-w-none lg:px-0">
             <h2 id="summary-heading" className="sr-only">Order summary</h2>
@@ -93,34 +93,34 @@ export default function CheckoutSplit({
             {/* Amount due */}
             <dl>
               <dt className="text-sm font-medium">{t(locale, "應付金額", "Amount due", "Valor devido", "お支払い金額")}</dt>
-              <dd className="mt-1 text-3xl font-bold tracking-tight text-white">{currency} {total.toFixed(2)}</dd>
+              <dd className="mt-1 text-3xl font-bold tracking-tight text-gray-900">{currency} {total.toFixed(2)}</dd>
             </dl>
 
             {/* Items */}
-            <ul role="list" className="divide-y divide-white/10 text-sm font-medium">
+            <ul role="list" className="divide-y divide-gray-200 text-sm font-medium">
               {items.map((item) => (
                 <li key={item.id} className="flex items-start space-x-4 py-6">
-                  <div className="size-20 shrink-0 overflow-hidden rounded-md bg-indigo-800">
+                  <div className="size-20 shrink-0 overflow-hidden rounded-md bg-gray-200">
                     {item.image ? (
                       <img src={item.image} alt={item.name} className="size-full object-cover" />
                     ) : (
-                      <div className="size-full flex items-center justify-center text-indigo-400 text-xs font-bold">
+                      <div className="size-full flex items-center justify-center text-gray-400 text-xs font-bold">
                         {item.name.charAt(0)}
                       </div>
                     )}
                   </div>
                   <div className="flex-auto space-y-1">
-                    <h3 className="text-white">{item.name}</h3>
+                    <h3 className="text-gray-900">{item.name}</h3>
                     {item.variant && <p>{item.variant}</p>}
                     {item.quantity > 1 && <p>x{item.quantity}</p>}
                   </div>
-                  <p className="shrink-0 text-base font-medium text-white">{currency} {(item.price * item.quantity).toFixed(2)}</p>
+                  <p className="shrink-0 text-base font-medium text-gray-900">{currency} {(item.price * item.quantity).toFixed(2)}</p>
                 </li>
               ))}
             </ul>
 
             {/* Cost breakdown */}
-            <dl className="space-y-6 border-t border-white/10 pt-6 text-sm font-medium">
+            <dl className="space-y-6 border-t border-gray-200 pt-6 text-sm font-medium">
               <div className="flex items-center justify-between">
                 <dt>{t(locale, "小計", "Subtotal", "Subtotal", "小計")}</dt>
                 <dd>{currency} {subtotal.toFixed(2)}</dd>
@@ -136,7 +136,7 @@ export default function CheckoutSplit({
                   }
                 </dd>
               </div>
-              <div className="flex items-center justify-between border-t border-white/10 pt-6 text-white">
+              <div className="flex items-center justify-between border-t border-gray-200 pt-6 text-gray-900">
                 <dt className="text-base">{t(locale, "總計", "Total", "Total", "合計")}</dt>
                 <dd className="text-base">{currency} {total.toFixed(2)}</dd>
               </div>
