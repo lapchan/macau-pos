@@ -2,6 +2,7 @@ import { resolveTenant } from "@/lib/tenant-resolver";
 import { getStorefrontProducts, getStorefrontCategories } from "@/lib/storefront-queries";
 import { getDisplayName } from "@macau-pos/database";
 import { notFound } from "next/navigation";
+import ProductCard from "@/components/product/product-card";
 import ProductFilters from "./filters";
 
 type Props = {
@@ -24,6 +25,7 @@ export default async function ProductsPage({ params, searchParams }: Props) {
   const search = sp.q;
   const sortBy = (sp.sort as "newest" | "price_asc" | "price_desc" | "popular" | "name") || "popular";
   const page = parseInt(sp.page || "1");
+  const cardView = (sp.view as "grid" | "overlay" | "details" | "border" | "swatches") || "grid";
 
   const [{ products, total, totalPages }, categories] = await Promise.all([
     getStorefrontProducts(tenant.id, {
@@ -49,7 +51,7 @@ export default async function ProductsPage({ params, searchParams }: Props) {
   // Build URL helper
   const buildUrl = (overrides: Record<string, string | undefined>) => {
     const params = new URLSearchParams();
-    const merged = { category: categorySlug, sort: sortBy !== "popular" ? sortBy : undefined, q: search, page: page > 1 ? String(page) : undefined, ...overrides };
+    const merged = { category: categorySlug, sort: sortBy !== "popular" ? sortBy : undefined, q: search, page: page > 1 ? String(page) : undefined, view: cardView !== "grid" ? cardView : undefined, ...overrides };
     for (const [k, v] of Object.entries(merged)) {
       if (v) params.set(k, v);
     }
@@ -90,8 +92,27 @@ export default async function ProductsPage({ params, searchParams }: Props) {
         {/* Filter bar + content                                         */}
         {/* ============================================================ */}
         <div className="flex items-center justify-between border-b border-gray-200 pt-10 pb-6">
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
             <span className="text-sm text-gray-500">{total} {t(locale, "件商品", "products", "produtos", "商品")}</span>
+            {/* View switcher */}
+            <div className="hidden sm:flex items-center gap-1 border-l border-gray-200 pl-3">
+              {[
+                { value: "grid", label: "Grid", icon: "⊞" },
+                { value: "overlay", label: "Overlay", icon: "◧" },
+                { value: "details", label: "Details", icon: "☰" },
+                { value: "border", label: "Border", icon: "⊡" },
+                { value: "swatches", label: "Swatches", icon: "◉" },
+              ].map((v) => (
+                <a
+                  key={v.value}
+                  href={buildUrl({ view: v.value === "grid" ? undefined : v.value, page: undefined })}
+                  className={`rounded px-2 py-1 text-xs font-medium ${cardView === v.value ? "bg-gray-900 text-white" : "text-gray-500 hover:bg-gray-100"}`}
+                  title={v.label}
+                >
+                  {v.icon}
+                </a>
+              ))}
+            </div>
           </div>
           <div className="flex items-center gap-4">
             {/* Mobile filter button */}
@@ -188,63 +209,23 @@ export default async function ProductsPage({ params, searchParams }: Props) {
                 </div>
               ) : (
                 <>
-                  <div className="grid grid-cols-1 gap-y-12 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-3 xl:gap-x-8">
+                  <div className={`grid gap-y-10 ${cardView === "border" ? "grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" : "grid-cols-1 gap-y-12 sm:grid-cols-2 sm:gap-x-6 lg:grid-cols-3 xl:gap-x-8"}`}>
                     {products.map((product) => {
-                      const name = getDisplayName(product.name, product.translations as Record<string, string>, locale);
-                      const price = parseFloat(String(product.sellingPrice));
-                      const originalPrice = product.originalPrice ? parseFloat(String(product.originalPrice)) : null;
-                      const catName = product.categoryName
-                        ? getDisplayName(product.categoryName, product.categoryTranslations as Record<string, string>, locale)
-                        : null;
-                      const inStock = product.stock === null || (product.stock !== null && product.stock > 0);
-                      const href = product.slug ? `/${locale}/products/${product.slug}` : "#";
-
+                      const variantMap: Record<string, "with-inline" | "with-overlay" | "with-details" | "border-grid" | "with-swatches"> = {
+                        grid: "with-inline",
+                        overlay: "with-overlay",
+                        details: "with-details",
+                        border: "border-grid",
+                        swatches: "with-swatches",
+                      };
                       return (
-                        <a key={product.id} href={href} className="group">
-                          {/* Image */}
-                          <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-100">
-                            {product.image ? (
-                              <img
-                                src={product.image}
-                                alt={name}
-                                className="size-full object-cover object-center group-hover:opacity-75 transition-opacity"
-                              />
-                            ) : (
-                              <div className="flex size-full items-center justify-center text-gray-300">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-                                  <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
-                                  <circle cx="9" cy="9" r="2" />
-                                  <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-                                </svg>
-                              </div>
-                            )}
-
-                            {/* Sold out badge */}
-                            {!inStock && (
-                              <div className="absolute inset-0 flex items-center justify-center bg-white/60 rounded-lg">
-                                <span className="rounded-full bg-red-50 px-3 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/10">
-                                  {t(locale, "售罄", "Sold out", "Esgotado", "売り切れ")}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Product details — below image */}
-                          <div className="mt-4 flex justify-between">
-                            <div>
-                              <h3 className="text-sm font-medium text-gray-900">{name}</h3>
-                              {catName && !categorySlug && (
-                                <p className="mt-1 text-sm text-gray-500">{catName}</p>
-                              )}
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm font-medium text-gray-900">MOP {price.toFixed(2)}</p>
-                              {originalPrice && originalPrice > price && (
-                                <p className="mt-1 text-sm text-gray-400 line-through">MOP {originalPrice.toFixed(2)}</p>
-                              )}
-                            </div>
-                          </div>
-                        </a>
+                        <ProductCard
+                          key={product.id}
+                          product={product as any}
+                          locale={locale}
+                          variant={variantMap[cardView] || "with-inline"}
+                          showCategory={!categorySlug}
+                        />
                       );
                     })}
                   </div>
