@@ -32,6 +32,7 @@ type Props = {
   tenantName: string;
   tenantLogo?: string | null;
   accentColor: string;
+  headerStyle?: "dark" | "light";
   categories: Category[];
   cartCount?: number;
   cartItems?: CartItem[];
@@ -42,7 +43,8 @@ const t = (locale: string, tc: string, en: string, pt: string, ja: string) => {
   return m[locale] || en;
 };
 
-export default function StoreHeader({ locale, tenantName, tenantLogo, accentColor, categories, cartCount = 0, cartItems = [] }: Props) {
+export default function StoreHeader({ locale, tenantName, tenantLogo, accentColor, headerStyle = "dark", categories, cartCount = 0, cartItems = [] }: Props) {
+  const isDark = headerStyle === "dark";
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -112,7 +114,7 @@ export default function StoreHeader({ locale, tenantName, tenantLogo, accentColo
       <header className="relative z-10">
         <nav aria-label="Top">
           {/* Top bar */}
-          <div className="bg-gray-900">
+          <div className={isDark ? "bg-gray-900" : "bg-gray-100"}>
             <div className="mx-auto flex h-10 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
               {/* Language selector (left) */}
               <form>
@@ -125,7 +127,7 @@ export default function StoreHeader({ locale, tenantName, tenantLogo, accentColo
                       const path = window.location.pathname.replace(/^\/(tc|sc|en|pt|ja)/, `/${newLocale}`);
                       window.location.href = path;
                     }}
-                    className="col-start-1 row-start-1 w-full appearance-none rounded-md bg-gray-900 py-0.5 pr-7 pl-2 text-left text-sm font-medium text-white focus:outline-none focus:outline-2 focus:outline-offset-2 focus:outline-white"
+                    className={`col-start-1 row-start-1 w-full appearance-none rounded-md py-0.5 pr-7 pl-2 text-left text-sm font-medium focus:outline-none focus:outline-2 focus:outline-offset-2 ${isDark ? "bg-gray-900 text-white focus:outline-white" : "bg-gray-100 text-gray-900 focus:outline-gray-400"}`}
                   >
                     <option value="tc">繁中</option>
                     <option value="sc">简中</option>
@@ -141,10 +143,10 @@ export default function StoreHeader({ locale, tenantName, tenantLogo, accentColo
 
               {/* Sign in / Create account (right) */}
               <div className="flex items-center space-x-6">
-                <a href={`/${locale}/login`} className="text-sm font-medium text-white hover:text-gray-100">
+                <a href={`/${locale}/login`} className={`text-sm font-medium ${isDark ? "text-white hover:text-gray-100" : "text-gray-700 hover:text-gray-900"}`}>
                   {t(locale, "登入", "Sign in", "Entrar", "ログイン")}
                 </a>
-                <a href={`/${locale}/register`} className="text-sm font-medium text-white hover:text-gray-100">
+                <a href={`/${locale}/register`} className={`text-sm font-medium ${isDark ? "text-white hover:text-gray-100" : "text-gray-700 hover:text-gray-900"}`}>
                   {t(locale, "建立帳號", "Create an account", "Criar conta", "アカウント作成")}
                 </a>
               </div>
@@ -152,7 +154,7 @@ export default function StoreHeader({ locale, tenantName, tenantLogo, accentColo
           </div>
 
           {/* Secondary navigation */}
-          <div className="bg-gray-900/75 backdrop-blur-md backdrop-saturate-150">
+          <div className={isDark ? "bg-gray-900/75 backdrop-blur-md backdrop-saturate-150" : "bg-white border-b border-gray-200"}>
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
               <div>
                 <div className="flex h-16 items-center justify-between">
@@ -164,7 +166,7 @@ export default function StoreHeader({ locale, tenantName, tenantLogo, accentColo
                         <img src={tenantLogo} alt="" className="h-8 w-auto" />
                       ) : (
                         <div
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-white font-bold text-sm"
+                          className={`flex h-8 w-8 items-center justify-center rounded-lg font-bold text-sm ${isDark ? "text-white" : "text-white"}`}
                           style={{ backgroundColor: accentColor }}
                         >
                           {tenantName.charAt(0).toUpperCase()}
@@ -183,13 +185,13 @@ export default function StoreHeader({ locale, tenantName, tenantLogo, accentColo
                             <a
                               key={cat.id}
                               href={cat.slug ? `/${locale}/categories/${cat.slug}` : `/${locale}/products`}
-                              className="flex items-center text-sm font-medium text-white"
+                              className={`flex items-center text-sm font-medium ${isDark ? "text-white" : "text-gray-700"}`}
                             >
                               {name}
                             </a>
                           );
                         })}
-                        <a href={`/${locale}/products`} className="flex items-center text-sm font-medium text-white">
+                        <a href={`/${locale}/products`} className={`flex items-center text-sm font-medium ${isDark ? "text-white" : "text-gray-700"}`}>
                           {t(locale, "全部商品", "All Products", "Produtos", "全商品")}
                         </a>
                       </div>
@@ -201,13 +203,13 @@ export default function StoreHeader({ locale, tenantName, tenantLogo, accentColo
                     <button
                       type="button"
                       onClick={() => setMobileMenuOpen(true)}
-                      className="-ml-2 p-2 text-white"
+                      className={`-ml-2 p-2 ${isDark ? "text-white" : "text-gray-700"}`}
                     >
                       <span className="sr-only">Open menu</span>
                       <Bars3Icon className="size-6" aria-hidden="true" />
                     </button>
 
-                    <a href={`/${locale}/products`} className="ml-2 p-2 text-white">
+                    <a href={`/${locale}/products`} className={`ml-2 p-2 ${isDark ? "text-white" : "text-gray-700"}`}>
                       <span className="sr-only">Search</span>
                       <MagnifyingGlassIcon className="size-6" aria-hidden="true" />
                     </a>
@@ -220,7 +222,7 @@ export default function StoreHeader({ locale, tenantName, tenantLogo, accentColo
                       <img src={tenantLogo} alt="" className="h-8 w-auto" />
                     ) : (
                       <div
-                        className="flex h-8 w-8 items-center justify-center rounded-lg text-white font-bold text-sm"
+                        className={`flex h-8 w-8 items-center justify-center rounded-lg font-bold text-sm ${isDark ? "text-white" : "text-white"}`}
                         style={{ backgroundColor: accentColor }}
                       >
                         {tenantName.charAt(0).toUpperCase()}
@@ -230,17 +232,17 @@ export default function StoreHeader({ locale, tenantName, tenantLogo, accentColo
 
                   {/* Right icons */}
                   <div className="flex flex-1 items-center justify-end">
-                    <a href={`/${locale}/products`} className="hidden text-sm font-medium text-white lg:block">
+                    <a href={`/${locale}/products`} className={`hidden text-sm font-medium lg:block ${isDark ? "text-white" : "text-gray-700"}`}>
                       {t(locale, "搜尋", "Search", "Pesquisar", "検索")}
                     </a>
 
                     <div className="flex items-center lg:ml-8">
                       {/* Help */}
-                      <a href={`/${locale}/pages/help`} className="hidden p-2 text-white lg:block">
+                      <a href={`/${locale}/pages/help`} className={`hidden p-2 lg:block ${isDark ? "text-white" : "text-gray-700"}`}>
                         <span className="sr-only">Help</span>
                         <QuestionMarkCircleIcon className="size-6" aria-hidden="true" />
                       </a>
-                      <a href={`/${locale}/pages/help`} className="hidden text-sm font-medium text-white lg:block">
+                      <a href={`/${locale}/pages/help`} className={`hidden text-sm font-medium lg:block ${isDark ? "text-white" : "text-gray-700"}`}>
                         {t(locale, "幫助", "Help", "Ajuda", "ヘルプ")}
                       </a>
 

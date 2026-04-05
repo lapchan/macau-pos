@@ -2,6 +2,7 @@ import { resolveTenant } from "@/lib/tenant-resolver";
 import { getStorefrontConfig } from "@/lib/storefront-queries";
 import { notFound } from "next/navigation";
 import SectionRenderer, { type SectionConfig } from "@/components/sections/section-renderer";
+import { getThemeById, getDefaultTheme } from "@/lib/themes";
 
 // Default sections: dark hero + category scroll + products + featured + collections + more featured
 // Matches the Tailwind Plus "With dark nav and footer" storefront layout
@@ -160,13 +161,20 @@ export default async function HomePage({
   if (!tenant) notFound();
 
   const config = await getStorefrontConfig(tenant.id);
-  const sections = (config.homepageSections as SectionConfig[]);
+  const sections = (config.homepageSections as SectionConfig[]) || [];
+  const branding = config.branding as Record<string, unknown>;
+  const themeId = (branding?.themeId as string) || "modern";
 
-  // Merge: saved sections first, then append any defaults not already present
-  const defaults = getDefaultSections(locale, tenant.name);
-  const savedIds = new Set((sections || []).map((s) => s.type));
-  const missingDefaults = defaults.filter((d) => !savedIds.has(d.type));
-  const activeSections = [...(sections || []), ...missingDefaults];
+  // Get defaults from the active theme, fallback to hardcoded
+  const theme = getThemeById(themeId) || getDefaultTheme();
+  const defaults = theme.defaultSections.length > 0
+    ? theme.defaultSections
+    : getDefaultSections(locale, tenant.name);
+
+  // Merge: saved sections first, then append any theme defaults not already present
+  const savedTypes = new Set(sections.map((s) => s.type));
+  const missingDefaults = defaults.filter((d) => !savedTypes.has(d.type));
+  const activeSections = [...sections, ...missingDefaults];
 
   return (
     <SectionRenderer

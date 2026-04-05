@@ -44,6 +44,21 @@ export default async function LocaleLayout({
   const accentColor = (branding?.accentColor as string) || tenant.accentColor || "#0071e3";
   const accentHover = accentColor + "dd";
   const accentLight = accentColor + "10";
+  const headerStyle = (branding?.headerStyle as string) || "dark";
+  const fontFamily = (branding?.fontFamily as string) || "inter";
+  const borderRadius = (branding?.borderRadius as string) || "md";
+
+  // Map border radius to CSS values
+  const radiusMap: Record<string, string> = { none: "0px", sm: "4px", md: "8px", lg: "16px" };
+  const radiusValue = radiusMap[borderRadius] || "8px";
+
+  // Map font family to CSS
+  const fontMap: Record<string, string> = {
+    inter: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+    "dm-sans": '"DM Sans", -apple-system, BlinkMacSystemFont, sans-serif',
+    system: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+  };
+  const fontValue = fontMap[fontFamily] || fontMap.inter;
 
   return (
     <div
@@ -51,6 +66,9 @@ export default async function LocaleLayout({
         "--tenant-accent": accentColor,
         "--tenant-accent-hover": accentHover,
         "--tenant-accent-light": accentLight,
+        "--radius-sm": radiusValue,
+        "--radius-md": radiusValue,
+        "--font-sans": fontValue,
       } as React.CSSProperties}
     >
       <StoreHeader
@@ -58,6 +76,7 @@ export default async function LocaleLayout({
         tenantName={tenant.name}
         tenantLogo={(branding?.logo as string) || null}
         accentColor={accentColor}
+        headerStyle={headerStyle as "dark" | "light"}
         categories={categories as any}
         cartCount={cartCount}
         cartItems={cartItems}
