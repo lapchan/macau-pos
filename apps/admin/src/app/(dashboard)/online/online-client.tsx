@@ -233,6 +233,36 @@ export default function OnlineClient({ settings }: OnlineClientProps) {
             </div>
             <ExternalLink className="h-4 w-4 text-text-tertiary" />
           </a>
+          <a
+            href="/online/pages"
+            className="flex items-center justify-between rounded-xl border border-border bg-white p-4 transition-colors hover:bg-surface-hover"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] bg-brand/10">
+                <span className="text-lg">📄</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-text-primary">Pages</p>
+                <p className="text-xs text-text-tertiary mt-0.5">Manage store pages (About, Contact, FAQ)</p>
+              </div>
+            </div>
+            <ExternalLink className="h-4 w-4 text-text-tertiary" />
+          </a>
+          <a
+            href="/online/preferences"
+            className="flex items-center justify-between rounded-xl border border-border bg-white p-4 transition-colors hover:bg-surface-hover"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] bg-brand/10">
+                <span className="text-lg">⚙️</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-text-primary">Preferences</p>
+                <p className="text-xs text-text-tertiary mt-0.5">SEO, social sharing, and store settings</p>
+              </div>
+            </div>
+            <ExternalLink className="h-4 w-4 text-text-tertiary" />
+          </a>
         </section>
       )}
 

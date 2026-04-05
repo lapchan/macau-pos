@@ -138,6 +138,12 @@ export default function ThemesClient({ currentThemeId }: { currentThemeId: strin
           </div>
           <div className="flex items-center gap-2">
             <a
+              href="/online/settings"
+              className="rounded-lg border border-[var(--border-default)] px-4 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)]"
+            >
+              Settings
+            </a>
+            <a
               href="/online/homepage"
               className="rounded-lg border border-[var(--border-default)] px-4 py-2 text-[13px] font-medium text-[var(--text-secondary)] hover:bg-[var(--bg-surface-hover)]"
             >
