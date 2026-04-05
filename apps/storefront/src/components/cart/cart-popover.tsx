@@ -18,6 +18,7 @@ type Props = {
   itemCount: number;
   locale: string;
   currency?: string;
+  isDark?: boolean;
 };
 
 const t = (locale: string, tc: string, en: string, pt: string, ja: string) => {
@@ -25,7 +26,7 @@ const t = (locale: string, tc: string, en: string, pt: string, ja: string) => {
   return m[locale] || en;
 };
 
-export default function CartPopover({ items, itemCount, locale, currency = "MOP" }: Props) {
+export default function CartPopover({ items, itemCount, locale, currency = "MOP", isDark = true }: Props) {
   const [open, setOpen] = useState(false);
   const popoverRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -68,8 +69,8 @@ export default function CartPopover({ items, itemCount, locale, currency = "MOP"
         onClick={() => setOpen(!open)}
         className="group -m-2 flex items-center p-2"
       >
-        <ShoppingBagIcon className="size-6 shrink-0 text-white" aria-hidden="true" />
-        <span className="ml-2 text-sm font-medium text-white">{itemCount}</span>
+        <ShoppingBagIcon className={`size-6 shrink-0 ${isDark ? "text-white" : "text-gray-700"}`} aria-hidden="true" />
+        <span className={`ml-2 text-sm font-medium ${isDark ? "text-white" : "text-gray-700"}`}>{itemCount}</span>
         <span className="sr-only">
           {t(locale, "購物車", "items in cart, view bag", "itens no carrinho", "カート内のアイテム")}
         </span>

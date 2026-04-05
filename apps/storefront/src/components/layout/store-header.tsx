@@ -252,6 +252,7 @@ export default function StoreHeader({ locale, tenantName, tenantLogo, accentColo
                           items={cartItems}
                           itemCount={cartCount}
                           locale={locale}
+                          isDark={isDark}
                         />
                       </div>
                     </div>
