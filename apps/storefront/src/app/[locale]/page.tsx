@@ -162,10 +162,11 @@ export default async function HomePage({
   const config = await getStorefrontConfig(tenant.id);
   const sections = (config.homepageSections as SectionConfig[]);
 
-  // Use merchant-configured sections if any, otherwise show defaults
-  const activeSections = sections && sections.length > 0
-    ? sections
-    : getDefaultSections(locale, tenant.name);
+  // Merge: saved sections first, then append any defaults not already present
+  const defaults = getDefaultSections(locale, tenant.name);
+  const savedIds = new Set((sections || []).map((s) => s.type));
+  const missingDefaults = defaults.filter((d) => !savedIds.has(d.type));
+  const activeSections = [...(sections || []), ...missingDefaults];
 
   return (
     <SectionRenderer
