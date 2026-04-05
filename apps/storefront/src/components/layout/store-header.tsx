@@ -27,6 +27,11 @@ type CartItem = {
   slug?: string | null;
 };
 
+type NavLink = {
+  label: string;
+  href: string;
+};
+
 type Props = {
   locale: string;
   tenantName: string;
@@ -34,6 +39,7 @@ type Props = {
   accentColor: string;
   headerStyle?: "dark" | "light";
   categories: Category[];
+  customNavLinks?: NavLink[];
   cartCount?: number;
   cartItems?: CartItem[];
 };
@@ -43,8 +49,10 @@ const t = (locale: string, tc: string, en: string, pt: string, ja: string) => {
   return m[locale] || en;
 };
 
-export default function StoreHeader({ locale, tenantName, tenantLogo, accentColor, headerStyle = "dark", categories, cartCount = 0, cartItems = [] }: Props) {
+export default function StoreHeader({ locale, tenantName, tenantLogo, accentColor, headerStyle = "dark", categories, customNavLinks = [], cartCount = 0, cartItems = [] }: Props) {
   const isDark = headerStyle === "dark";
+  // Use custom nav links if configured, otherwise auto-generate from categories
+  const hasCustomNav = customNavLinks.length > 0;
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -175,25 +183,39 @@ export default function StoreHeader({ locale, tenantName, tenantLogo, accentColo
                     </a>
                   </div>
 
-                  {/* Flyout menus (lg+) */}
+                  {/* Nav links (lg+) */}
                   <div className="hidden h-full lg:flex">
                     <div className="inset-x-0 bottom-0 px-4">
                       <div className="flex h-full justify-center space-x-8">
-                        {categories.slice(0, 6).map((cat) => {
-                          const name = (cat.translations as Record<string, string>)?.[locale] || cat.name;
-                          return (
+                        {hasCustomNav ? (
+                          customNavLinks.map((link, i) => (
                             <a
-                              key={cat.id}
-                              href={cat.slug ? `/${locale}/categories/${cat.slug}` : `/${locale}/products`}
+                              key={i}
+                              href={link.href}
                               className={`flex items-center text-sm font-medium ${isDark ? "text-white" : "text-gray-700"}`}
                             >
-                              {name}
+                              {link.label}
                             </a>
-                          );
-                        })}
-                        <a href={`/${locale}/products`} className={`flex items-center text-sm font-medium ${isDark ? "text-white" : "text-gray-700"}`}>
-                          {t(locale, "全部商品", "All Products", "Produtos", "全商品")}
-                        </a>
+                          ))
+                        ) : (
+                          <>
+                            {categories.slice(0, 6).map((cat) => {
+                              const name = (cat.translations as Record<string, string>)?.[locale] || cat.name;
+                              return (
+                                <a
+                                  key={cat.id}
+                                  href={cat.slug ? `/${locale}/categories/${cat.slug}` : `/${locale}/products`}
+                                  className={`flex items-center text-sm font-medium ${isDark ? "text-white" : "text-gray-700"}`}
+                                >
+                                  {name}
+                                </a>
+                              );
+                            })}
+                            <a href={`/${locale}/products`} className={`flex items-center text-sm font-medium ${isDark ? "text-white" : "text-gray-700"}`}>
+                              {t(locale, "全部商品", "All Products", "Produtos", "全商品")}
+                            </a>
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>

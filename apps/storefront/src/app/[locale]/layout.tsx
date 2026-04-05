@@ -44,7 +44,9 @@ export default async function LocaleLayout({
   const accentColor = (branding?.accentColor as string) || tenant.accentColor || "#0071e3";
   const accentHover = accentColor + "dd";
   const accentLight = accentColor + "10";
+  const headerConfig = config.header as Record<string, unknown>;
   const headerStyle = (branding?.headerStyle as string) || "dark";
+  const customNavLinks = (headerConfig?.navLinks as { label: string; href: string }[]) || [];
   const fontFamily = (branding?.fontFamily as string) || "inter";
   const borderRadius = (branding?.borderRadius as string) || "md";
 
@@ -78,6 +80,7 @@ export default async function LocaleLayout({
         accentColor={accentColor}
         headerStyle={headerStyle as "dark" | "light"}
         categories={categories as any}
+        customNavLinks={customNavLinks}
         cartCount={cartCount}
         cartItems={cartItems}
       />
