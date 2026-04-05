@@ -200,6 +200,27 @@ export default function OnlineClient({ settings }: OnlineClientProps) {
         </div>
       </section>
 
+      {/* ── Homepage Builder link ──────────────────────────── */}
+      {onlineEnabled && (
+        <section className="animate-in fade-in slide-in-from-top-2 duration-300">
+          <a
+            href="/online/homepage"
+            className="flex items-center justify-between rounded-xl border border-border bg-white p-4 transition-colors hover:bg-surface-hover"
+          >
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-[var(--radius-md)] bg-brand/10">
+                <span className="text-lg">🏠</span>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-text-primary">Homepage Builder</p>
+                <p className="text-xs text-text-tertiary mt-0.5">Customize your storefront homepage sections</p>
+              </div>
+            </div>
+            <ExternalLink className="h-4 w-4 text-text-tertiary" />
+          </a>
+        </section>
+      )}
+
       {/* ── Online Store Settings (when enabled) ──────────── */}
       {onlineEnabled && (
         <section className="animate-in fade-in slide-in-from-top-2 duration-300">

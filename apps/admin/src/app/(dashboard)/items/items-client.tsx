@@ -124,7 +124,7 @@ export default function ItemsClient({ products, categories, categoryOptions = []
       list = list.filter(
         (p) =>
           p.name.toLowerCase().includes(q) ||
-          (p.nameCn && p.nameCn.includes(q)) ||
+          ((p as any).nameCn && (p as any).nameCn.includes(q)) ||
           (p.sku && p.sku.toLowerCase().includes(q))
       );
     }

@@ -346,8 +346,8 @@ export default function InsightsClient({
                       width={110}
                     />
                     <Tooltip
-                      formatter={(value: number) => [fmtMOP(value), "Revenue"]}
-                      labelFormatter={(label: string, payload: any[]) =>
+                      formatter={(value: any) => [fmtMOP(Number(value)), "Revenue"]}
+                      labelFormatter={(label: any, payload: any) =>
                         payload?.[0]?.payload?.fullName ?? label
                       }
                       contentStyle={{
@@ -385,7 +385,7 @@ export default function InsightsClient({
                       outerRadius={120}
                       dataKey="value"
                       paddingAngle={3}
-                      label={({ name, pct }: { name: string; pct: string }) =>
+                      label={({ name, pct }: any) =>
                         `${name} (${pct}%)`
                       }
                     >
@@ -400,7 +400,7 @@ export default function InsightsClient({
                       ))}
                     </Pie>
                     <Tooltip
-                      formatter={(value: number) => [fmtMOP(value), "Total"]}
+                      formatter={(value: any) => [fmtMOP(Number(value)), "Total"]}
                       contentStyle={{
                         fontSize: 12,
                         borderRadius: 8,
