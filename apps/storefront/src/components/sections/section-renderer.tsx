@@ -21,6 +21,7 @@ import VideoEmbed from "./video-embed";
 import CollectionGrid from "./collection-grid";
 import FeaturedSection from "./featured-section";
 import CategoryScroll from "./category-scroll";
+import ProductFeatures from "./product-features";
 
 export type SectionConfig = {
   id: string;
@@ -58,6 +59,7 @@ const SECTION_MAP: Record<string, React.ComponentType<{ data: Record<string, unk
   collection_grid: CollectionGrid,
   featured_section: FeaturedSection,
   category_scroll: CategoryScroll,
+  product_features: ProductFeatures,
 };
 
 export default function SectionRenderer({ sections, locale, tenantId }: Props) {
