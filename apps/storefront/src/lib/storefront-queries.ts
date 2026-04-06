@@ -194,7 +194,7 @@ export async function getStorefrontConfig(tenantId: string) {
     .limit(1);
 
   return config ?? {
-    branding: { accentColor: "#0071e3", fontFamily: "inter", headerStyle: "default" },
+    branding: { themeId: "humanmade", accentColor: "#000000", fontFamily: "avenir", headerStyle: "dark", borderRadius: "none" },
     header: { showSearch: true, showLanguageSwitcher: true, showCartIcon: true, navLinks: [] },
     homepageSections: [],
     footer: { columns: [], socialLinks: {}, copyright: "", showPaymentIcons: true },
