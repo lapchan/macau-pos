@@ -41,12 +41,24 @@ type RelatedProduct = {
   image?: string | null;
 };
 
+type ColorVariant = {
+  id: string;
+  slug: string | null;
+  name: string;
+  colorName: string | null;
+  image: string | null;
+  stock: number | null;
+  price: number;
+  isCurrent: boolean;
+};
+
 type Props = {
   product: ProductDetail;
   locale: string;
   currency?: string;
   detailSections?: DetailSection[];
   relatedProducts?: RelatedProduct[];
+  colorVariants?: ColorVariant[];
   themeId?: string;
   onAddToCart?: (productId: string, quantity: number) => Promise<{ error?: string; success?: boolean }>;
 };
@@ -147,6 +159,7 @@ export default function ProductOverviewExpandable({
   currency = "MOP",
   detailSections,
   relatedProducts = [],
+  colorVariants = [],
   themeId,
   onAddToCart,
 }: Props) {
@@ -294,23 +307,62 @@ export default function ProductOverviewExpandable({
                 MOP${price.toLocaleString("en-US", { minimumFractionDigits: 0 })}
               </p>
 
-              {/* Color swatches */}
-              <div className="mt-4">
-                <p className="text-[#121212]/60" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>COLOR</p>
-                <div className="mt-2 flex gap-0.5">
-                  <span className="block bg-[#121212] ring-1 ring-[#121212]" style={{ height: "8px", width: "35px" }} />
-                  <span className="block bg-[#999]" style={{ height: "8px", width: "35px" }} />
+              {/* Color variants — clickable product image swatches */}
+              {colorVariants.length > 1 && (
+                <div className="mt-5">
+                  <p className="text-[#121212]/60" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>
+                    Color: <span className="text-[#121212]">{colorVariants.find(v => v.isCurrent)?.colorName || ""}</span>
+                  </p>
+                  <div className="mt-2.5 flex flex-wrap gap-2">
+                    {colorVariants.map((variant) => (
+                      <a
+                        key={variant.id}
+                        href={variant.slug ? `/${locale}/products/${variant.slug}` : undefined}
+                        className={`relative block overflow-hidden transition-all ${
+                          variant.isCurrent
+                            ? "ring-1 ring-[#121212]"
+                            : "ring-1 ring-[#e5e5e5] hover:ring-[#121212]/50"
+                        }`}
+                        style={{ width: "64px", height: "64px" }}
+                        title={variant.colorName || variant.name}
+                      >
+                        {variant.image ? (
+                          <Image
+                            src={variant.image}
+                            alt={variant.colorName || variant.name}
+                            fill
+                            sizes="64px"
+                            className="object-contain"
+                          />
+                        ) : (
+                          <div className="w-full h-full bg-[#f5f5f5] flex items-center justify-center">
+                            <span className="text-[#121212]/30" style={{ fontSize: "9px" }}>
+                              {variant.colorName?.charAt(0) || "?"}
+                            </span>
+                          </div>
+                        )}
+                        {/* Sold out overlay */}
+                        {variant.stock !== null && variant.stock <= 0 && (
+                          <div className="absolute inset-0 bg-white/60 flex items-center justify-center">
+                            <span className="text-[#121212]/50" style={{ fontSize: "7px", letterSpacing: "0.05em" }}>
+                              SOLD OUT
+                            </span>
+                          </div>
+                        )}
+                      </a>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
-              {/* Size selector placeholder */}
+              {/* Size selector */}
               <div className="mt-6">
                 <p className="text-[#121212]/60" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>SIZE</p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {["S", "M", "L", "XL"].map((size) => (
+                  {["F"].map((size) => (
                     <button
                       key={size}
-                      className="flex items-center justify-center border border-[#121212]/20 px-4 py-2 text-[#121212] hover:border-[#121212] transition-colors"
+                      className="flex items-center justify-center border border-[#121212] bg-[#121212] text-white px-4 py-2 transition-colors"
                       style={{ fontSize: "12px", letterSpacing: "0.05em", minWidth: "48px" }}
                     >
                       {size}

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { resolveTenant } from "@/lib/tenant-resolver";
-import { getProductBySlug, getStorefrontProducts, getStorefrontConfig } from "@/lib/storefront-queries";
+import { getProductBySlug, getStorefrontProducts, getStorefrontConfig, getColorVariants } from "@/lib/storefront-queries";
 import { getDisplayName } from "@macau-pos/database";
 import { notFound } from "next/navigation";
 import ProductDetailClient from "./client";
@@ -56,6 +56,9 @@ export default async function ProductDetailPage({ params }: Props) {
     ? [{ url: product.image, alt: product.name }]
     : [];
 
+  // Fetch color variants (sibling products in the same variant group)
+  const colorVariants = await getColorVariants(tenant.id, product.id);
+
   // Fetch related products (same category first, then popular fallback)
   let { products: related } = await getStorefrontProducts(tenant.id, {
     categorySlug: product.categorySlug || undefined,
@@ -98,6 +101,7 @@ export default async function ProductDetailPage({ params }: Props) {
       }}
       locale={locale}
       relatedProducts={relatedProducts}
+      colorVariants={colorVariants}
       themeId={themeId}
     />
   );

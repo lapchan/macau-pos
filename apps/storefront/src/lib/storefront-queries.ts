@@ -171,6 +171,62 @@ export async function getProductBySlug(tenantId: string, slug: string) {
   return product ?? null;
 }
 
+/** Fetch color variants (siblings) for a product by variant_group_id.
+ *  Returns all products sharing the same variant_group_id, each representing
+ *  a different color of the same item. Used on PDP for clickable color swatches. */
+export async function getColorVariants(tenantId: string, productId: string) {
+  // Get the current product's variant group
+  const [current] = await db
+    .select({
+      variantGroupId: products.variantGroupId,
+      colorName: products.colorName,
+    })
+    .from(products)
+    .where(
+      and(
+        eq(products.id, productId),
+        eq(products.tenantId, tenantId),
+        isNull(products.deletedAt)
+      )
+    )
+    .limit(1);
+
+  if (!current?.variantGroupId) return [];
+
+  // Fetch all siblings in the same variant group
+  const siblings = await db
+    .select({
+      id: products.id,
+      slug: products.slug,
+      name: products.name,
+      colorName: products.colorName,
+      image: products.image,
+      stock: products.stock,
+      sellingPrice: products.sellingPrice,
+    })
+    .from(products)
+    .where(
+      and(
+        eq(products.tenantId, tenantId),
+        eq(products.variantGroupId, current.variantGroupId),
+        isNull(products.deletedAt),
+        eq(products.status, "active")
+      )
+    )
+    .orderBy(asc(products.sortOrder), asc(products.name));
+
+  return siblings.map((s) => ({
+    id: s.id,
+    slug: s.slug,
+    name: s.name,
+    colorName: s.colorName,
+    image: s.image,
+    stock: s.stock,
+    price: parseFloat(String(s.sellingPrice)),
+    isCurrent: s.id === productId,
+  }));
+}
+
 export async function getStorefrontCategories(tenantId: string) {
   return db
     .select({

@@ -55,6 +55,11 @@ export const products = pgTable(
     // Stock
     stock: integer("stock"), // null = unlimited
 
+    // Color variant grouping — products sharing the same variantGroupId are
+    // the same item in different colors (linked on PDP as clickable swatches)
+    variantGroupId: varchar("variant_group_id", { length: 100 }),
+    colorName: varchar("color_name", { length: 50 }),
+
     // Status & flags
     status: productStatusEnum("status").notNull().default("active"),
     isPopular: boolean("is_popular").notNull().default(false),
@@ -84,6 +89,7 @@ export const products = pgTable(
     index("idx_products_barcode").on(table.tenantId, table.barcode),
     uniqueIndex("idx_products_tenant_slug").on(table.tenantId, table.slug)
       .where(sql`${table.slug} IS NOT NULL AND ${table.deletedAt} IS NULL`),
+    index("idx_products_variant_group").on(table.tenantId, table.variantGroupId),
   ]
 );
 
