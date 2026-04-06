@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import { ShoppingBagIcon } from "@heroicons/react/24/outline";
 
 type CartItem = {
@@ -98,9 +99,9 @@ export default function CartPopover({ items, itemCount, locale, currency = "MOP"
                   {items.slice(0, 5).map((item) => (
                     <li key={item.id} className="flex gap-4 py-4">
                       {/* Image */}
-                      <div className="size-16 shrink-0 overflow-hidden rounded-md border border-gray-200 bg-gray-100">
+                      <div className="relative size-16 shrink-0 overflow-hidden rounded-md border border-gray-200 bg-gray-100">
                         {item.image ? (
-                          <img src={item.image} alt={item.name} className="size-full object-cover" />
+                          <Image src={item.image} alt={item.name} fill sizes="64px" className="object-cover" />
                         ) : (
                           <div className="size-full flex items-center justify-center text-gray-400 text-[10px] font-bold">
                             {item.name.charAt(0)}

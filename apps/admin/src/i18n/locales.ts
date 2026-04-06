@@ -186,6 +186,8 @@ export type AdminTranslationKeys = {
   "items.categoryManager": string;
   "items.addCategory": string;
   "items.editCategory": string;
+  "items.parentCategory": string;
+  "items.parentCategoryNone": string;
   "items.categoryNameLabel": string;
   "items.categoryNameEn": string;
   "items.categoryNamePt": string;
@@ -514,6 +516,10 @@ export type AdminTranslationKeys = {
   "locations.add": string;
   "locations.addNew": string;
   "locations.allLocations": string;
+  "locations.nameLabel": string;
+  "locations.addressLabel": string;
+  "locations.phoneLabel": string;
+  "locations.emailLabel": string;
 
   // ── Payments & Invoices ───────────────────────────────
   "payments.pageTitle": string;
@@ -804,6 +810,8 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "items.categoryManager": "Category Manager",
     "items.addCategory": "Add category",
     "items.editCategory": "Edit category",
+    "items.parentCategory": "Parent category",
+    "items.parentCategoryNone": "None (top-level)",
     "items.categoryNameLabel": "Category name (Chinese)",
     "items.categoryNameEn": "English name",
     "items.categoryNamePt": "Portuguese name",
@@ -1129,6 +1137,10 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "locations.add": "Add Location",
     "locations.addNew": "New Location",
     "locations.allLocations": "All Locations",
+    "locations.nameLabel": "Name",
+    "locations.addressLabel": "Address",
+    "locations.phoneLabel": "Phone",
+    "locations.emailLabel": "Email",
 
     // Payments
     "payments.pageTitle": "Payments & Invoices",
@@ -1400,6 +1412,8 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "items.categoryManager": "分類管理",
     "items.addCategory": "新增分類",
     "items.editCategory": "編輯分類",
+    "items.parentCategory": "上級分類",
+    "items.parentCategoryNone": "無（頂層分類）",
     "items.categoryNameLabel": "分類名稱（中文）",
     "items.categoryNameEn": "英文名稱",
     "items.categoryNamePt": "葡文名稱",
@@ -1720,6 +1734,10 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "locations.add": "新增分店",
     "locations.addNew": "新增分店",
     "locations.allLocations": "所有分店",
+    "locations.nameLabel": "名稱",
+    "locations.addressLabel": "地址",
+    "locations.phoneLabel": "電話",
+    "locations.emailLabel": "電郵",
 
     // Payments
     "payments.pageTitle": "付款與發票",
@@ -1991,6 +2009,8 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "items.categoryManager": "分类管理",
     "items.addCategory": "新增分类",
     "items.editCategory": "编辑分类",
+    "items.parentCategory": "上级分类",
+    "items.parentCategoryNone": "无（顶层分类）",
     "items.categoryNameLabel": "分类名称（中文）",
     "items.categoryNameEn": "英文名称",
     "items.categoryNamePt": "葡文名称",
@@ -2311,6 +2331,10 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "locations.add": "新增分店",
     "locations.addNew": "新增分店",
     "locations.allLocations": "所有分店",
+    "locations.nameLabel": "名称",
+    "locations.addressLabel": "地址",
+    "locations.phoneLabel": "电话",
+    "locations.emailLabel": "邮箱",
 
     // Payments
     "payments.pageTitle": "付款与发票",
@@ -2582,6 +2606,8 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "items.categoryManager": "Gestor de Categorias",
     "items.addCategory": "Adicionar categoria",
     "items.editCategory": "Editar categoria",
+    "items.parentCategory": "Categoria principal",
+    "items.parentCategoryNone": "Nenhuma (nível superior)",
     "items.categoryNameLabel": "Nome da categoria (Chinês)",
     "items.categoryNameEn": "Nome em inglês",
     "items.categoryNamePt": "Nome em português",
@@ -2902,6 +2928,10 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "locations.add": "Adicionar localização",
     "locations.addNew": "Nova localização",
     "locations.allLocations": "Todas as localizações",
+    "locations.nameLabel": "Nome",
+    "locations.addressLabel": "Morada",
+    "locations.phoneLabel": "Telefone",
+    "locations.emailLabel": "E-mail",
 
     // Payments
     "payments.pageTitle": "Pagamentos e Faturas",
@@ -3173,6 +3203,8 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "items.categoryManager": "カテゴリマネージャー",
     "items.addCategory": "カテゴリを追加",
     "items.editCategory": "カテゴリを編集",
+    "items.parentCategory": "親カテゴリ",
+    "items.parentCategoryNone": "なし（トップレベル）",
     "items.categoryNameLabel": "カテゴリ名（中国語）",
     "items.categoryNameEn": "英語名",
     "items.categoryNamePt": "ポルトガル語名",
@@ -3493,6 +3525,10 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "locations.add": "店舗を追加",
     "locations.addNew": "新規店舗",
     "locations.allLocations": "すべての店舗",
+    "locations.nameLabel": "名前",
+    "locations.addressLabel": "住所",
+    "locations.phoneLabel": "電話番号",
+    "locations.emailLabel": "メール",
 
     // Payments
     "payments.pageTitle": "決済・請求",

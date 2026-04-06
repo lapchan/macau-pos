@@ -81,6 +81,7 @@ export async function getCategoriesForManager() {
       id: categories.id,
       name: categories.name,
       translations: categories.translations,
+      parentCategoryId: categories.parentCategoryId,
       icon: categories.icon,
       sortOrder: categories.sortOrder,
       isActive: categories.isActive,

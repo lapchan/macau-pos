@@ -10,5 +10,5 @@ export default async function OnlinePage() {
   } catch (error) {
     console.error("Failed to fetch settings:", error);
   }
-  return <OnlineClient settings={settings} />;
+  return <OnlineClient settings={settings!} />;
 }

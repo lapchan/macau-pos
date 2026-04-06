@@ -1,7 +1,11 @@
 export type Category = {
   id: string;
   nameKey: string;
+  name: string;
+  translations?: Record<string, string> | null;
   icon: string;
+  parentId?: string | null;
+  children?: Category[];
 };
 
 export type Product = {
@@ -16,20 +20,23 @@ export type Product = {
   hasVariants?: boolean;
 };
 
+export type ItemDiscount = { type: "percent" | "fixed"; value: number } | null;
+
 export type CartItem = Product & {
   quantity: number;
   variantOptions?: string[]; // e.g. ["河津櫻 Sakura"] or ["M 標準碼", "暗魂黑 DarkSoul Black"]
+  discount?: ItemDiscount;
 };
 
 export const categories: Category[] = [
-  { id: "all", nameKey: "all", icon: "LayoutGrid" },
-  { id: "popular", nameKey: "popular", icon: "Flame" },
-  { id: "beverages", nameKey: "beverages", icon: "Coffee" },
-  { id: "snacks", nameKey: "snacks", icon: "Cookie" },
-  { id: "frozen", nameKey: "frozen", icon: "Snowflake" },
-  { id: "dairy", nameKey: "dairy", icon: "Milk" },
-  { id: "household", nameKey: "household", icon: "Home" },
-  { id: "personal", nameKey: "care", icon: "Heart" },
+  { id: "all", nameKey: "all", name: "全部", translations: { en: "All", tc: "全部", sc: "全部", pt: "Tudo", ja: "すべて" }, icon: "LayoutGrid" },
+  { id: "popular", nameKey: "popular", name: "熱賣", translations: { en: "Popular", tc: "熱賣", sc: "热卖", pt: "Popular", ja: "人気" }, icon: "Flame" },
+  { id: "beverages", nameKey: "beverages", name: "飲品", translations: { en: "Beverages", tc: "飲品", sc: "饮品", pt: "Bebidas", ja: "飲料" }, icon: "Coffee" },
+  { id: "snacks", nameKey: "snacks", name: "零食", translations: { en: "Snacks", tc: "零食", sc: "零食", pt: "Lanches", ja: "スナック" }, icon: "Cookie" },
+  { id: "frozen", nameKey: "frozen", name: "冷凍", translations: { en: "Frozen", tc: "冷凍", sc: "冷冻", pt: "Congelados", ja: "冷凍" }, icon: "Snowflake" },
+  { id: "dairy", nameKey: "dairy", name: "乳製品", translations: { en: "Dairy", tc: "乳製品", sc: "乳制品", pt: "Laticínios", ja: "乳製品" }, icon: "Milk" },
+  { id: "household", nameKey: "household", name: "家居", translations: { en: "Household", tc: "家居", sc: "家居", pt: "Casa", ja: "家庭用品" }, icon: "Home" },
+  { id: "personal", nameKey: "care", name: "護理", translations: { en: "Care", tc: "護理", sc: "护理", pt: "Cuidados", ja: "ケア" }, icon: "Heart" },
 ];
 
 export const products: Product[] = [

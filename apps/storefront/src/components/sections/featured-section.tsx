@@ -1,11 +1,19 @@
-type Props = { data: Record<string, unknown>; locale: string; tenantId: string };
+import Image from "next/image";
 
-export default function FeaturedSection({ data, locale }: Props) {
+type Props = { data: Record<string, unknown>; locale: string; tenantId: string; themeId?: string };
+
+export default function FeaturedSection({ data, locale, tenantId, themeId }: Props) {
   const title = ((data.titleTranslations as Record<string, string>)?.[locale]) || (data.title as string) || "";
   const subtitle = ((data.subtitleTranslations as Record<string, string>)?.[locale]) || (data.subtitle as string) || "";
   const ctaText = ((data.ctaTranslations as Record<string, string>)?.[locale]) || (data.ctaText as string) || "";
   const ctaLink = (data.ctaLink as string) || `/${locale}/products`;
   const image = data.image as string;
+
+  /* ─── HUMAN MADE variant — skip featured sections, keep homepage clean ─── */
+  if (themeId === "humanmade") {
+    // HUMAN MADE homepage is minimal — no featured promo sections
+    return null;
+  }
 
   return (
     <section className="mx-auto max-w-7xl px-4 pt-24 sm:px-6 sm:pt-32 lg:px-8">
@@ -13,7 +21,7 @@ export default function FeaturedSection({ data, locale }: Props) {
         {/* Background image */}
         <div className="absolute inset-0">
           {image ? (
-            <img src={image} alt="" className="size-full object-cover" />
+            <Image src={image} alt="" fill sizes="100vw" className="object-cover" />
           ) : (
             <div className="size-full bg-gray-900" />
           )}

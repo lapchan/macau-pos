@@ -1,6 +1,8 @@
-type Props = { data: Record<string, unknown>; locale: string; tenantId: string };
+import Image from "next/image";
 
-export default function HeroBanner({ data, locale }: Props) {
+type Props = { data: Record<string, unknown>; locale: string; tenantId: string; themeId?: string };
+
+export default function HeroBanner({ data, locale, tenantId, themeId }: Props) {
   const image = data.image as string | undefined;
   const title = ((data.titleTranslations as Record<string, string>)?.[locale]) || (data.title as string) || "";
   const subtitle = ((data.subtitleTranslations as Record<string, string>)?.[locale]) || (data.subtitle as string) || "";
@@ -17,13 +19,38 @@ export default function HeroBanner({ data, locale }: Props) {
     full: "min-h-screen flex items-center",
   }[height] || "py-32 sm:py-48 lg:py-56";
 
+  /* ─── HUMAN MADE variant — full-width editorial image, clean ─── */
+  if (themeId === "humanmade") {
+    return (
+      <div className="bg-white">
+        {/* Full-width editorial image — edge to edge */}
+        <a href={ctaLink} className="group block">
+          <div className="relative w-full overflow-hidden" style={{ aspectRatio: "16/7" }}>
+            {image ? (
+              <Image
+                src={image}
+                alt={title || ""}
+                fill
+                sizes="100vw"
+                priority
+                className="object-cover transition-transform duration-500 ease-in-out group-hover:scale-[1.03]"
+              />
+            ) : (
+              <div className="size-full bg-[#eee]" />
+            )}
+          </div>
+        </a>
+      </div>
+    );
+  }
+
   return (
     <div className="relative bg-gray-900">
       {/* Background image with overlay */}
       {image && (
         <>
           <div aria-hidden="true" className="absolute inset-0 overflow-hidden">
-            <img src={image} alt="" className="size-full object-cover" />
+            <Image src={image} alt="" fill sizes="100vw" priority className="object-cover" />
           </div>
           <div
             aria-hidden="true"

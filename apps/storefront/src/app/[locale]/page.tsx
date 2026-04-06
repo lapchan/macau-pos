@@ -181,6 +181,7 @@ export default async function HomePage({
       sections={activeSections}
       locale={locale}
       tenantId={tenant.id}
+      themeId={themeId}
     />
   );
 }

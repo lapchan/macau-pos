@@ -111,6 +111,7 @@ export default function ProductEditor({ open, onClose, product, categories }: Pr
             stock: v.stock,
             optionCombo: v.optionCombo as Record<string, string>,
             isActive: v.isActive,
+            image: v.image,
           })));
         }).catch(console.error).finally(() => setVariantsLoading(false));
       } else {

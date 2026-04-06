@@ -1,9 +1,14 @@
 type IncentiveItem = { icon?: string; title: string; titleTranslations?: Record<string, string>; description: string; descTranslations?: Record<string, string> };
-type Props = { data: Record<string, unknown>; locale: string; tenantId: string };
+type Props = { data: Record<string, unknown>; locale: string; tenantId: string; themeId?: string };
 
-export default function IncentiveGrid({ data, locale }: Props) {
+export default function IncentiveGrid({ data, locale, tenantId, themeId }: Props) {
   const items = (data.items as IncentiveItem[]) || [];
   if (items.length === 0) return null;
+
+  /* ─── HUMAN MADE variant — skip incentives, keep homepage clean ─── */
+  if (themeId === "humanmade") {
+    return null;
+  }
 
   return (
     <div className="bg-sf-surface border-y border-sf-border">

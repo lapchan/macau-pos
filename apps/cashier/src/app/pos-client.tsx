@@ -2,12 +2,16 @@
 
 import { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { cn } from "@/lib/cn";
-import { type CartItem, type Product } from "@/data/mock";
+import { type CartItem, type ItemDiscount, type Product } from "@/data/mock";
 
 export type CategoryData = {
   id: string;
   nameKey: string;
+  name: string;
+  translations?: Record<string, string> | null;
   icon: string;
+  parentId?: string | null;
+  children?: CategoryData[];
 };
 
 export type ProductData = Product;
@@ -18,12 +22,23 @@ import { merchantThemes, applyTheme } from "@/lib/theme";
 import CheckoutModal from "@/components/checkout/checkout-modal";
 import VariantPicker, { type VariantOption, type VariantItem } from "@/components/variant-picker";
 import HistorySheet from "@/components/history/history-sheet";
-import { fetchProductVariants } from "@/lib/actions";
+import LockScreen from "@/components/shared/lock-screen";
+import KeypadView from "@/components/pos/keypad-view";
+import DiscountPopover from "@/components/pos/discount-popover";
+import dynamic from "next/dynamic";
+const CameraScanner = dynamic(() => import("@/components/scanner/camera-scanner"), { ssr: false });
+import CustomerSearchSpotlight from "@/components/customer/customer-search-spotlight";
+import CustomerDetailSheet, { type LinkedCustomer } from "@/components/customer/customer-detail-sheet";
+import ProductSearchSpotlight from "@/components/search/product-search-spotlight";
+import { fetchProductVariants, lookupBarcode, type OrderDiscount } from "@/lib/actions";
+import { useBarcodeScanner } from "@/lib/use-barcode-scanner";
+import { useOnlineStatus } from "@/lib/use-online-status";
+import { getPendingCount, syncPendingOrders } from "@/lib/offline-queue";
 import {
   LayoutGrid, Coffee, Cookie, Snowflake, Milk, Home, Heart, Flame,
   Search, Plus, Minus, Trash2, ShoppingBag, CreditCard,
-  User, UserPlus, X, Languages, Check, Settings, Calculator, Star, LibraryBig, Delete, StickyNote,
-  ChevronDown, ChevronRight, Palette, LogOut, Lock, Clock, Receipt, Smartphone, QrCode,
+  UserPlus, X, Languages, Check, Settings, Calculator, Star, LibraryBig,
+  Palette, LogOut, Lock, Clock, Receipt, Wifi, WifiOff, Loader2, ChevronRight, ClipboardList, Monitor, BarChart3, Wallet, TrendingUp, Store, Globe, Package, ScanLine,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -39,22 +54,28 @@ import ShiftSummaryPanel from "@/components/shift/shift-summary-panel";
 function ShiftTimer({ shiftId }: { shiftId: string }) {
   const [elapsed, setElapsed] = useState("");
   useEffect(() => {
-    // Fetch shift openedAt once, then tick locally
     let openedAt: number | null = null;
-    import("@/lib/shift-actions").then(({ getActiveShift }) =>
-      getActiveShift().then((s) => {
-        if (s) openedAt = new Date(s.openedAt).getTime();
-      })
-    );
+    let iv: ReturnType<typeof setInterval> | null = null;
+
     const tick = () => {
       if (!openedAt) return;
       const mins = Math.floor((Date.now() - openedAt) / 60000);
       if (mins < 60) setElapsed(`${mins}m`);
       else setElapsed(`${Math.floor(mins / 60)}h${mins % 60 > 0 ? ` ${mins % 60}m` : ""}`);
     };
-    tick();
-    const iv = setInterval(tick, 30000); // update every 30s
-    return () => clearInterval(iv);
+
+    // Fetch shift openedAt, then start ticking
+    import("@/lib/shift-actions").then(({ getActiveShift }) =>
+      getActiveShift().then((s) => {
+        if (s) {
+          openedAt = new Date(s.openedAt).getTime();
+          tick();
+          iv = setInterval(tick, 30000);
+        }
+      })
+    );
+
+    return () => { if (iv) clearInterval(iv); };
   }, [shiftId]);
 
   if (!elapsed) return null;
@@ -69,41 +90,221 @@ type Props = {
   initialProducts: ProductData[];
   initialCategories: CategoryData[];
   userName?: string | null;
+  userAvatar?: string | null;
   userId?: string | null;
   terminalName?: string | null;
   terminalCode?: string | null;
   activeShiftId?: string | null;
+  taxRate?: number;
 };
 
-export default function POSClient({ initialProducts, initialCategories, userName, userId, terminalName, terminalCode, activeShiftId }: Props) {
+// Drawer cash ledger — shows all cash events for the current shift
+function DrawerLedger({ shiftId, locale }: { shiftId: string; locale: Locale }) {
+  const [entries, setEntries] = useState<{ id: string; eventType: string; creditAmount: string; debitAmount: string; balanceAfter: string; reason: string | null; createdAt: Date }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    import("@/lib/shift-actions").then(({ fetchCashLog }) =>
+      fetchCashLog(shiftId).then((data) => {
+        setEntries(data);
+        setLoading(false);
+      })
+    );
+  }, [shiftId]);
+
+  const EVENT_LABELS: Record<string, string> = {
+    shift_open: "eventOpeningFloat",
+    cash_sale: "eventCashSale",
+    cash_change: "eventChangeGiven",
+    refund: "eventRefund",
+    shift_close: "eventShiftClose",
+  };
+
+  if (loading) return <div className="flex justify-center py-8"><span className="h-6 w-6 border-2 border-pos-accent/30 border-t-pos-accent rounded-full animate-spin" /></div>;
+
+  return (
+    <div className="mt-6">
+      <h3 className="text-[14px] font-semibold text-pos-text mb-3">{t(locale, "drawerLedger")}</h3>
+      <div className="bg-pos-surface border border-pos-border rounded-[var(--radius-md)] overflow-hidden">
+        {/* Header */}
+        <div className="grid grid-cols-5 gap-2 px-4 py-2.5 bg-pos-bg text-[11px] font-medium text-pos-text-muted uppercase tracking-wider border-b border-pos-border">
+          <span>{t(locale, "drawerTime")}</span>
+          <span>{t(locale, "drawerEvent")}</span>
+          <span className="text-right">{t(locale, "drawerIn")}</span>
+          <span className="text-right">{t(locale, "drawerOut")}</span>
+          <span className="text-right">{t(locale, "drawerBalance")}</span>
+        </div>
+        {/* Rows */}
+        {entries.length === 0 ? (
+          <div className="px-4 py-8 text-center text-[13px] text-pos-text-muted">{t(locale, "drawerNoEntries")}</div>
+        ) : (
+          entries.map((entry) => {
+            const credit = parseFloat(entry.creditAmount);
+            const debit = parseFloat(entry.debitAmount);
+            return (
+              <div key={entry.id} className="grid grid-cols-5 gap-2 px-4 py-2.5 text-[13px] border-b border-pos-border last:border-0 hover:bg-pos-surface-hover transition-colors">
+                <span className="text-pos-text-muted tabular-nums">
+                  {new Date(entry.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                </span>
+                <span className="text-pos-text">
+                  {EVENT_LABELS[entry.eventType] ? t(locale, EVENT_LABELS[entry.eventType] as any) : entry.eventType}
+                  {entry.reason && <span className="block text-[11px] text-pos-text-muted truncate">{entry.reason}</span>}
+                </span>
+                <span className={cn("text-right tabular-nums", credit > 0 ? "text-pos-success font-medium" : "text-pos-text-muted")}>
+                  {credit > 0 ? `+${credit.toFixed(2)}` : "—"}
+                </span>
+                <span className={cn("text-right tabular-nums", debit > 0 ? "text-pos-danger font-medium" : "text-pos-text-muted")}>
+                  {debit > 0 ? `-${debit.toFixed(2)}` : "—"}
+                </span>
+                <span className="text-right font-semibold text-pos-text tabular-nums">
+                  {parseFloat(entry.balanceAfter).toFixed(2)}
+                </span>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Shared product card grid — used by Library and Favorites views
+function ProductGrid({ products, cart, addedId, locale, favoriteIds, onAdd, onToggleFavorite, extractBrand }: {
+  products: Product[];
+  cart: CartItem[];
+  addedId: string | null;
+  locale: Locale;
+  favoriteIds: Set<string>;
+  onAdd: (p: Product) => void;
+  onToggleFavorite: (id: string) => void;
+  extractBrand: (name: string) => { brand: string | null; shortName: string };
+}) {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2">
+      {products.map((product) => {
+        const inCart = cart.find((item) => item.id === product.id);
+        const justAdded = addedId === product.id;
+        const displayName = getProductName(product, locale);
+        return (
+          <div
+            key={product.id}
+            onClick={() => product.inStock && onAdd(product)}
+            role="button"
+            tabIndex={0}
+            aria-label={`${displayName}, MOP ${product.price}`}
+            className={cn(
+              "relative flex flex-col p-2.5 rounded-[var(--radius-md)] border transition-all text-left group",
+              !product.inStock
+                ? "border-pos-border opacity-40 cursor-not-allowed bg-pos-surface"
+                : inCart
+                ? "border-pos-accent/30 bg-pos-accent-light shadow-sm cursor-pointer"
+                : "border-pos-border bg-pos-surface hover:border-pos-border-strong hover:shadow-sm active:scale-[0.97] cursor-pointer",
+              justAdded && "scale-[0.97]"
+            )}
+          >
+            <p className="text-[10px] font-semibold text-pos-text-muted uppercase tracking-wide h-[14px] truncate">
+              {extractBrand(displayName).brand || "\u00A0"}
+            </p>
+            <div className="relative w-full aspect-square rounded-[var(--radius-sm)] bg-pos-bg my-1.5 flex items-center justify-center overflow-hidden">
+              {product.image ? (
+                <img src={product.image} alt="" className="h-full w-full object-contain" loading="lazy" />
+              ) : (
+                <ShoppingBag className="h-7 w-7 text-pos-text-muted/40" strokeWidth={1.25} />
+              )}
+              {inCart && (
+                <div className="absolute inset-0 rounded-[var(--radius-sm)]" style={{ backgroundColor: "color-mix(in srgb, var(--color-pos-accent) 15%, transparent)" }} />
+              )}
+            </div>
+            <p className="text-[12px] font-medium text-pos-text leading-tight line-clamp-2" title={displayName}>
+              {extractBrand(displayName).shortName || displayName}
+            </p>
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-[16px] font-bold tabular-nums" style={{ color: "var(--color-pos-accent)" }}>
+                ${product.price.toFixed(product.price % 1 === 0 ? 0 : 1)}
+              </span>
+              {inCart && (
+                <span className="text-[11px] font-semibold text-white px-2 py-0.5 rounded-[var(--radius-full)]" style={{ backgroundColor: "var(--color-pos-accent)" }}>
+                  ×{inCart.quantity}
+                </span>
+              )}
+            </div>
+            {/* Top-right: popular flame + favorite star + variant badge */}
+            {product.inStock && (
+              <div className="absolute top-2 right-2 flex flex-col items-end gap-1">
+                <div className="flex items-center gap-1">
+                  {product.popular && (
+                    <Flame className="h-3.5 w-3.5 text-pos-warning" />
+                  )}
+                  <button
+                    onClick={(e) => { e.stopPropagation(); e.preventDefault(); onToggleFavorite(product.id); }}
+                    className={cn(
+                      "h-6 w-6 flex items-center justify-center rounded-full transition-all",
+                      favoriteIds.has(product.id)
+                        ? "text-amber-500 bg-amber-50"
+                        : "text-pos-text-muted/30 hover:text-amber-500 hover:bg-amber-50"
+                    )}
+                  >
+                    <Star className={cn("h-3.5 w-3.5", favoriteIds.has(product.id) && "fill-amber-500")} />
+                  </button>
+                </div>
+                {product.hasVariants && (
+                  <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-[var(--radius-full)] bg-pos-surface border border-pos-border text-pos-text-secondary">
+                    {t(locale, "variants")}
+                  </span>
+                )}
+              </div>
+            )}
+            {!product.inStock && (
+              <div className="absolute inset-0 flex items-center justify-center rounded-[var(--radius-md)]">
+                <span className="text-[12px] font-medium text-pos-danger bg-white/90 px-3 py-1 rounded-[var(--radius-full)] shadow-sm">
+                  {t(locale, "outOfStock")}
+                </span>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function POSClient({ initialProducts, initialCategories, userName, userAvatar, userId, terminalName, terminalCode, activeShiftId, taxRate = 0 }: Props) {
   const [locale, setLocale] = useState<Locale>("tc");
+  const [activeTab, setActiveTab] = useState<"cashier" | "orders" | "reports">("cashier");
+  const [reportView, setReportView] = useState<"drawer" | "sales">("drawer");
+  const [orderChannel, setOrderChannel] = useState<"all" | "pos" | "online">("all");
   const [activeView, setActiveView] = useState<"library" | "keypad" | "favorites">("library");
-  const [keypadValue, setKeypadValue] = useState("0");
-  const [keypadNote, setKeypadNote] = useState("");
-  const [showKeypadNote, setShowKeypadNote] = useState(false);
   const [activeCategory, setActiveCategory] = useState("all");
-  const [cart, setCart] = useState<CartItem[]>([]);
+  const [activeSubCategory, setActiveSubCategory] = useState<string | null>(null);
+  const [subRowExpanded, setSubRowExpanded] = useState(true);
+  const [cart, setCartState] = useState<CartItem[]>([]);
+  const setCart: typeof setCartState = useCallback((update) => {
+    setCartState(prev => {
+      const next = typeof update === "function" ? update(prev) : update;
+      try { sessionStorage.setItem("pos-cart", JSON.stringify(next)); } catch {}
+      return next;
+    });
+  }, []);
   const [searchTags, setSearchTags] = useState<string[]>([]);
   const [spotlightInput, setSpotlightInput] = useState("");
   const [showCheckout, setShowCheckout] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
-  const [showLangMenu, setShowLangMenu] = useState(false);
-  const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
+  const [menuLevel, setMenuLevel] = useState<"main" | "theme" | "language">("main");
   const [currentTheme, setCurrentTheme] = useState("default");
   const [addedId, setAddedId] = useState<string | null>(null);
+  const knownCartIdsRef = useRef<Set<string>>(new Set());
   const [mounted, setMounted] = useState(false);
+  const isOnline = useOnlineStatus();
+  const [pendingCount, setPendingCount] = useState(0);
+  const [checkingConnection, setCheckingConnection] = useState(false);
   const [locking, setLocking] = useState(false);
   const [shiftId, setShiftId] = useState<string | null>(activeShiftId || null);
   const [showShiftSummary, setShowShiftSummary] = useState(false);
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
-  const [customerSearchInput, setCustomerSearchInput] = useState("");
-  const [linkedCustomer, setLinkedCustomer] = useState<{
-    name: string;
-    phone?: string;
-    tier?: string;
-    points?: number;
-  } | null>(null);
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
+  const [showCustomerDetail, setShowCustomerDetail] = useState(false);
+  const [linkedCustomer, setLinkedCustomer] = useState<LinkedCustomer | null>(null);
   const [showShiftClose, setShowShiftClose] = useState(false);
   const [locked, setLocked] = useState(() => {
     if (typeof window !== "undefined") {
@@ -133,8 +334,26 @@ export default function POSClient({ initialProducts, initialCategories, userName
     if (savedTheme && savedTheme in merchantThemes) setCurrentTheme(savedTheme);
     // Save current user name for the lock screen welcome message
     if (userName) localStorage.setItem("pos-last-user", userName);
+    setPendingCount(getPendingCount());
+    try {
+      const savedCart = sessionStorage.getItem("pos-cart");
+      if (savedCart) setCartState(JSON.parse(savedCart));
+    } catch { /* ignore */ }
+    try {
+      const saved = localStorage.getItem("pos-favorites");
+      if (saved) setFavoriteIds(new Set(JSON.parse(saved)));
+    } catch { /* ignore */ }
     setMounted(true);
   }, []);
+
+  // Auto-sync pending orders when coming back online
+  useEffect(() => {
+    if (isOnline && mounted && getPendingCount() > 0) {
+      syncPendingOrders().then(() => {
+        setPendingCount(getPendingCount());
+      });
+    }
+  }, [isOnline, mounted]);
 
   useEffect(() => {
     applyTheme(merchantThemes[currentTheme]);
@@ -202,12 +421,28 @@ export default function POSClient({ initialProducts, initialCategories, userName
     return { brand: null, shortName: name };
   }
 
+  // Find the active parent category and its children
+  const activeParent = useMemo(() => {
+    return initialCategories.find((c) => c.id === activeCategory);
+  }, [initialCategories, activeCategory]);
+
+  const activeChildren = activeParent?.children || [];
+
   const filtered = useMemo(() => {
     let list = initialProducts;
     if (activeCategory === "popular") {
       list = list.filter((p) => p.popular);
     } else if (activeCategory !== "all") {
-      list = list.filter((p) => p.category === activeCategory);
+      if (activeSubCategory) {
+        // Filter by specific sub-category
+        list = list.filter((p) => p.category === activeSubCategory);
+      } else if (activeChildren.length > 0) {
+        // Parent with children: show products from parent + all children
+        const catIds = new Set([activeCategory, ...activeChildren.map((c) => c.id)]);
+        list = list.filter((p) => catIds.has(p.category));
+      } else {
+        list = list.filter((p) => p.category === activeCategory);
+      }
     }
     // Filter by all search tags (AND logic) + spotlight live input
     const allTerms = [...searchTags, ...(spotlightInput ? [spotlightInput] : [])];
@@ -220,43 +455,39 @@ export default function POSClient({ initialProducts, initialCategories, userName
       );
     }
     return list;
-  }, [initialProducts, activeCategory, searchTags, spotlightInput]);
+  }, [initialProducts, activeCategory, activeSubCategory, activeChildren, searchTags, spotlightInput]);
 
-  // Keypad helpers — value stored as cents (integer string)
-  const handleKeypadPress = useCallback((key: string) => {
-    setKeypadValue(prev => {
-      if (key === "C") return "0";
-      if (key === "⌫") {
-        const next = prev.slice(0, -1);
-        return next === "" ? "0" : next;
+  const [confirmUnfavorite, setConfirmUnfavorite] = useState<string | null>(null);
+
+  const toggleFavorite = useCallback((productId: string) => {
+    setFavoriteIds(prev => {
+      if (prev.has(productId)) {
+        // Show confirm instead of removing immediately
+        setConfirmUnfavorite(productId);
+        return prev;
       }
-      if (prev === "0") return key;
-      if (prev.length >= 8) return prev; // max 999,999.99
-      return prev + key;
+      const next = new Set(prev);
+      next.add(productId);
+      localStorage.setItem("pos-favorites", JSON.stringify([...next]));
+      return next;
     });
   }, []);
 
-  const keypadDisplayPrice = useMemo(() => {
-    const cents = parseInt(keypadValue, 10);
-    return (cents / 100).toFixed(2);
-  }, [keypadValue]);
+  const confirmRemoveFavorite = useCallback(() => {
+    if (!confirmUnfavorite) return;
+    setFavoriteIds(prev => {
+      const next = new Set(prev);
+      next.delete(confirmUnfavorite);
+      localStorage.setItem("pos-favorites", JSON.stringify([...next]));
+      return next;
+    });
+    setConfirmUnfavorite(null);
+  }, [confirmUnfavorite]);
 
-  const handleKeypadAddToCart = useCallback(() => {
-    const cents = parseInt(keypadValue, 10);
-    if (cents <= 0) return;
-    const price = cents / 100;
-    const customId = `custom_${Date.now()}`;
-    const customProduct: Product = {
-      id: customId,
-      name: keypadNote || t(locale, "customItem"),
-      price,
-      category: "custom",
-      inStock: true,
-    };
-    setCart(prev => [...prev, { ...customProduct, quantity: 1 }]);
-    setKeypadValue("0");
-    setKeypadNote("");
-  }, [keypadValue, keypadNote, locale]);
+  // Add custom item from keypad
+  const addCustomToCart = useCallback((product: Product) => {
+    setCart(prev => [...prev, { ...product, quantity: 1 }]);
+  }, []);
 
   const addToCart = useCallback((product: Product) => {
     if (!product.inStock) return;
@@ -329,15 +560,161 @@ export default function POSClient({ initialProducts, initialCategories, userName
     setCart((prev) => prev.filter((item) => item.id !== id));
   }, []);
 
-  const clearCart = useCallback(() => setCart([]), []);
+  const [discountItemId, setDiscountItemId] = useState<string | null>(null);
 
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const applyItemDiscount = useCallback((id: string, discount: ItemDiscount) => {
+    setCart((prev) =>
+      prev.map((item) => item.id === id ? { ...item, discount } : item)
+    );
+    setDiscountItemId(null);
+  }, []);
+
+
+  const [orderDiscount, setOrderDiscount] = useState<OrderDiscount>(null);
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
+  const [showDiscountPopover, setShowDiscountPopover] = useState(false);
+
+  // Compute item line total with per-item discount
+  function itemLineTotal(item: CartItem): number {
+    const raw = item.price * item.quantity;
+    if (!item.discount) return raw;
+    if (item.discount.type === "percent") return Math.round(raw * (1 - item.discount.value / 100) * 100) / 100;
+    return Math.max(0, raw - item.discount.value);
+  }
+
+  const subtotal = cart.reduce((sum, item) => sum + itemLineTotal(item), 0);
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const discountAmount = orderDiscount
+    ? orderDiscount.type === "percent"
+      ? Math.round(subtotal * orderDiscount.value / 100 * 100) / 100
+      : Math.min(orderDiscount.value, subtotal)
+    : 0;
+  const afterDiscount = subtotal - discountAmount;
+  const taxAmount = Math.round(afterDiscount * taxRate / 100 * 100) / 100;
+  const total = afterDiscount + taxAmount;
+
+  const clearCart = useCallback(() => {
+    setCart([]);
+    setOrderDiscount(null);
+    knownCartIdsRef.current.clear();
+  }, []);
 
   const handleCheckoutComplete = useCallback((orderNumber: string) => {
     setCart([]);
+    setLinkedCustomer(null);
+    setOrderDiscount(null);
     setShowCheckout(false);
+    setPendingCount(getPendingCount());
+    knownCartIdsRef.current.clear();
   }, []);
+
+  // ─── Barcode scanner ───────────────────────────────────────
+  const handleBarcodeScan = useCallback(async (barcode: string) => {
+    const result = await lookupBarcode(barcode);
+    if (!result.found) return;
+
+    // Customer membership card
+    if (result.type === "customer") {
+      setLinkedCustomer({
+        id: result.customer.id,
+        name: result.customer.name,
+        phone: result.customer.phone || undefined,
+        email: result.customer.email || undefined,
+      });
+      return;
+    }
+
+    if (result.type === "variant") {
+      // Add variant directly to cart
+      const variantCartId = `${result.productId}__${result.variantId}`;
+      const variantName = Object.values(result.optionCombo).join(" / ");
+      setAddedId(result.productId);
+      setTimeout(() => setAddedId(null), 300);
+      setCart((prev) => {
+        const existing = prev.find((item) => item.id === variantCartId);
+        if (existing) {
+          return prev.map((item) =>
+            item.id === variantCartId ? { ...item, quantity: item.quantity + 1 } : item
+          );
+        }
+        return [...prev, {
+          id: variantCartId,
+          name: `${result.productName} · ${variantName}`,
+          price: result.price,
+          category: "scanned",
+          inStock: true,
+          image: result.image,
+          translations: result.translations,
+          quantity: 1,
+          variantOptions: Object.values(result.optionCombo),
+        }];
+      });
+    } else {
+      // Product — if it has variants, open picker; otherwise add directly
+      if (result.hasVariants) {
+        const product: Product = {
+          id: result.productId,
+          name: result.name,
+          price: result.price,
+          category: "scanned",
+          inStock: true,
+          image: result.image,
+          hasVariants: true,
+          translations: result.translations,
+        };
+        addToCart(product);
+      } else {
+        setAddedId(result.productId);
+        setTimeout(() => setAddedId(null), 300);
+        setCart((prev) => {
+          const existing = prev.find((item) => item.id === result.productId);
+          if (existing) {
+            return prev.map((item) =>
+              item.id === result.productId ? { ...item, quantity: item.quantity + 1 } : item
+            );
+          }
+          return [...prev, {
+            id: result.productId,
+            name: result.name,
+            price: result.price,
+            category: "scanned",
+            inStock: true,
+            image: result.image,
+            translations: result.translations,
+            quantity: 1,
+          }];
+        });
+      }
+    }
+  }, [addToCart]);
+
+  useBarcodeScanner({
+    onScan: handleBarcodeScan,
+    enabled: mounted && !locked && !showCheckout,
+  });
+
+  // Global keyboard shortcuts (POS-wide)
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      // Skip if locked, in checkout, or typing in an input
+      if (locked || showCheckout || !shiftId) return;
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA") return;
+
+      // Enter → open checkout (when cart has items)
+      if (e.key === "Enter" && cart.length > 0 && activeTab === "cashier") {
+        e.preventDefault();
+        setShowCheckout(true);
+      }
+      // F8 → lock screen
+      if (e.key === "F8") {
+        e.preventDefault();
+        handleLockScreen();
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [locked, showCheckout, shiftId, cart.length, activeTab, handleLockScreen]);
 
   // Prevent hydration mismatch — locale/theme differ between server and client
   if (!mounted) {
@@ -365,19 +742,23 @@ export default function POSClient({ initialProducts, initialCategories, userName
     {locked && (
       <LockScreen
         userName={userName || ""}
+        userAvatar={userAvatar || null}
         userId={userId || ""}
         terminalName={terminalName || null}
         terminalCode={terminalCode || null}
         onUnlock={handleUnlock}
         onForceLogout={handleForceLogout}
+        locale={locale}
       />
     )}
     <div
-      className={`h-screen flex overflow-hidden bg-pos-bg transition-all ease-[cubic-bezier(0.16,1,0.3,1)] ${
+      className={`h-screen flex flex-col overflow-hidden bg-pos-bg transition-all ease-[cubic-bezier(0.16,1,0.3,1)] ${
         locking ? "blur-[32px] scale-[0.97] opacity-50" : locked ? "blur-[20px] scale-[0.98]" : "blur-0 scale-100 opacity-100"
       }`}
       style={{ transitionDuration: "650ms" }}
     >
+      {/* ============ CASHIER TAB: Products + Cart ============ */}
+      {activeTab === "cashier" && <div className="flex-1 flex overflow-hidden min-h-0">
       {/* ============ LEFT: PRODUCT AREA ============ */}
       <main className="flex-1 flex flex-col min-w-0">
         {/* Row 1: View tabs (Keypad / Library / Favorites) + Search */}
@@ -424,7 +805,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
                   role="button"
                   tabIndex={0}
                   aria-label={`Remove ${tag}`}
-                  className="h-5 w-5 flex items-center justify-center rounded-full hover:bg-black/10 transition-colors cursor-pointer"
+                  className="h-7 w-7 p-1 flex items-center justify-center rounded-full hover:bg-black/10 transition-colors cursor-pointer"
                 >
                   <X className="h-3 w-3" />
                 </span>
@@ -437,156 +818,130 @@ export default function POSClient({ initialProducts, initialCategories, userName
             >
               <Search className="h-4 w-4" />
             </button>
+            <button
+              onClick={() => setShowCameraScanner(true)}
+              aria-label={t(locale, "scanBarcode")}
+              className="h-9 w-9 flex items-center justify-center rounded-full bg-pos-bg border border-pos-border text-pos-text-muted hover:bg-pos-surface-hover transition-colors"
+            >
+              <ScanLine className="h-4 w-4" />
+            </button>
           </div>
         </header>
 
         {/* Row 2: Category filter tabs (only in Library view) */}
         {activeView === "library" && (
-          <div className="h-[48px] flex items-center gap-1.5 px-5 bg-pos-surface border-b border-pos-border shrink-0 overflow-x-auto hide-scrollbar">
-            {initialCategories.map((cat) => {
-              const Icon = iconMap[cat.icon] || LayoutGrid;
-              const isActive = activeCategory === cat.id;
-              return (
+          <>
+            <div className="h-[48px] flex items-center gap-1.5 px-5 bg-pos-surface border-b border-pos-border shrink-0 overflow-x-auto hide-scrollbar">
+              {initialCategories.map((cat) => {
+                const Icon = iconMap[cat.icon] || LayoutGrid;
+                const isActive = activeCategory === cat.id;
+                return (
+                  <button
+                    key={cat.id}
+                    onClick={() => {
+                      setActiveCategory(cat.id);
+                      setActiveSubCategory(null);
+                      setSubRowExpanded(true);
+                    }}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3.5 h-8 rounded-[var(--radius-full)] text-[13px] font-medium whitespace-nowrap transition-all shrink-0",
+                      isActive
+                        ? "text-white shadow-sm"
+                        : "text-pos-text-secondary bg-pos-bg hover:bg-pos-surface-active"
+                    )}
+                    style={isActive ? { backgroundColor: "var(--color-pos-accent)" } : undefined}
+                  >
+                    <Icon className="h-3.5 w-3.5" strokeWidth={2} />
+                    {getProductName(cat, locale)}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Row 3: Sub-category pills (slide down when parent has children) */}
+            <div
+              className={cn(
+                "overflow-hidden transition-[max-height,border-color] duration-300 ease-out shrink-0 border-b",
+                activeChildren.length > 0 && subRowExpanded
+                  ? "border-pos-border"
+                  : "border-transparent"
+              )}
+              style={{ maxHeight: activeChildren.length > 0 && subRowExpanded ? 48 : 0 }}
+            >
+              <div className="h-[48px] flex items-center gap-1.5 px-5 bg-pos-surface overflow-x-auto hide-scrollbar">
+                {/* Close button — collapse back to parent level */}
                 <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(cat.id)}
-                  className={cn(
-                    "flex items-center gap-1.5 px-3.5 h-8 rounded-[var(--radius-full)] text-[13px] font-medium whitespace-nowrap transition-all shrink-0",
-                    isActive
-                      ? "text-white shadow-sm"
-                      : "text-pos-text-secondary bg-pos-bg hover:bg-pos-surface-active"
-                  )}
-                  style={isActive ? { backgroundColor: "var(--color-pos-accent)" } : undefined}
+                  onClick={() => {
+                    setActiveSubCategory(null);
+                    setSubRowExpanded(false);
+                  }}
+                  className="h-10 w-10 flex items-center justify-center rounded-full bg-black/8 text-pos-text-muted hover:bg-black/15 transition-colors shrink-0"
+                  aria-label={t(locale, "cancel")}
                 >
-                  <Icon className="h-3.5 w-3.5" strokeWidth={2} />
-                  {t(locale, cat.nameKey as any)}
+                  <X className="h-3.5 w-3.5" />
                 </button>
-              );
-            })}
-          </div>
+                {activeChildren.map((sub) => {
+                  const isActive = activeSubCategory === sub.id;
+                  return (
+                    <button
+                      key={sub.id}
+                      onClick={() => setActiveSubCategory(isActive ? null : sub.id)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-3.5 h-8 rounded-[var(--radius-full)] text-[13px] font-medium whitespace-nowrap transition-all shrink-0",
+                        isActive
+                          ? "bg-pos-accent/15 text-pos-accent"
+                          : "text-pos-text-secondary bg-pos-bg hover:bg-pos-surface-active"
+                      )}
+                    >
+                      {getProductName(sub, locale)}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </>
         )}
 
         {/* ============ VIEW CONTENT ============ */}
 
         {/* Keypad view */}
         {activeView === "keypad" && (
-          <div className="flex-1 flex flex-col px-8 py-6" style={{ contain: "layout" }}>
-            {/* Price display */}
-            <div className="flex-1 flex flex-col justify-center min-h-0">
-              <div className="flex items-center justify-between">
-                <p className="text-[64px] font-bold text-pos-text tracking-tight text-left tabular-nums leading-none">
-                  <span className="text-[40px] text-pos-text-muted mr-1">MOP</span>
-                  {keypadDisplayPrice}
-                </p>
-                <button
-                  onClick={() => handleKeypadPress("⌫")}
-                  className={cn(
-                    "h-12 w-12 flex items-center justify-center rounded-full text-pos-text-muted hover:bg-pos-surface-hover active:scale-[0.95] transition-all",
-                    parseInt(keypadValue, 10) === 0 && "invisible"
-                  )}
-                >
-                  <Delete className="h-6 w-6" />
-                </button>
-              </div>
-              <p className={cn(
-                "text-[15px] mt-2 text-left truncate h-[22px]",
-                keypadNote ? "text-pos-text-muted" : "text-transparent"
-              )}>
-                {keypadNote || "\u00A0"}
-              </p>
-            </div>
-
-            {/* Keypad grid */}
-            <div className="grid grid-cols-3 gap-3 pb-2">
-              {/* Row 1: + Note (full row) */}
-              <button
-                onClick={() => setShowKeypadNote(true)}
-                className="h-[72px] col-span-3 flex items-center justify-center gap-2 text-[16px] font-medium text-pos-text-secondary rounded-[var(--radius-md)] bg-pos-bg hover:bg-pos-surface-hover active:scale-[0.97] transition-all"
-              >
-                <StickyNote className="h-5 w-5" />
-                {t(locale, "addNote")}
-              </button>
-
-              {/* Row 2–4: number keys 1-9 */}
-              {["1","2","3","4","5","6","7","8","9"].map(n => (
-                <button
-                  key={n}
-                  onClick={() => handleKeypadPress(n)}
-                  className="h-[72px] flex items-center justify-center text-[28px] font-medium text-pos-text rounded-[var(--radius-md)] bg-pos-bg hover:bg-pos-surface-hover active:scale-[0.97] transition-all"
-                >
-                  {n}
-                </button>
-              ))}
-
-              {/* Row 5: C, 0, Add */}
-              <button
-                onClick={() => handleKeypadPress("C")}
-                className="h-[72px] flex items-center justify-center text-[22px] font-semibold text-pos-text-muted rounded-[var(--radius-md)] bg-pos-bg hover:bg-pos-surface-hover active:scale-[0.97] transition-all"
-              >
-                C
-              </button>
-              <button
-                onClick={() => handleKeypadPress("0")}
-                className="h-[72px] flex items-center justify-center text-[28px] font-medium text-pos-text rounded-[var(--radius-md)] bg-pos-bg hover:bg-pos-surface-hover active:scale-[0.97] transition-all"
-              >
-                0
-              </button>
-              <button
-                onClick={handleKeypadAddToCart}
-                disabled={parseInt(keypadValue, 10) <= 0}
-                className="h-[72px] flex items-center justify-center text-[28px] font-semibold text-white rounded-[var(--radius-md)] active:scale-[0.97] transition-all disabled:opacity-40"
-                style={{ backgroundColor: "var(--color-pos-accent)" }}
-              >
-                <Plus className="h-7 w-7" />
-              </button>
-            </div>
-
-            {/* Note input modal */}
-            {showKeypadNote && (
-              <>
-                <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setShowKeypadNote(false)} />
-                <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90%] max-w-[400px] bg-pos-surface border border-pos-border rounded-[var(--radius-lg)] shadow-xl p-5 animate-scale-in">
-                  <p className="text-[15px] font-semibold text-pos-text mb-3">{t(locale, "addNote")}</p>
-                  <input
-                    type="text"
-                    autoFocus
-                    value={keypadNote}
-                    onChange={e => setKeypadNote(e.target.value)}
-                    onKeyDown={e => { if (e.key === "Enter") setShowKeypadNote(false); }}
-                    placeholder={t(locale, "keypadNotePlaceholder")}
-                    className="w-full h-11 px-3 text-[14px] text-pos-text bg-pos-bg border border-pos-border rounded-[var(--radius-md)] outline-none focus:border-pos-accent transition-colors"
-                  />
-                  <div className="flex justify-end gap-2 mt-4">
-                    <button
-                      onClick={() => { setKeypadNote(""); setShowKeypadNote(false); }}
-                      className="h-9 px-4 text-[13px] text-pos-text-secondary rounded-[var(--radius-md)] hover:bg-pos-surface-hover transition-colors"
-                    >
-                      {t(locale, "clear")}
-                    </button>
-                    <button
-                      onClick={() => setShowKeypadNote(false)}
-                      className="h-9 px-4 text-[13px] font-medium text-white rounded-[var(--radius-md)] transition-colors"
-                      style={{ backgroundColor: "var(--color-pos-accent)" }}
-                    >
-                      {t(locale, "confirm")}
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
-          </div>
+          <KeypadView locale={locale} onAddToCart={addCustomToCart} />
         )}
 
         {/* Favorites view */}
-        {activeView === "favorites" && (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <Star className="h-12 w-12 text-pos-text-muted/30 mx-auto mb-3" strokeWidth={1.25} />
-              <p className="text-[15px] font-medium text-pos-text">{t(locale, "favorites")}</p>
-              <p className="text-[13px] text-pos-text-muted mt-1">{t(locale, "favoritesDesc")}</p>
+        {activeView === "favorites" && (() => {
+          const favProducts = initialProducts.filter(p => favoriteIds.has(p.id));
+          return favProducts.length > 0 ? (
+            <>
+              <div className="px-5 py-3 flex items-center justify-between shrink-0">
+                <span className="text-[13px] text-pos-text-secondary">
+                  {favProducts.length} {t(locale, "favorites")}
+                </span>
+              </div>
+              <div className="flex-1 overflow-y-auto px-5 pb-5">
+                <ProductGrid
+                  products={favProducts}
+                  cart={cart}
+                  addedId={addedId}
+                  locale={locale}
+                  favoriteIds={favoriteIds}
+                  onAdd={addToCart}
+                  onToggleFavorite={toggleFavorite}
+                  extractBrand={extractBrand}
+                />
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="text-center">
+                <Star className="h-12 w-12 text-pos-text-muted/30 mx-auto mb-3" strokeWidth={1.25} />
+                <p className="text-[15px] font-medium text-pos-text">{t(locale, "favorites")}</p>
+                <p className="text-[13px] text-pos-text-muted mt-1">{t(locale, "favoritesDesc")}</p>
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Library view — Product count */}
         {activeView === "library" && (
@@ -599,92 +954,16 @@ export default function POSClient({ initialProducts, initialCategories, userName
 
         {/* Library view — Product grid */}
         {activeView === "library" && <div className="flex-1 overflow-y-auto px-5 pb-5">
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2">
-            {filtered.map((product) => {
-              const inCart = cart.find((item) => item.id === product.id);
-              const justAdded = addedId === product.id;
-              const displayName = getProductName(product, locale);
-              return (
-                <button
-                  key={product.id}
-                  onClick={() => addToCart(product)}
-                  disabled={!product.inStock}
-                  aria-label={`${displayName}, MOP ${product.price}`}
-                  className={cn(
-                    "relative flex flex-col p-2.5 rounded-[var(--radius-md)] border transition-all text-left group",
-                    !product.inStock
-                      ? "border-pos-border opacity-40 cursor-not-allowed bg-pos-surface"
-                      : inCart
-                      ? "border-pos-accent/30 bg-pos-accent-light shadow-sm"
-                      : "border-pos-border bg-pos-surface hover:border-pos-border-strong hover:shadow-sm active:scale-[0.97]",
-                    justAdded && "scale-[0.97]"
-                  )}
-                >
-                  {/* Brand — fixed height, always occupies space */}
-                  <p className="text-[10px] font-semibold text-pos-text-muted uppercase tracking-wide h-[14px] truncate">
-                    {extractBrand(displayName).brand || "\u00A0"}
-                  </p>
-
-                  {/* Image area */}
-                  <div className="relative w-full aspect-square rounded-[var(--radius-sm)] bg-pos-bg my-1.5 flex items-center justify-center overflow-hidden">
-                    {product.image ? (
-                      <img src={product.image} alt="" className="h-full w-full object-contain" loading="lazy" />
-                    ) : (
-                      <ShoppingBag className="h-7 w-7 text-pos-text-muted/40" strokeWidth={1.25} />
-                    )}
-                    {inCart && (
-                      <div className="absolute inset-0 rounded-[var(--radius-sm)]" style={{ backgroundColor: "color-mix(in srgb, var(--color-pos-accent) 15%, transparent)" }} />
-                    )}
-                  </div>
-
-                  {/* Product name */}
-                  <p className="text-[12px] font-medium text-pos-text leading-tight line-clamp-2" title={displayName}>
-                    {extractBrand(displayName).shortName || displayName}
-                  </p>
-
-                  {/* Price row */}
-                  <div className="flex items-center justify-between mt-2">
-                    <span className="text-[16px] font-bold tabular-nums" style={{ color: "var(--color-pos-accent)" }}>
-                      ${product.price.toFixed(product.price % 1 === 0 ? 0 : 1)}
-                    </span>
-                    {inCart && (
-                      <span
-                        className="text-[11px] font-semibold text-white px-2 py-0.5 rounded-[var(--radius-full)]"
-                        style={{ backgroundColor: "var(--color-pos-accent)" }}
-                      >
-                        ×{inCart.quantity}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Variant indicator */}
-                  {product.hasVariants && product.inStock && (
-                    <div className="absolute top-2.5 right-2.5">
-                      <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-[var(--radius-full)] bg-pos-surface border border-pos-border text-pos-text-secondary">
-                        {t(locale, "variants")}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Sold out */}
-                  {!product.inStock && (
-                    <div className="absolute inset-0 flex items-center justify-center rounded-[var(--radius-md)]">
-                      <span className="text-[12px] font-medium text-pos-danger bg-white/90 px-3 py-1 rounded-[var(--radius-full)] shadow-sm">
-                        {t(locale, "outOfStock")}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Popular */}
-                  {product.popular && product.inStock && (
-                    <div className="absolute top-2.5 right-2.5">
-                      <Flame className="h-3.5 w-3.5 text-pos-warning" />
-                    </div>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+          <ProductGrid
+            products={filtered}
+            cart={cart}
+            addedId={addedId}
+            locale={locale}
+            favoriteIds={favoriteIds}
+            onAdd={addToCart}
+            onToggleFavorite={toggleFavorite}
+            extractBrand={extractBrand}
+          />
 
           {filtered.length === 0 && (
             <div className="flex flex-col items-center justify-center py-20 text-center animate-fade-in">
@@ -694,139 +973,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
             </div>
           )}
         </div>}
-
-        {/* ============ BOTTOM BAR: Settings & Controls ============ */}
-        <div className="h-[48px] flex items-center gap-1.5 px-5 bg-pos-surface border-t border-pos-border shrink-0">
-          {/* User button */}
-          {userName && (
-            <button
-              onClick={shiftId ? () => setShowShiftSummary(true) : undefined}
-              className={cn(
-                "h-9 px-3 flex items-center gap-2 text-[13px] border rounded-[var(--radius-sm)] shrink-0 transition-colors",
-                shiftId
-                  ? "text-pos-text-secondary border-pos-accent/30 bg-pos-accent-light hover:bg-pos-accent-light/80 cursor-pointer"
-                  : "text-pos-text-secondary border-pos-border bg-pos-surface"
-              )}
-            >
-              <div className="relative">
-                <div
-                  className="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-semibold text-white"
-                  style={{ backgroundColor: "var(--color-pos-accent)" }}
-                >
-                  {userName.charAt(0).toUpperCase()}
-                </div>
-                {shiftId && (
-                  <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-pos-surface" />
-                )}
-              </div>
-              <span className="hidden lg:inline max-w-[100px] truncate">{userName}</span>
-              {shiftId && <ShiftTimer shiftId={shiftId} />}
-            </button>
-          )}
-
-          {/* Settings (theme + language) */}
-          <div className="relative">
-            <button
-              onClick={() => { setShowSettingsMenu(!showSettingsMenu); }}
-              aria-label="Settings"
-              className="h-9 px-2.5 flex items-center gap-1.5 text-[13px] text-pos-text-secondary rounded-[var(--radius-sm)] hover:bg-pos-surface-hover transition-colors"
-            >
-              <Settings className="h-4 w-4" />
-            </button>
-            {showSettingsMenu && (
-              <>
-                <div className="fixed inset-0 z-10" onClick={() => setShowSettingsMenu(false)} />
-                <div className="absolute left-0 bottom-full mb-1.5 z-20 bg-pos-surface border border-pos-border rounded-[var(--radius-md)] shadow-lg py-1.5 min-w-[200px] animate-scale-in">
-                  {/* Theme section */}
-                  <div className="px-3 py-1.5 text-[11px] font-medium text-pos-text-muted uppercase tracking-wide">
-                    <div className="flex items-center gap-1.5"><Palette className="h-3 w-3" />{t(locale, "theme")}</div>
-                  </div>
-                  {Object.entries(merchantThemes).map(([key, theme]) => (
-                    <button
-                      key={key}
-                      onClick={() => { setCurrentTheme(key); }}
-                      className={cn(
-                        "w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors",
-                        currentTheme === key ? "bg-pos-surface-active text-pos-text" : "text-pos-text-secondary hover:bg-pos-surface-hover"
-                      )}
-                    >
-                      <div className="h-4 w-4 rounded-full border border-pos-border" style={{ backgroundColor: theme.accent }} />
-                      <span>{theme.name}</span>
-                      {currentTheme === key && <Check className="h-3.5 w-3.5 ml-auto text-pos-accent" />}
-                    </button>
-                  ))}
-
-                  {/* Divider */}
-                  <div className="my-1.5 border-t border-pos-border" />
-
-                  {/* Language section */}
-                  <div className="px-3 py-1.5 text-[11px] font-medium text-pos-text-muted uppercase tracking-wide">
-                    <div className="flex items-center gap-1.5"><Languages className="h-3 w-3" />{t(locale, "language")}</div>
-                  </div>
-                  {(Object.keys(localeNames) as Locale[]).map((l) => (
-                    <button
-                      key={l}
-                      onClick={() => { setLocale(l); }}
-                      className={cn(
-                        "w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors",
-                        locale === l ? "bg-pos-surface-active text-pos-text" : "text-pos-text-secondary hover:bg-pos-surface-hover"
-                      )}
-                    >
-                      <Flag code={l} size={18} />
-                      <span>{localeNames[l]}</span>
-                      {locale === l && <Check className="h-3.5 w-3.5 ml-auto text-pos-accent" />}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Order history */}
-          <button
-            type="button"
-            onClick={() => setShowHistory(true)}
-            className="h-9 px-2.5 flex items-center gap-1.5 text-[13px] text-pos-text-secondary rounded-[var(--radius-sm)] hover:bg-pos-surface-hover transition-colors"
-            aria-label={t(locale, "history") || "History"}
-          >
-            <Receipt className="h-4 w-4" />
-          </button>
-
-          <div className="flex-1" />
-
-          {/* Lock screen */}
-          <button
-            type="button"
-            aria-label="Lock screen"
-            title="Lock screen"
-            onClick={handleLockScreen}
-            className="h-9 px-2.5 flex items-center gap-1.5 text-[13px] text-pos-text-secondary rounded-[var(--radius-sm)] hover:bg-pos-surface-hover transition-colors"
-          >
-            <Lock className="h-4 w-4" />
-          </button>
-
-          {/* Logout */}
-          <button
-            type="button"
-            aria-label="Logout"
-            title="Logout"
-            disabled={locking}
-            onClick={() => {
-              if (locking) return;
-              setLocking(true);
-              window.setTimeout(() => {
-                window.fetch("/api/logout", { method: "POST" }).finally(() => {
-                  window.location.href = "/login";
-                });
-              }, 700);
-            }}
-            className="h-9 px-2.5 flex items-center gap-1.5 text-[13px] text-pos-text-muted rounded-[var(--radius-sm)] hover:bg-pos-danger-light hover:text-pos-danger transition-colors disabled:opacity-50"
-          >
-            <LogOut className="h-4 w-4" />
-          </button>
-        </div>
       </main>
-
       {/* Shift Summary Panel */}
       {showShiftSummary && shiftId && (
         <ShiftSummaryPanel
@@ -880,43 +1027,52 @@ export default function POSClient({ initialProducts, initialCategories, userName
           )}
         </div>
 
-        {/* Customer awareness bar — aligned with main pane row 2 */}
-        <div className="h-[48px] flex items-center px-3 border-b border-pos-border shrink-0">
+        {/* Customer awareness bar — fixed height prevents layout shift */}
+        <div className="h-[64px] flex items-center px-5 border-b border-pos-border shrink-0">
           {linkedCustomer ? (
-            <div className="flex items-center gap-2.5 flex-1 min-w-0">
-              <div
-                className="h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-semibold text-white shrink-0"
-                style={{ backgroundColor: "var(--color-pos-accent)" }}
+            <>
+              <button
+                onClick={() => setShowCustomerDetail(true)}
+                className="flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
               >
-                {linkedCustomer.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-[13px] font-medium text-pos-text leading-tight">{linkedCustomer.name}</p>
-                {linkedCustomer.tier && (
-                  <p className="text-[11px] text-pos-text-muted leading-tight">
-                    <span className="inline-flex items-center gap-0.5">
-                      <Star className="h-2.5 w-2.5 text-amber-500 fill-amber-500" />
-                      {linkedCustomer.tier}
-                    </span>
-                    {linkedCustomer.points !== undefined && (
-                      <span> · {linkedCustomer.points.toLocaleString()} pts</span>
-                    )}
-                  </p>
+                {linkedCustomer.avatar ? (
+                  <img src={linkedCustomer.avatar} alt="" className="h-10 w-10 rounded-full object-cover bg-pos-bg shrink-0" />
+                ) : (
+                  <div
+                    className="h-10 w-10 rounded-full flex items-center justify-center text-[14px] font-semibold text-white shrink-0"
+                    style={{ backgroundColor: "var(--color-pos-accent)" }}
+                  >
+                    {linkedCustomer.name.charAt(0).toUpperCase()}
+                  </div>
                 )}
-              </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-medium text-pos-text">{linkedCustomer.name}</p>
+                  {linkedCustomer.tier && (
+                    <p className="text-[12px] text-pos-text-muted mt-0.5">
+                      <span className="inline-flex items-center gap-1">
+                        <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
+                        {linkedCustomer.tier}
+                      </span>
+                      {linkedCustomer.points !== undefined && (
+                        <span> · {linkedCustomer.points.toLocaleString()} pts</span>
+                      )}
+                    </p>
+                  )}
+                </div>
+              </button>
               <button
                 onClick={() => setLinkedCustomer(null)}
-                className="h-6 w-6 flex items-center justify-center rounded-full text-pos-text-muted hover:text-pos-danger hover:bg-pos-danger-light transition-colors shrink-0"
+                className="h-7 w-7 flex items-center justify-center rounded-full text-pos-text-muted hover:text-pos-danger hover:bg-pos-danger-light transition-colors shrink-0 ml-1"
               >
-                <X className="h-3 w-3" />
+                <X className="h-3.5 w-3.5" />
               </button>
-            </div>
+            </>
           ) : (
             <button
-              onClick={() => { setCustomerSearchInput(""); setShowCustomerSearch(true); }}
-              className="w-full flex items-center justify-center gap-2 h-full text-[13px] text-pos-text-muted hover:text-pos-text-secondary transition-colors"
+              onClick={() => setShowCustomerSearch(true)}
+              className="w-full flex items-center justify-center gap-2 py-2 text-[13px] text-pos-text-muted hover:text-pos-text-secondary transition-colors"
             >
-              <UserPlus className="h-3.5 w-3.5" />
+              <UserPlus className="h-4 w-4" />
               {t(locale, "addCustomer")}
             </button>
           )}
@@ -941,14 +1097,19 @@ export default function POSClient({ initialProducts, initialCategories, userName
             </div>
           ) : (
             <div className="p-3 space-y-2">
-              {cart.map((item, idx) => {
+              {cart.map((item) => {
                 const cartName = getProductName(item, locale);
                 const { brand, shortName } = extractBrand(cartName);
+                const isNew = !knownCartIdsRef.current.has(item.id);
+                if (isNew) knownCartIdsRef.current.add(item.id);
                 return (
                 <div
                   key={item.id}
-                  className="p-3 rounded-[var(--radius-md)] bg-pos-surface border border-pos-border group animate-slide-up"
-                  style={{ animationDelay: `${idx * 30}ms` }}
+                  onClick={() => setDiscountItemId(discountItemId === item.id ? null : item.id)}
+                  className={cn(
+                    "p-3 rounded-[var(--radius-md)] bg-pos-surface border border-pos-border group relative cursor-pointer hover:border-pos-border-strong transition-colors",
+                    isNew && "animate-slide-up"
+                  )}
                 >
                   {/* Row 1: Name + delete */}
                   <div className="flex items-start gap-2">
@@ -961,9 +1122,9 @@ export default function POSClient({ initialProducts, initialCategories, userName
                       </p>
                     </div>
                     <button
-                      onClick={() => removeFromCart(item.id)}
+                      onClick={(e) => { e.stopPropagation(); removeFromCart(item.id); }}
                       aria-label={`Remove ${item.name}`}
-                      className="h-6 w-6 flex items-center justify-center text-pos-text-muted hover:text-pos-danger hover:bg-pos-danger-light rounded-full transition-all shrink-0"
+                      className="h-6 w-6 p-2 box-content flex items-center justify-center text-pos-text-muted hover:text-pos-danger hover:bg-pos-danger-light rounded-full transition-all shrink-0"
                     >
                       <Trash2 className="h-3 w-3" />
                     </button>
@@ -980,13 +1141,29 @@ export default function POSClient({ initialProducts, initialCategories, userName
                     </div>
                   )}
 
+                  {/* Per-item discount badge */}
+                  {item.discount && (
+                    <div className="flex items-center gap-1.5 mt-1.5">
+                      <span className="text-[11px] font-medium text-pos-danger">
+                        {t(locale, "discount")}: {item.discount.type === "percent" ? `${item.discount.value}%` : `MOP ${item.discount.value}`}
+                        {" "}(-MOP {(item.price * item.quantity - itemLineTotal(item)).toFixed(1)})
+                      </span>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); applyItemDiscount(item.id, null); }}
+                        className="h-4 w-4 flex items-center justify-center rounded-full text-pos-text-muted hover:text-pos-danger transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  )}
+
                   {/* Row 3: Stepper + total */}
                   <div className="flex items-center justify-between mt-2.5">
                     <div className="flex items-center bg-pos-bg rounded-[var(--radius-md)] border border-pos-border">
                       <button
-                        onClick={() => updateQuantity(item.id, -1)}
+                        onClick={(e) => { e.stopPropagation(); updateQuantity(item.id, -1); }}
                         aria-label={`Decrease ${item.name}`}
-                        className="h-10 w-10 flex items-center justify-center text-pos-text-secondary hover:text-pos-text active:bg-pos-surface-hover transition-colors rounded-l-[var(--radius-md)]"
+                        className="h-11 w-11 flex items-center justify-center text-pos-text-secondary hover:text-pos-text active:bg-pos-surface-hover transition-colors rounded-l-[var(--radius-md)]"
                       >
                         <Minus className="h-4 w-4" />
                       </button>
@@ -994,24 +1171,25 @@ export default function POSClient({ initialProducts, initialCategories, userName
                         {item.quantity}
                       </span>
                       <button
-                        onClick={() => updateQuantity(item.id, 1)}
+                        onClick={(e) => { e.stopPropagation(); updateQuantity(item.id, 1); }}
                         aria-label={`Increase ${item.name}`}
-                        className="h-10 w-10 flex items-center justify-center text-pos-text-secondary hover:text-pos-text active:bg-pos-surface-hover transition-colors rounded-r-[var(--radius-md)]"
+                        className="h-11 w-11 flex items-center justify-center text-pos-text-secondary hover:text-pos-text active:bg-pos-surface-hover transition-colors rounded-r-[var(--radius-md)]"
                       >
                         <Plus className="h-4 w-4" />
                       </button>
                     </div>
                     <div className="text-right">
-                      <p className="text-[14px] font-bold text-pos-text tabular-nums">
-                        {t(locale, "total")} ${(item.price * item.quantity).toFixed(1)}
+                      <p className={cn("text-[14px] font-bold tabular-nums", item.discount ? "text-pos-danger" : "text-pos-text")}>
+                        {t(locale, "total")} ${itemLineTotal(item).toFixed(1)}
                       </p>
-                      {item.quantity > 1 && (
+                      {(item.quantity > 1 || item.discount) && (
                         <p className="text-[10px] text-pos-text-muted tabular-nums">
                           MOP {item.price.toFixed(1)} × {item.quantity}
                         </p>
                       )}
                     </div>
                   </div>
+
                 </div>
                 );
               })}
@@ -1019,26 +1197,51 @@ export default function POSClient({ initialProducts, initialCategories, userName
           )}
         </div>
 
-        {/* Footer: Totals + Payment */}
-        <div className="border-t border-pos-border p-5 space-y-4 shrink-0 bg-pos-cart-header">
-          {/* Totals */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-[13px]">
-              <span className="text-pos-text-secondary">{t(locale, "subtotal")}</span>
-              <span className="font-medium text-pos-text tabular-nums">
-                MOP {subtotal.toFixed(2)}
-              </span>
-            </div>
-            <div className="h-px bg-pos-border" />
-            <div className="flex items-center justify-between">
-              <span className="text-[15px] font-semibold text-pos-text">{t(locale, "total")}</span>
-              <span className="text-[24px] font-bold tabular-nums" style={{ color: "var(--color-pos-accent)" }}>
-                MOP {subtotal.toFixed(2)}
-              </span>
-            </div>
+        {/* Footer: Totals + Charge button */}
+        <div className="border-t border-pos-border p-5 space-y-3 shrink-0 bg-pos-cart-header">
+          {/* Subtotal */}
+          <div className="flex items-center justify-between text-[13px]">
+            <span className="text-pos-text-secondary">{t(locale, "subtotal")}</span>
+            <span className="font-medium text-pos-text tabular-nums">MOP {subtotal.toFixed(2)}</span>
           </div>
 
-          {/* Charge button — opens checkout modal */}
+          {/* Discount row — fixed height, always occupies space */}
+          <div className="h-[24px] flex items-center">
+            {orderDiscount ? (
+              <div className="flex items-center justify-between w-full text-[13px]">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-pos-danger">
+                    {t(locale, "discount")} ({orderDiscount.type === "percent" ? `${orderDiscount.value}%` : `MOP ${orderDiscount.value}`})
+                  </span>
+                  <button onClick={() => setOrderDiscount(null)} className="h-5 w-5 flex items-center justify-center rounded-full text-pos-text-muted hover:text-pos-danger transition-colors">
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+                <span className="font-medium text-pos-danger tabular-nums">-MOP {discountAmount.toFixed(2)}</span>
+              </div>
+            ) : cart.length > 0 ? (
+              <button
+                onClick={() => setShowDiscountPopover(true)}
+                className="w-full h-full flex items-center text-[13px] text-pos-text-muted hover:text-pos-accent transition-colors"
+              >
+                + {t(locale, "addDiscount")}
+              </button>
+            ) : null}
+          </div>
+
+          {/* Tax row — fixed height */}
+          {taxRate > 0 && (
+            <div className="h-[20px] flex items-center justify-between text-[13px]">
+              {cart.length > 0 ? (
+                <>
+                  <span className="text-pos-text-secondary">{t(locale, "tax")} ({taxRate}%)</span>
+                  <span className="font-medium text-pos-text tabular-nums">MOP {taxAmount.toFixed(2)}</span>
+                </>
+              ) : null}
+            </div>
+          )}
+
+          {/* Charge button */}
           <button
             onClick={() => cart.length > 0 && setShowCheckout(true)}
             disabled={cart.length === 0}
@@ -1051,271 +1254,375 @@ export default function POSClient({ initialProducts, initialCategories, userName
             style={cart.length > 0 ? { backgroundColor: "var(--color-pos-accent)" } : undefined}
           >
             <CreditCard className="h-5 w-5" />
-            {t(locale, "charge")} {cart.length > 0 && `· MOP ${subtotal.toFixed(2)}`}
+            {cart.length > 0 ? `MOP ${total.toFixed(2)}` : t(locale, "charge")}
           </button>
         </div>
       </aside>
+      </div>}
+
+      {/* ============ ORDERS TAB ============ */}
+      {activeTab === "orders" && (
+        <div className="flex-1 flex overflow-hidden min-h-0">
+          {/* Left sidebar */}
+          <nav className="w-[220px] bg-pos-surface border-r border-pos-border shrink-0 flex flex-col">
+            <div className="px-4 py-4">
+              <h2 className="text-[16px] font-semibold text-pos-text">{t(locale, "orders")}</h2>
+            </div>
+            {([
+              { key: "all" as const, label: t(locale, "allOrders"), icon: ClipboardList },
+              { key: "pos" as const, label: t(locale, "posOrders"), icon: Store },
+              { key: "online" as const, label: t(locale, "onlineOrders"), icon: Globe },
+            ]).map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                onClick={() => setOrderChannel(key)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-3 text-[14px] font-medium text-left transition-colors",
+                  orderChannel === key
+                    ? "bg-pos-accent text-white"
+                    : "text-pos-text-secondary hover:bg-pos-surface-hover"
+                )}
+              >
+                <Icon className="h-4.5 w-4.5" />
+                {label}
+              </button>
+            ))}
+          </nav>
+
+          {/* Right: order list */}
+          <div className="flex-1 overflow-hidden">
+            <HistorySheet
+              open={true}
+              onClose={() => setActiveTab("cashier")}
+              shiftId={shiftId}
+              locale={locale}
+              embedded
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ============ REPORTS TAB ============ */}
+      {activeTab === "reports" && (
+        <div className="flex-1 flex overflow-hidden min-h-0">
+          {/* Left sidebar */}
+          <nav className="w-[220px] bg-pos-surface border-r border-pos-border shrink-0 flex flex-col">
+            <div className="px-4 py-4">
+              <h2 className="text-[16px] font-semibold text-pos-text">{t(locale, "reportsTab")}</h2>
+            </div>
+            {([
+              { key: "drawer" as const, label: t(locale, "drawerReport"), icon: Wallet },
+              { key: "sales" as const, label: t(locale, "salesReport"), icon: TrendingUp },
+            ]).map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                onClick={() => setReportView(key)}
+                className={cn(
+                  "w-full flex items-center gap-3 px-4 py-3 text-[14px] font-medium text-left transition-colors",
+                  reportView === key
+                    ? "bg-pos-accent text-white"
+                    : "text-pos-text-secondary hover:bg-pos-surface-hover"
+                )}
+              >
+                <Icon className="h-4.5 w-4.5" />
+                {label}
+              </button>
+            ))}
+          </nav>
+
+          {/* Right content */}
+          <div className="flex-1 overflow-y-auto bg-pos-bg">
+            {reportView === "drawer" && (
+              <div className="p-6">
+                {shiftId ? (
+                  <DrawerLedger shiftId={shiftId} locale={locale} />
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-20 text-center">
+                    <Wallet className="h-12 w-12 text-pos-text-muted/30 mb-3" strokeWidth={1.25} />
+                    <p className="text-[15px] font-medium text-pos-text">{t(locale, "drawerReport")}</p>
+                    <p className="text-[13px] text-pos-text-muted mt-1">{t(locale, "startShiftToSeeDrawer")}</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {reportView === "sales" && (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <TrendingUp className="h-12 w-12 text-pos-text-muted/30 mb-3" strokeWidth={1.25} />
+                <p className="text-[15px] font-medium text-pos-text">{t(locale, "salesReport")}</p>
+                <p className="text-[13px] text-pos-text-muted mt-1">{t(locale, "comingSoon")}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============ BOTTOM BAR (full width) ============ */}
+      <div className="h-[48px] flex items-center gap-1.5 px-5 bg-pos-surface border-t border-pos-border shrink-0">
+        {/* User menu */}
+        {userName && (
+          <div className="relative">
+            <button
+              onClick={() => { setShowSettingsMenu(!showSettingsMenu); setMenuLevel("main"); }}
+              className={cn(
+                "h-9 px-3 flex items-center gap-2 text-[13px] border rounded-[var(--radius-sm)] shrink-0 transition-colors",
+                shiftId
+                  ? "text-pos-text-secondary border-pos-accent/30 bg-pos-accent-light hover:bg-pos-accent-light/80"
+                  : "text-pos-text-secondary border-pos-border bg-pos-surface hover:bg-pos-surface-hover"
+              )}
+            >
+              <div className="relative">
+                {userAvatar ? (
+                  <img src={userAvatar} alt="" className="h-6 w-6 rounded-full object-cover bg-pos-bg" />
+                ) : (
+                  <div className="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-semibold text-white" style={{ backgroundColor: "var(--color-pos-accent)" }}>
+                    {userName.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                {shiftId && <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-pos-surface" />}
+              </div>
+              <span className="hidden lg:inline max-w-[100px] truncate">{userName}</span>
+              {shiftId && <ShiftTimer shiftId={shiftId} />}
+            </button>
+
+            {showSettingsMenu && (
+              <>
+                <div className="fixed inset-0 z-10" onClick={() => setShowSettingsMenu(false)} />
+                <div className="absolute left-0 bottom-full mb-1.5 z-20 bg-pos-surface border border-pos-border rounded-[var(--radius-md)] shadow-lg py-1.5 min-w-[220px] animate-scale-in">
+                  {shiftId && (
+                    <>
+                      <button onClick={() => { setShowSettingsMenu(false); setShowShiftSummary(true); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-text-secondary hover:bg-pos-surface-hover transition-colors">
+                        <Clock className="h-4 w-4" /><span>{t(locale, "shiftSummary")}</span>
+                      </button>
+                      <button onClick={() => { setShowSettingsMenu(false); setShowShiftClose(true); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-text-secondary hover:bg-pos-surface-hover transition-colors">
+                        <Receipt className="h-4 w-4" /><span>{t(locale, "shiftCloseBtn")}</span>
+                      </button>
+                      <div className="my-1.5 border-t border-pos-border" />
+                    </>
+                  )}
+                  <button onClick={() => setMenuLevel(menuLevel === "theme" ? "main" : "theme")} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors", menuLevel === "theme" ? "bg-pos-surface-active text-pos-text" : "text-pos-text-secondary hover:bg-pos-surface-hover")}>
+                    <Palette className="h-4 w-4" /><span>{t(locale, "theme")}</span>
+                    <div className="ml-auto flex items-center gap-1.5"><div className="h-3.5 w-3.5 rounded-full border border-pos-border" style={{ backgroundColor: merchantThemes[currentTheme]?.accent }} /><ChevronRight className="h-3.5 w-3.5 text-pos-text-muted" /></div>
+                  </button>
+                  <button onClick={() => setMenuLevel(menuLevel === "language" ? "main" : "language")} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors", menuLevel === "language" ? "bg-pos-surface-active text-pos-text" : "text-pos-text-secondary hover:bg-pos-surface-hover")}>
+                    <Languages className="h-4 w-4" /><span>{t(locale, "language")}</span>
+                    <div className="ml-auto flex items-center gap-1.5"><Flag code={locale} size={14} /><ChevronRight className="h-3.5 w-3.5 text-pos-text-muted" /></div>
+                  </button>
+                  <div className="my-1.5 border-t border-pos-border" />
+                  <button onClick={() => { setShowSettingsMenu(false); handleLockScreen(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-text-secondary hover:bg-pos-surface-hover transition-colors">
+                    <Lock className="h-4 w-4" /><span>{t(locale, "lock")}</span>
+                  </button>
+                  <button disabled={locking} onClick={() => { setShowSettingsMenu(false); if (locking) return; setLocking(true); window.setTimeout(() => { window.fetch("/api/logout", { method: "POST" }).finally(() => { window.location.href = "/login"; }); }, 700); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-danger hover:bg-pos-danger-light transition-colors disabled:opacity-50">
+                    <LogOut className="h-4 w-4" /><span>{t(locale, "logout")}</span>
+                  </button>
+                </div>
+              </>
+            )}
+
+            {showSettingsMenu && menuLevel === "theme" && (
+              <div className="absolute left-full bottom-0 ml-1 z-20 bg-pos-surface border border-pos-border rounded-[var(--radius-md)] shadow-lg py-1.5 min-w-[180px] animate-fade-in">
+                {Object.entries(merchantThemes).map(([key, theme]) => (
+                  <button key={key} onClick={() => { setCurrentTheme(key); setMenuLevel("main"); }} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors", currentTheme === key ? "bg-pos-surface-active text-pos-text" : "text-pos-text-secondary hover:bg-pos-surface-hover")}>
+                    <div className="h-4 w-4 rounded-full border border-pos-border" style={{ backgroundColor: theme.accent }} /><span>{theme.name}</span>
+                    {currentTheme === key && <Check className="h-3.5 w-3.5 ml-auto text-pos-accent" />}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {showSettingsMenu && menuLevel === "language" && (
+              <div className="absolute left-full bottom-0 ml-1 z-20 bg-pos-surface border border-pos-border rounded-[var(--radius-md)] shadow-lg py-1.5 min-w-[180px] animate-fade-in">
+                {(Object.keys(localeNames) as Locale[]).map((l) => (
+                  <button key={l} onClick={() => { setLocale(l); setMenuLevel("main"); }} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors", locale === l ? "bg-pos-surface-active text-pos-text" : "text-pos-text-secondary hover:bg-pos-surface-hover")}>
+                    <Flag code={l} size={18} /><span>{localeNames[l]}</span>
+                    {locale === l && <Check className="h-3.5 w-3.5 ml-auto text-pos-accent" />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Nav tabs */}
+        <nav className="flex items-center gap-20 ml-10">
+          {([
+            { key: "cashier" as const, label: t(locale, "cashierTab"), icon: Monitor },
+            { key: "orders" as const, label: t(locale, "orders"), icon: ClipboardList },
+            { key: "reports" as const, label: t(locale, "reportsTab"), icon: BarChart3 },
+          ]).map(({ key, label, icon: Icon }) => (
+            <button
+              key={key}
+              onClick={() => setActiveTab(key)}
+              className={cn(
+                "h-9 flex items-center gap-2 text-[13px] font-semibold transition-colors",
+                activeTab === key
+                  ? "text-pos-accent"
+                  : "text-pos-text-muted hover:text-pos-text-secondary"
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {label}
+            </button>
+          ))}
+        </nav>
+
+        <div className="flex-1" />
+
+        {/* Pending orders count */}
+        {pendingCount > 0 && (
+          <span className="text-[10px] font-bold text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-full">
+            {pendingCount} {t(locale, "pendingOrders")}
+          </span>
+        )}
+
+        {/* Terminal name + connection indicator (right) */}
+        <div className="flex items-center gap-2 shrink-0">
+          {terminalName && <span className="text-[11px] text-pos-text-muted">{terminalName}</span>}
+          <button
+            onClick={async () => {
+              setCheckingConnection(true);
+              try {
+                const res = await fetch("/api/ping", { cache: "no-store" });
+                if (res.ok && getPendingCount() > 0) {
+                  await syncPendingOrders();
+                  setPendingCount(getPendingCount());
+                }
+              } catch { /* offline */ }
+              setCheckingConnection(false);
+            }}
+            className={cn(
+              "h-7 w-7 flex items-center justify-center rounded-full border transition-colors",
+              checkingConnection
+                ? "text-pos-text-muted border-pos-border"
+                : isOnline
+                ? "text-pos-success border-pos-success/20 bg-pos-success/5 hover:bg-pos-success/10"
+                : "text-pos-danger border-pos-danger/20 bg-pos-danger-light hover:bg-pos-danger/10"
+            )}
+          >
+            {checkingConnection ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+            ) : isOnline ? (
+              <Wifi className="h-3.5 w-3.5" />
+            ) : (
+              <WifiOff className="h-3.5 w-3.5" />
+            )}
+          </button>
+        </div>
+      </div>
 
       {/* Checkout Modal */}
+      {/* Confirm unfavorite */}
+      {confirmUnfavorite && (
+        <>
+          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setConfirmUnfavorite(null)} />
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[280px] bg-pos-surface border border-pos-border rounded-[var(--radius-lg)] shadow-xl p-5 animate-scale-in text-center">
+            <Star className="h-10 w-10 text-amber-500 fill-amber-500 mx-auto mb-3" />
+            <p className="text-[14px] font-medium text-pos-text mb-1">
+              {t(locale, "removeFavoriteTitle")}
+            </p>
+            <p className="text-[13px] text-pos-text-muted mb-4">
+              {t(locale, "removeFavoriteHint")}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirmUnfavorite(null)}
+                className="flex-1 h-10 rounded-[var(--radius-md)] text-[13px] font-medium text-pos-text-secondary border border-pos-border hover:bg-pos-surface-hover transition-colors"
+              >
+                {t(locale, "cancel")}
+              </button>
+              <button
+                onClick={confirmRemoveFavorite}
+                className="flex-1 h-10 rounded-[var(--radius-md)] text-[13px] font-medium text-white bg-pos-danger hover:bg-pos-danger/90 transition-colors"
+              >
+                {t(locale, "confirm")}
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Per-item discount popover */}
+      {discountItemId && cart.find(i => i.id === discountItemId) && (
+        <DiscountPopover
+          locale={locale}
+          subtotal={(cart.find(i => i.id === discountItemId)!.price * cart.find(i => i.id === discountItemId)!.quantity)}
+          onApply={(d) => applyItemDiscount(discountItemId, d)}
+          onClose={() => setDiscountItemId(null)}
+        />
+      )}
+
+      {/* Order-level discount popover */}
+      {showDiscountPopover && (
+        <DiscountPopover
+          locale={locale}
+          subtotal={subtotal}
+          onApply={setOrderDiscount}
+          onClose={() => setShowDiscountPopover(false)}
+        />
+      )}
+
       {showCheckout && (
         <CheckoutModal
           cart={cart}
           locale={locale}
           onClose={() => setShowCheckout(false)}
           onComplete={handleCheckoutComplete}
+          customerId={linkedCustomer?.id}
+          subtotal={subtotal}
+          discountAmount={discountAmount}
+          taxAmount={taxAmount}
+          taxRate={taxRate}
+          total={total}
+          orderDiscount={orderDiscount}
+          isOnline={isOnline}
         />
       )}
 
 
+      {/* ============ CAMERA BARCODE SCANNER ============ */}
+      {showCameraScanner && (
+        <CameraScanner
+          locale={locale}
+          onScan={(barcode) => {
+            setShowCameraScanner(false);
+            handleBarcodeScan(barcode);
+          }}
+          onClose={() => setShowCameraScanner(false)}
+        />
+      )}
+
       {/* ============ CUSTOMER SEARCH SPOTLIGHT ============ */}
       {showCustomerSearch && (
-        <>
-          <div
-            className="fixed inset-0 z-50 bg-black/40 animate-[fadeIn_0.2s_ease-out]"
-            onClick={() => setShowCustomerSearch(false)}
-          />
-          <div className="fixed inset-x-0 top-0 z-50 flex justify-center pt-[8vh] px-4 animate-[spotlightOpen_0.25s_cubic-bezier(0.16,1,0.3,1)]">
-            <div className="w-full max-w-md bg-pos-surface rounded-2xl shadow-2xl overflow-hidden relative">
-              {/* Close */}
-              <button
-                onClick={() => setShowCustomerSearch(false)}
-                className="absolute top-3 right-3 h-9 w-9 flex items-center justify-center rounded-full bg-pos-text-muted/15 text-pos-text-secondary hover:bg-pos-text-muted/25 hover:text-pos-text transition-colors z-10"
-              >
-                <X className="h-5 w-5" strokeWidth={2.5} />
-              </button>
+        <CustomerSearchSpotlight
+          locale={locale}
+          onClose={() => setShowCustomerSearch(false)}
+          onSelect={(c) => setLinkedCustomer(c)}
+        />
+      )}
 
-              {/* Phone input */}
-              <div className="flex items-center px-4">
-                <Smartphone className="h-5 w-5 text-pos-text-muted shrink-0 ml-1" />
-                <input
-                  type="tel"
-                  autoFocus
-                  value={customerSearchInput}
-                  onChange={(e) => setCustomerSearchInput(e.target.value.replace(/[^0-9+ ]/g, ""))}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") setShowCustomerSearch(false);
-                    if (e.key === "Enter" && customerSearchInput.trim()) {
-                      // Mock: simulate finding a customer
-                      setLinkedCustomer({
-                        name: "陳小明 Chan Siu Man",
-                        phone: customerSearchInput.trim(),
-                        tier: "Gold Member",
-                        points: 1280,
-                      });
-                      setShowCustomerSearch(false);
-                    }
-                  }}
-                  placeholder={t(locale, "searchByPhone")}
-                  style={{ outline: "none" }}
-                  className="flex-1 h-14 pl-3 pr-12 text-[18px] bg-transparent text-pos-text placeholder:text-pos-text-muted"
-                />
-              </div>
-
-              {/* Divider */}
-              <div className="border-t border-pos-border" />
-
-              {/* Actions */}
-              <div className="p-3 space-y-1">
-                {/* Mock search result */}
-                {customerSearchInput.length >= 4 && (
-                  <button
-                    onClick={() => {
-                      setLinkedCustomer({
-                        name: "陳小明 Chan Siu Man",
-                        phone: customerSearchInput.trim(),
-                        tier: "Gold Member",
-                        points: 1280,
-                      });
-                      setShowCustomerSearch(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-md)] hover:bg-pos-surface-hover transition-colors"
-                  >
-                    <div
-                      className="h-9 w-9 rounded-full flex items-center justify-center text-[13px] font-semibold text-white shrink-0"
-                      style={{ backgroundColor: "var(--color-pos-accent)" }}
-                    >
-                      陳
-                    </div>
-                    <div className="flex-1 min-w-0 text-left">
-                      <p className="text-[14px] font-medium text-pos-text">陳小明 Chan Siu Man</p>
-                      <p className="text-[12px] text-pos-text-muted">
-                        <span className="inline-flex items-center gap-1">
-                          <Star className="h-3 w-3 text-amber-500 fill-amber-500" />
-                          Gold Member · 1,280 pts
-                        </span>
-                      </p>
-                    </div>
-                  </button>
-                )}
-
-                {/* Scan membership option */}
-                <button
-                  onClick={() => {
-                    // TODO: activate camera/scanner
-                    setShowCustomerSearch(false);
-                  }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-md)] hover:bg-pos-surface-hover transition-colors text-pos-text-secondary"
-                >
-                  <div className="h-9 w-9 rounded-full bg-pos-bg flex items-center justify-center shrink-0">
-                    <QrCode className="h-4 w-4" />
-                  </div>
-                  <p className="text-[14px] font-medium">{t(locale, "scanMembership")}</p>
-                </button>
-              </div>
-            </div>
-          </div>
-        </>
+      {/* ============ CUSTOMER DETAIL SHEET ============ */}
+      {showCustomerDetail && linkedCustomer && (
+        <CustomerDetailSheet
+          customer={linkedCustomer}
+          locale={locale}
+          onClose={() => setShowCustomerDetail(false)}
+          onRemove={() => setLinkedCustomer(null)}
+        />
       )}
 
       {/* ============ SEARCH SPOTLIGHT ============ */}
       {searchOpen && (
-        <>
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 z-50 bg-black/40 animate-[fadeIn_0.2s_ease-out]"
-            onClick={() => {
-              if (spotlightInput.trim()) setSearchTags(prev => [...prev, spotlightInput.trim()]);
-              setSpotlightInput("");
-              setSearchOpen(false);
-            }}
-          />
-          {/* Search panel — centered, animated from button origin */}
-          <div className="fixed inset-x-0 top-0 z-50 flex justify-center pt-[8vh] px-4 animate-[spotlightOpen_0.25s_cubic-bezier(0.16,1,0.3,1)]">
-            <div className="w-full max-w-xl bg-pos-surface rounded-2xl shadow-2xl overflow-hidden relative">
-              {/* Close button */}
-              <button
-                onClick={() => {
-                  if (spotlightInput.trim()) setSearchTags(prev => [...prev, spotlightInput.trim()]);
-                  setSpotlightInput("");
-                  setSearchOpen(false);
-                }}
-                aria-label={t(locale, "cancel")}
-                className="absolute top-3 right-3 h-9 w-9 flex items-center justify-center rounded-full bg-pos-text-muted/15 text-pos-text-secondary hover:bg-pos-text-muted/25 hover:text-pos-text transition-colors z-10"
-              >
-                <X className="h-5 w-5" strokeWidth={2.5} />
-              </button>
-
-              {/* Active tags */}
-              {searchTags.length > 0 && (
-                <div className="flex items-center gap-1.5 px-5 pt-3 flex-wrap">
-                  {searchTags.map((tag, i) => (
-                    <div
-                      key={i}
-                      className="h-7 flex items-center gap-1 pl-2.5 pr-1 text-[12px] font-medium rounded-[var(--radius-full)]"
-                      style={{
-                        backgroundColor: "color-mix(in srgb, var(--color-pos-accent) 12%, transparent)",
-                        color: "var(--color-pos-accent)",
-                      }}
-                    >
-                      <span>{tag}</span>
-                      <span
-                        onClick={() => setSearchTags(prev => prev.filter((_, idx) => idx !== i))}
-                        role="button"
-                        tabIndex={0}
-                        className="h-5 w-5 flex items-center justify-center rounded-full hover:bg-black/10 transition-colors cursor-pointer"
-                      >
-                        <X className="h-3 w-3" />
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Search input */}
-              <div className="flex items-center px-4">
-                <Search className="h-5 w-5 text-pos-text-muted shrink-0 ml-1" />
-                <input
-                  type="text"
-                  autoFocus
-                  placeholder={searchTags.length > 0 ? t(locale, "addFilter") : t(locale, "search")}
-                  aria-label={t(locale, "search")}
-                  value={spotlightInput}
-                  onChange={(e) => setSpotlightInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Escape") {
-                      if (spotlightInput.trim()) setSearchTags(prev => [...prev, spotlightInput.trim()]);
-                      setSpotlightInput("");
-                      setSearchOpen(false);
-                    }
-                    if (e.key === "Enter" && spotlightInput.trim()) {
-                      setSearchTags(prev => [...prev, spotlightInput.trim()]);
-                      setSpotlightInput("");
-                    }
-                    if (e.key === "Backspace" && !spotlightInput && searchTags.length > 0) {
-                      setSearchTags(prev => prev.slice(0, -1));
-                    }
-                  }}
-                  className="flex-1 h-14 pl-3 pr-12 text-[18px] bg-transparent text-pos-text placeholder:text-pos-text-muted outline-none border-none"
-                  style={{ outline: "none" }}
-                />
-              </div>
-
-              {/* Quick results preview */}
-              {(spotlightInput || searchTags.length > 0) && (
-                <div className="border-t border-pos-border max-h-[50vh] overflow-y-auto">
-                  {filtered.length > 0 ? (
-                    <div className="p-2">
-                      {filtered.slice(0, 8).map((product) => {
-                        const displayName = getProductName(product, locale);
-                        const { brand, shortName } = extractBrand(displayName);
-                        return (
-                          <button
-                            key={product.id}
-                            onClick={() => {
-                              addToCart(product);
-                              if (!product.hasVariants) {
-                                if (spotlightInput.trim()) setSearchTags(prev => [...prev, spotlightInput.trim()]);
-                                setSpotlightInput("");
-                                setSearchOpen(false);
-                              }
-                            }}
-                            disabled={!product.inStock}
-                            className={cn(
-                              "w-full flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-md)] text-left transition-colors",
-                              product.inStock
-                                ? "hover:bg-pos-surface-hover active:bg-pos-surface-active"
-                                : "opacity-40 cursor-not-allowed"
-                            )}
-                          >
-                            <div className="h-10 w-10 rounded-[var(--radius-sm)] bg-pos-bg flex items-center justify-center shrink-0 overflow-hidden">
-                              {product.image ? (
-                                <img src={product.image} alt="" className="h-full w-full object-cover" />
-                              ) : (
-                                <ShoppingBag className="h-4 w-4 text-pos-text-muted/40" strokeWidth={1.5} />
-                              )}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              {brand && <p className="text-[9px] font-semibold text-pos-text-muted uppercase tracking-wide">{brand}</p>}
-                              <p className="text-[14px] font-medium text-pos-text truncate">{brand ? shortName : displayName}</p>
-                            </div>
-                            <div className="text-right shrink-0">
-                              <p className="text-[14px] font-bold tabular-nums" style={{ color: "var(--color-pos-accent)" }}>
-                                ${product.price.toFixed(product.price % 1 === 0 ? 0 : 1)}
-                              </p>
-                              {product.hasVariants && (
-                                <p className="text-[10px] text-pos-text-muted">{t(locale, "variants")}</p>
-                              )}
-                            </div>
-                          </button>
-                        );
-                      })}
-                      {filtered.length > 8 && (
-                        <p className="text-center text-[12px] text-pos-text-muted py-2">
-                          +{filtered.length - 8} more
-                        </p>
-                      )}
-                    </div>
-                  ) : (
-                    <div className="py-8 text-center">
-                      <p className="text-[14px] text-pos-text-secondary">{t(locale, "noResults")}</p>
-                      <p className="text-[12px] text-pos-text-muted mt-1">{t(locale, "tryOther")}</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </>
+        <ProductSearchSpotlight
+          locale={locale}
+          searchTags={searchTags}
+          setSearchTags={setSearchTags}
+          input={spotlightInput}
+          setInput={setSpotlightInput}
+          filtered={filtered}
+          extractBrand={extractBrand}
+          addToCart={addToCart}
+          onClose={() => { setSpotlightInput(""); setSearchOpen(false); }}
+        />
       )}
 
       {/* Variant picker */}
@@ -1324,6 +1631,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
           open={variantPickerOpen}
           onClose={() => { setVariantPickerOpen(false); setVariantProduct(null); }}
           productName={getProductName(variantProduct, locale)}
+          productImage={variantProduct.image}
           basePrice={variantProduct.price}
           options={variantLoading ? [] : variantOptions}
           variants={variantLoading ? [] : variantItems}
@@ -1344,175 +1652,4 @@ export default function POSClient({ initialProducts, initialCategories, userName
   );
 }
 
-// ─── Lock Screen Component (iPhone-style) ──────────────────
-function LockScreen({
-  userName, userId, terminalName, terminalCode, onUnlock, onForceLogout,
-}: {
-  userName: string;
-  userId: string;
-  terminalName: string | null;
-  terminalCode: string | null;
-  onUnlock: () => void;
-  onForceLogout: () => void;
-}) {
-  const [pin, setPin] = useState("");
-  const [error, setError] = useState("");
-  const [shake, setShake] = useState(false);
-  const [attempts, setAttempts] = useState(0);
-  const [verifying, setVerifying] = useState(false);
-  const [time, setTime] = useState(new Date());
-
-  const MAX_ATTEMPTS = 5;
-
-  // Clock
-  useEffect(() => {
-    const interval = setInterval(() => setTime(new Date()), 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Auto-submit when 4 digits entered
-  useEffect(() => {
-    if (pin.length === 4 && !verifying) {
-      handleSubmit();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pin]);
-
-  async function handleSubmit() {
-    setVerifying(true);
-    setError("");
-
-    try {
-      const formData = new FormData();
-      formData.append("pin", pin);
-      formData.append("userId", userId);
-
-      const res = await fetch("/api/verify-pin", {
-        method: "POST",
-        body: JSON.stringify({ pin, userId }),
-        headers: { "Content-Type": "application/json" },
-      });
-      const data = await res.json();
-
-      if (data.success) {
-        onUnlock();
-      } else {
-        const newAttempts = attempts + 1;
-        setAttempts(newAttempts);
-        setShake(true);
-        setTimeout(() => { setShake(false); setPin(""); }, 600);
-
-        if (newAttempts >= MAX_ATTEMPTS) {
-          setError("Too many attempts. Logging out...");
-          setTimeout(onForceLogout, 1500);
-        } else {
-          setError(`Invalid PIN (${MAX_ATTEMPTS - newAttempts} attempts remaining)`);
-        }
-      }
-    } catch {
-      setError("Connection error. Try again.");
-      setPin("");
-    } finally {
-      setVerifying(false);
-    }
-  }
-
-  function handleDigit(d: string) {
-    if (pin.length < 4 && !verifying) setPin((p) => p + d);
-  }
-
-  function handleDelete() {
-    setPin((p) => p.slice(0, -1));
-  }
-
-  const hours = time.getHours().toString().padStart(2, "0");
-  const minutes = time.getMinutes().toString().padStart(2, "0");
-  const dateStr = time.toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-  });
-  const initial = userName.charAt(0).toUpperCase();
-
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/80 backdrop-blur-xl">
-      {/* Clock */}
-      <div className="text-center mb-8">
-        <p className="text-[#86868b] text-[14px] font-medium">{dateStr}</p>
-        <p className="text-[#1d1d1f] text-[64px] font-extralight leading-none mt-1 tabular-nums tracking-tight">
-          {hours}:{minutes}
-        </p>
-      </div>
-
-      {/* Avatar + name */}
-      <div className="flex flex-col items-center mb-6">
-        <div className="h-[64px] w-[64px] rounded-full flex items-center justify-center mb-3 shadow-lg" style={{ backgroundColor: "var(--color-pos-accent, #0071e3)" }}>
-          <span className="text-white text-[24px] font-semibold">{initial}</span>
-        </div>
-        <p className="text-[#1d1d1f] text-[15px] font-medium">{userName}</p>
-        {terminalName && (
-          <p className="text-[#86868b] text-[12px] mt-1">
-            {terminalCode ? `${terminalCode} · ` : ""}{terminalName}
-          </p>
-        )}
-      </div>
-
-      {/* PIN dots */}
-      <div className="mb-8">
-        <div className={`flex gap-[14px] justify-center ${shake ? "animate-[shake_0.5s_ease-in-out]" : ""}`}>
-          {[0, 1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className={`h-[13px] w-[13px] rounded-full transition-all duration-200 ${
-                i < pin.length ? "bg-[#1d1d1f]" : "border-[1.5px] border-[#1d1d1f]/20"
-              }`}
-            />
-          ))}
-        </div>
-        {error && (
-          <p className="text-[#ff3b30] text-[12px] text-center mt-3 animate-fade-in">{error}</p>
-        )}
-      </div>
-
-      {/* Keypad */}
-      <div className="grid grid-cols-3 gap-[12px]">
-        {["1","2","3","4","5","6","7","8","9"].map((d) => (
-          <button
-            key={d}
-            type="button"
-            onClick={() => handleDigit(d)}
-            disabled={verifying || pin.length >= 4}
-            className="h-[72px] w-[72px] rounded-full bg-[#f5f5f7] border border-black/[0.04] hover:bg-[#e8e8ed] active:bg-[#d1d1d6] flex flex-col items-center justify-center transition-all active:scale-[0.90] disabled:opacity-40"
-          >
-            <span className="text-[#1d1d1f] text-[26px] font-light leading-none">{d}</span>
-            {({"2":"ABC","3":"DEF","4":"GHI","5":"JKL","6":"MNO","7":"PQRS","8":"TUV","9":"WXYZ"} as Record<string,string>)[d] && (
-              <span className="text-[#86868b]/60 text-[8px] tracking-[0.16em] mt-[2px] font-medium">
-                {({"2":"ABC","3":"DEF","4":"GHI","5":"JKL","6":"MNO","7":"PQRS","8":"TUV","9":"WXYZ"} as Record<string,string>)[d]}
-              </span>
-            )}
-          </button>
-        ))}
-        <div className="h-[72px] w-[72px]" />
-        <button
-          type="button"
-          onClick={() => handleDigit("0")}
-          disabled={verifying || pin.length >= 4}
-          className="h-[72px] w-[72px] rounded-full bg-[#f5f5f7] border border-black/[0.04] hover:bg-[#e8e8ed] active:bg-[#d1d1d6] flex items-center justify-center transition-all active:scale-[0.90] disabled:opacity-40"
-        >
-          <span className="text-[#1d1d1f] text-[26px] font-light">0</span>
-        </button>
-        <button
-          type="button"
-          onClick={handleDelete}
-          disabled={pin.length === 0}
-          className="h-[72px] w-[72px] rounded-full flex items-center justify-center text-[#86868b]/30 hover:text-[#86868b]/60 transition-all active:scale-[0.90] disabled:opacity-10"
-        >
-          <svg className="h-[22px] w-[22px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75L14.25 12m0 0l2.25 2.25M14.25 12l2.25-2.25M14.25 12L12 14.25m-2.58 4.92l-6.374-6.375a1.125 1.125 0 010-1.59L9.42 4.83c.21-.211.497-.33.795-.33H19.5a2.25 2.25 0 012.25 2.25v10.5a2.25 2.25 0 01-2.25 2.25h-9.284c-.298 0-.585-.119-.795-.33z" />
-          </svg>
-        </button>
-      </div>
-    </div>
-  );
-}
 

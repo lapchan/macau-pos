@@ -6,6 +6,5 @@ export default async function AccountPage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  // Account dashboard — redirect to orders for now
-  redirect(`/${locale}/account/orders`);
+  redirect(`/${locale}/account/profile`);
 }

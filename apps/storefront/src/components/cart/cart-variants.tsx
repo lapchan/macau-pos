@@ -8,6 +8,8 @@
 
 "use client";
 
+import Image from "next/image";
+
 type CartItem = {
   id: string;
   name: string;
@@ -45,9 +47,9 @@ export default function CartVariants({ items, variant = "single-column", locale,
         <ul role="list" className="mt-8 divide-y divide-gray-200 border-t border-b border-gray-200">
           {items.map((item) => (
             <li key={item.id} className="flex py-6">
-              <div className="size-24 shrink-0 overflow-hidden rounded-md bg-gray-100">
+              <div className="relative size-24 shrink-0 overflow-hidden rounded-md bg-gray-100">
                 {item.image ? (
-                  <img src={item.image} alt={item.name} className="size-full object-cover" />
+                  <Image src={item.image} alt={item.name} fill sizes="96px" className="object-cover" />
                 ) : (
                   <div className="size-full flex items-center justify-center text-gray-400 text-xs">{item.name.charAt(0)}</div>
                 )}
@@ -118,9 +120,9 @@ export default function CartVariants({ items, variant = "single-column", locale,
           <ul role="list" className="divide-y divide-gray-200 border-t border-b border-gray-200">
             {items.map((item) => (
               <li key={item.id} className="flex py-6 sm:py-10">
-                <div className="size-24 shrink-0 overflow-hidden rounded-lg bg-gray-100 sm:size-48">
+                <div className="relative size-24 shrink-0 overflow-hidden rounded-lg bg-gray-100 sm:size-48">
                   {item.image ? (
-                    <img src={item.image} alt={item.name} className="size-full object-cover" />
+                    <Image src={item.image} alt={item.name} fill sizes="(max-width: 640px) 96px, 192px" className="object-cover" />
                   ) : (
                     <div className="size-full flex items-center justify-center text-gray-400 text-sm">{item.name.charAt(0)}</div>
                   )}

@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 type OrderSummary = {
   id: string;
   receiptNo: string;
@@ -101,9 +103,9 @@ export default function OrderHistoryList({ orders, locale, currency = "MOP" }: P
           <div className="px-4 py-4 sm:px-6">
             <div className="flex -space-x-2 overflow-hidden">
               {order.items.slice(0, 5).map((item, i) => (
-                <div key={i} className="inline-block size-12 rounded-lg border-2 border-white bg-gray-100 overflow-hidden">
+                <div key={i} className="relative inline-block size-12 rounded-lg border-2 border-white bg-gray-100 overflow-hidden">
                   {item.image ? (
-                    <img src={item.image} alt={item.name} className="size-full object-cover" />
+                    <Image src={item.image} alt={item.name} fill sizes="48px" className="object-cover" />
                   ) : (
                     <div className="size-full flex items-center justify-center text-gray-400 text-[8px] font-bold">
                       {item.name.charAt(0)}

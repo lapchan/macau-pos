@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { StarIcon as StarSolidIcon } from "@heroicons/react/24/solid";
 import { StarIcon, HeartIcon, ShareIcon } from "@heroicons/react/24/outline";
 
@@ -91,7 +92,7 @@ export default function ProductOverview({ product, locale, currency = "MOP", onA
                     onClick={() => setSelectedImage(i)}
                     className={`relative aspect-square overflow-hidden rounded-lg bg-gray-100 ${i === selectedImage ? "ring-2 ring-indigo-500" : "ring-1 ring-gray-200 hover:ring-gray-300"}`}
                   >
-                    <img src={img.url} alt={img.alt || ""} className="size-full object-cover object-center" />
+                    <Image src={img.url} alt={img.alt || ""} fill sizes="100px" className="object-cover object-center" />
                   </button>
                 ))}
               </div>
@@ -100,10 +101,13 @@ export default function ProductOverview({ product, locale, currency = "MOP", onA
             {/* Main image */}
             <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-gray-100">
               {images.length > 0 ? (
-                <img
+                <Image
                   src={images[selectedImage]?.url}
                   alt={images[selectedImage]?.alt || name}
-                  className="size-full object-cover object-center"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  priority
+                  className="object-cover object-center"
                 />
               ) : (
                 <div className="size-full flex items-center justify-center text-gray-300">

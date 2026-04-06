@@ -32,14 +32,23 @@ export async function createCategory(formData: FormData): Promise<ActionResult> 
     const name = formData.get("name") as string;
     if (!name?.trim()) return { success: false, error: "Category name is required" };
 
+    const translations: Record<string, string> = {};
+    const nameEn = (formData.get("nameEn") as string)?.trim();
+    const namePt = (formData.get("namePt") as string)?.trim();
+    const nameJa = (formData.get("nameJa") as string)?.trim();
+    if (nameEn) translations.en = nameEn;
+    if (namePt) translations.pt = namePt;
+    if (nameJa) translations.ja = nameJa;
+
+    const parentCategoryId = (formData.get("parentCategoryId") as string)?.trim() || null;
+
     const [result] = await db
       .insert(categories)
       .values({
         tenantId,
         name: name.trim(),
-        nameEn: (formData.get("nameEn") as string)?.trim() || null,
-        namePt: (formData.get("namePt") as string)?.trim() || null,
-        nameJa: (formData.get("nameJa") as string)?.trim() || null,
+        translations,
+        parentCategoryId,
         icon: (formData.get("icon") as string)?.trim() || null,
         sortOrder: parseInt((formData.get("sortOrder") as string) || "0", 10),
       })
@@ -63,13 +72,24 @@ export async function updateCategory(formData: FormData): Promise<ActionResult> 
     const name = formData.get("name") as string;
     if (!name?.trim()) return { success: false, error: "Category name is required" };
 
+    const translations: Record<string, string> = {};
+    const nameEn = (formData.get("nameEn") as string)?.trim();
+    const namePt = (formData.get("namePt") as string)?.trim();
+    const nameJa = (formData.get("nameJa") as string)?.trim();
+    if (nameEn) translations.en = nameEn;
+    if (namePt) translations.pt = namePt;
+    if (nameJa) translations.ja = nameJa;
+
+    const parentCategoryId = formData.has("parentCategoryId")
+      ? (formData.get("parentCategoryId") as string)?.trim() || null
+      : undefined;
+
     await db
       .update(categories)
       .set({
         name: name.trim(),
-        nameEn: (formData.get("nameEn") as string)?.trim() || null,
-        namePt: (formData.get("namePt") as string)?.trim() || null,
-        nameJa: (formData.get("nameJa") as string)?.trim() || null,
+        translations,
+        parentCategoryId,
         icon: (formData.get("icon") as string)?.trim() || null,
         sortOrder: parseInt((formData.get("sortOrder") as string) || "0", 10),
         isActive: formData.has("isActive") ? formData.get("isActive") === "true" : undefined,
@@ -106,6 +126,24 @@ export async function deleteCategory(id: string): Promise<ActionResult> {
       return {
         success: false,
         error: `Cannot delete: ${productCount.count} product(s) use this category. Reassign them first.`,
+      };
+    }
+
+    // Check if this category has sub-categories
+    const [childCount] = await db
+      .select({ count: count() })
+      .from(categories)
+      .where(
+        and(
+          eq(categories.parentCategoryId, id),
+          eq(categories.tenantId, tenantId)
+        )
+      );
+
+    if (childCount && childCount.count > 0) {
+      return {
+        success: false,
+        error: `Cannot delete: ${childCount.count} sub-category(s) belong to this category. Remove them first.`,
       };
     }
 

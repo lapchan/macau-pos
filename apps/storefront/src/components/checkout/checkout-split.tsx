@@ -7,6 +7,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 
 type CartItem = {
   id: string;
@@ -25,11 +26,27 @@ type DeliveryZone = {
   freeAbove?: number | null;
 };
 
+type SavedAddress = {
+  id: string;
+  label: string | null;
+  recipientName: string;
+  phone: string | null;
+  addressLine1: string;
+  addressLine2: string | null;
+  district: string | null;
+  city: string | null;
+  isDefault: boolean;
+};
+
 type Props = {
   items: CartItem[];
   deliveryZones?: DeliveryZone[];
   locale: string;
   currency?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  customerName?: string;
+  savedAddresses?: SavedAddress[];
   onSubmit?: (data: {
     deliveryMethod: string;
     deliveryZoneId?: string;
@@ -54,12 +71,24 @@ export default function CheckoutSplit({
   deliveryZones = [],
   locale,
   currency = "MOP",
+  customerEmail,
+  customerPhone,
+  customerName,
+  savedAddresses = [],
   onSubmit,
 }: Props) {
   const [paymentMethod, setPaymentMethod] = useState("mpay");
   const [deliveryMethod, setDeliveryMethod] = useState<"delivery" | "pickup">("delivery");
   const [selectedZone, setSelectedZone] = useState(deliveryZones[0]?.id || "");
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  // Saved address selection
+  const defaultAddr = savedAddresses.find((a) => a.isDefault) || savedAddresses[0];
+  const [selectedAddressId, setSelectedAddressId] = useState<string | "new">(
+    defaultAddr ? defaultAddr.id : "new"
+  );
+  const selectedAddress = savedAddresses.find((a) => a.id === selectedAddressId);
 
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const zone = deliveryZones.find((z) => z.id === selectedZone);
@@ -100,9 +129,9 @@ export default function CheckoutSplit({
             <ul role="list" className="divide-y divide-gray-200 text-sm font-medium">
               {items.map((item) => (
                 <li key={item.id} className="flex items-start space-x-4 py-6">
-                  <div className="size-20 shrink-0 overflow-hidden rounded-md bg-gray-200">
+                  <div className="relative size-20 shrink-0 overflow-hidden rounded-md bg-gray-200">
                     {item.image ? (
-                      <img src={item.image} alt={item.name} className="size-full object-cover" />
+                      <Image src={item.image} alt={item.name} fill sizes="80px" className="object-cover" />
                     ) : (
                       <div className="size-full flex items-center justify-center text-gray-400 text-xs font-bold">
                         {item.name.charAt(0)}
@@ -157,24 +186,51 @@ export default function CheckoutSplit({
             onSubmit={async (e) => {
               e.preventDefault();
               if (!onSubmit) return;
+              setError(null);
               setSubmitting(true);
+
               const fd = new FormData(e.currentTarget);
-              await onSubmit({
+
+              // Use saved address data if selected
+              const addr = selectedAddress && deliveryMethod === "delivery"
+                ? {
+                    recipientName: selectedAddress.recipientName,
+                    phone: selectedAddress.phone || "",
+                    address: selectedAddress.addressLine1 + (selectedAddress.addressLine2 ? `, ${selectedAddress.addressLine2}` : ""),
+                    district: selectedAddress.district || "",
+                    postalCode: "",
+                  }
+                : {
+                    recipientName: fd.get("name") as string,
+                    phone: fd.get("phone") as string,
+                    address: fd.get("address") as string,
+                    district: fd.get("district") as string,
+                    postalCode: fd.get("postal-code") as string,
+                  };
+
+              const result = await onSubmit({
                 deliveryMethod,
                 deliveryZoneId: selectedZone || undefined,
                 paymentMethod,
                 contact: fd.get("email") as string,
-                recipientName: fd.get("name") as string,
-                phone: fd.get("phone") as string,
-                address: fd.get("address") as string,
-                district: fd.get("district") as string,
-                postalCode: fd.get("postal-code") as string,
+                ...addr,
                 notes: fd.get("notes") as string,
               });
+
+              if (result.error) {
+                setError(result.error);
+              }
               setSubmitting(false);
             }}
           >
             <div className="mx-auto max-w-2xl px-4 lg:max-w-none lg:px-0">
+              {/* Error message */}
+              {error && (
+                <div className="rounded-md bg-red-50 p-4">
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              )}
+
               {/* Contact information */}
               <div>
                 <h3 className="text-lg font-medium text-gray-900">
@@ -185,7 +241,7 @@ export default function CheckoutSplit({
                     {t(locale, "電郵地址", "Email address", "Email", "メールアドレス")}
                   </label>
                   <div className="mt-1">
-                    <input id="email" name="email" type="email" autoComplete="email" className={inputClass} />
+                    <input id="email" name="email" type="email" autoComplete="email" required defaultValue={customerEmail || ""} className={inputClass} />
                   </div>
                 </div>
               </div>
@@ -273,67 +329,136 @@ export default function CheckoutSplit({
                     </div>
                   )}
 
-                  {/* Name */}
-                  <div className="sm:col-span-3">
-                    <label htmlFor="name" className={labelClass}>
-                      {t(locale, "收件人姓名", "Full name", "Nome completo", "お名前")}
-                    </label>
-                    <div className="mt-1">
-                      <input id="name" name="name" type="text" autoComplete="name" className={inputClass} />
+                  {/* Saved address selector */}
+                  {deliveryMethod === "delivery" && savedAddresses.length > 0 && (
+                    <div className="sm:col-span-3">
+                      <label className={labelClass}>
+                        {t(locale, "已儲存地址", "Saved addresses", "Endereços salvos", "保存済み住所")}
+                      </label>
+                      <div className="mt-2 space-y-2">
+                        {savedAddresses.map((addr) => (
+                          <label
+                            key={addr.id}
+                            className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
+                              selectedAddressId === addr.id
+                                ? "border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500"
+                                : "border-gray-200 hover:bg-gray-50"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="saved-address"
+                              value={addr.id}
+                              checked={selectedAddressId === addr.id}
+                              onChange={() => setSelectedAddressId(addr.id)}
+                              className="mt-1 size-4 text-indigo-600 focus:ring-indigo-500"
+                            />
+                            <div className="min-w-0 text-sm">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium text-gray-900">{addr.recipientName}</span>
+                                {addr.label && (
+                                  <span className="inline-flex rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-600">{addr.label}</span>
+                                )}
+                                {addr.isDefault && (
+                                  <span className="inline-flex rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700">
+                                    {t(locale, "預設", "Default", "Padrão", "デフォルト")}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="mt-0.5 text-gray-500">{addr.addressLine1}{addr.addressLine2 ? `, ${addr.addressLine2}` : ""}</p>
+                              {addr.phone && <p className="text-gray-400">{addr.phone}</p>}
+                            </div>
+                          </label>
+                        ))}
+                        <label
+                          className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors ${
+                            selectedAddressId === "new"
+                              ? "border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500"
+                              : "border-gray-200 hover:bg-gray-50"
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="saved-address"
+                            value="new"
+                            checked={selectedAddressId === "new"}
+                            onChange={() => setSelectedAddressId("new")}
+                            className="size-4 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <span className="text-sm font-medium text-gray-700">
+                            {t(locale, "使用新地址", "Use a new address", "Usar novo endereço", "新しい住所を使用")}
+                          </span>
+                        </label>
+                      </div>
                     </div>
-                  </div>
+                  )}
 
-                  {/* Phone */}
-                  <div className="sm:col-span-3">
-                    <label htmlFor="phone" className={labelClass}>
-                      {t(locale, "聯絡電話", "Phone", "Telefone", "電話番号")}
-                    </label>
-                    <div className="mt-1">
-                      <input id="phone" name="phone" type="tel" autoComplete="tel" placeholder="+853 6XXX XXXX" className={inputClass} />
-                    </div>
-                  </div>
-
-                  {deliveryMethod === "delivery" && (
+                  {/* Manual address fields — shown when no saved address or "new" selected */}
+                  {(selectedAddressId === "new" || savedAddresses.length === 0) && (
                     <>
-                      {/* Address */}
+                      {/* Name */}
                       <div className="sm:col-span-3">
-                        <label htmlFor="address" className={labelClass}>
-                          {t(locale, "地址", "Address", "Endereço", "住所")}
+                        <label htmlFor="name" className={labelClass}>
+                          {t(locale, "收件人姓名", "Full name", "Nome completo", "お名前")}
                         </label>
                         <div className="mt-1">
-                          <input id="address" name="address" type="text" autoComplete="street-address" className={inputClass} />
+                          <input id="name" name="name" type="text" required autoComplete="name" defaultValue={customerName || ""} className={inputClass} />
                         </div>
                       </div>
 
-                      {/* City */}
-                      <div>
-                        <label htmlFor="city" className={labelClass}>
-                          {t(locale, "城市", "City", "Cidade", "都市")}
+                      {/* Phone */}
+                      <div className="sm:col-span-3">
+                        <label htmlFor="phone" className={labelClass}>
+                          {t(locale, "聯絡電話", "Phone", "Telefone", "電話番号")}
                         </label>
                         <div className="mt-1">
-                          <input id="city" name="city" type="text" defaultValue="Macau" autoComplete="address-level2" className={inputClass} />
+                          <input id="phone" name="phone" type="tel" required autoComplete="tel" placeholder="+853 6XXX XXXX" defaultValue={customerPhone || ""} className={inputClass} />
                         </div>
                       </div>
 
-                      {/* District */}
-                      <div>
-                        <label htmlFor="district" className={labelClass}>
-                          {t(locale, "區域", "State / Province", "Estado", "地区")}
-                        </label>
-                        <div className="mt-1">
-                          <input id="district" name="district" type="text" autoComplete="address-level1" className={inputClass} />
-                        </div>
-                      </div>
+                      {deliveryMethod === "delivery" && (
+                        <>
+                          {/* Address */}
+                          <div className="sm:col-span-3">
+                            <label htmlFor="address" className={labelClass}>
+                              {t(locale, "地址", "Address", "Endereço", "住所")}
+                            </label>
+                            <div className="mt-1">
+                              <input id="address" name="address" type="text" required autoComplete="street-address" className={inputClass} />
+                            </div>
+                          </div>
 
-                      {/* Postal code */}
-                      <div>
-                        <label htmlFor="postal-code" className={labelClass}>
-                          {t(locale, "郵政編碼", "Postal code", "CEP", "郵便番号")}
-                        </label>
-                        <div className="mt-1">
-                          <input id="postal-code" name="postal-code" type="text" autoComplete="postal-code" className={inputClass} />
-                        </div>
-                      </div>
+                          {/* City */}
+                          <div>
+                            <label htmlFor="city" className={labelClass}>
+                              {t(locale, "城市", "City", "Cidade", "都市")}
+                            </label>
+                            <div className="mt-1">
+                              <input id="city" name="city" type="text" defaultValue="Macau" autoComplete="address-level2" className={inputClass} />
+                            </div>
+                          </div>
+
+                          {/* District */}
+                          <div>
+                            <label htmlFor="district" className={labelClass}>
+                              {t(locale, "區域", "State / Province", "Estado", "地区")}
+                            </label>
+                            <div className="mt-1">
+                              <input id="district" name="district" type="text" autoComplete="address-level1" className={inputClass} />
+                            </div>
+                          </div>
+
+                          {/* Postal code */}
+                          <div>
+                            <label htmlFor="postal-code" className={labelClass}>
+                              {t(locale, "郵政編碼", "Postal code", "CEP", "郵便番号")}
+                            </label>
+                            <div className="mt-1">
+                              <input id="postal-code" name="postal-code" type="text" autoComplete="postal-code" className={inputClass} />
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </>
                   )}
 

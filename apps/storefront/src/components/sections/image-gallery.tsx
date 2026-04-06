@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 type GalleryImage = { src: string; alt?: string; caption?: string };
 type Props = { data: Record<string, unknown>; locale: string; tenantId: string };
 
@@ -20,7 +22,7 @@ export default function ImageGallery({ data, locale }: Props) {
       <div className={`grid ${gridCols} gap-4`}>
         {images.map((img, i) => (
           <figure key={i} className="overflow-hidden rounded-[var(--radius-lg)]">
-            <img src={img.src} alt={img.alt || ""} className="w-full aspect-square object-cover hover:scale-105 transition-transform duration-300" />
+            <Image src={img.src} alt={img.alt || ""} width={600} height={600} sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="w-full aspect-square object-cover hover:scale-105 transition-transform duration-300" />
             {img.caption && <figcaption className="text-[12px] text-sf-text-muted text-center mt-2">{img.caption}</figcaption>}
           </figure>
         ))}

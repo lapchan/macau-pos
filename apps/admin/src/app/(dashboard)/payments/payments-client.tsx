@@ -197,9 +197,10 @@ export default function PaymentsClient({ transactions, stats }: Props) {
                     innerRadius={40}
                     outerRadius={70}
                     dataKey="value"
-                    label={({ name, percent }) =>
-                      `${name} ${(percent * 100).toFixed(0)}%`
-                    }
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    label={((props: any) =>
+                      `${props.name} ${(props.percent * 100).toFixed(0)}%`
+                    ) as any}
                     labelLine={false}
                   >
                     {pieData.map((_, idx) => (
@@ -207,7 +208,7 @@ export default function PaymentsClient({ transactions, stats }: Props) {
                     ))}
                   </Pie>
                   <Tooltip
-                    formatter={(value: number) => formatMOP(value, mopLabel)}
+                    formatter={((value: number) => formatMOP(value, mopLabel)) as any}
                   />
                 </PieChart>
               </ResponsiveContainer>

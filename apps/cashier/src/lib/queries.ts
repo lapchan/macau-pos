@@ -158,6 +158,7 @@ export async function getProductVariantsForCashier(productId: string) {
       stock: productVariants.stock,
       optionCombo: productVariants.optionCombo,
       isActive: productVariants.isActive,
+      image: productVariants.image,
     })
     .from(productVariants)
     .where(and(eq(productVariants.productId, productId), eq(productVariants.isActive, true)))
@@ -225,10 +226,36 @@ export async function getOrderWithItems(orderId: string) {
   return { order, items, payment: payment ?? null };
 }
 
+export async function getTaxRate(): Promise<number> {
+  const session = await getAuthSession();
+  if (!session?.tenantId || !session.locationId) return 0;
+
+  const { shopSettings } = await import("@macau-pos/database");
+  const [settings] = await db
+    .select({ taxRate: shopSettings.taxRate })
+    .from(shopSettings)
+    .where(
+      and(
+        eq(shopSettings.tenantId, session.tenantId),
+        eq(shopSettings.locationId, session.locationId)
+      )
+    )
+    .limit(1);
+
+  return settings?.taxRate ? parseFloat(settings.taxRate) : 0;
+}
+
 export async function getActiveCategories() {
   const tenantId = await getTenantId();
   return db
-    .select()
+    .select({
+      id: categories.id,
+      name: categories.name,
+      translations: categories.translations,
+      parentCategoryId: categories.parentCategoryId,
+      icon: categories.icon,
+      sortOrder: categories.sortOrder,
+    })
     .from(categories)
     .where(and(eq(categories.tenantId, tenantId), eq(categories.isActive, true)))
     .orderBy(asc(categories.sortOrder));

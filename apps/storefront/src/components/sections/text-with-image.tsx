@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 type Props = { data: Record<string, unknown>; locale: string; tenantId: string };
 
 export default function TextWithImage({ data, locale }: Props) {
@@ -22,7 +24,7 @@ export default function TextWithImage({ data, locale }: Props) {
         </div>
         <div className="flex-1 w-full">
           {image ? (
-            <img src={image} alt={heading} className="w-full rounded-[var(--radius-lg)] object-cover aspect-[4/3]" />
+            <Image src={image} alt={heading} width={800} height={600} sizes="(max-width: 768px) 100vw, 50vw" className="w-full rounded-[var(--radius-lg)] object-cover aspect-[4/3]" />
           ) : (
             <div className="w-full aspect-[4/3] rounded-[var(--radius-lg)] bg-sf-surface" />
           )}

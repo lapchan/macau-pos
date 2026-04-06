@@ -23,6 +23,7 @@ export const users = pgTable(
     name: varchar("name", { length: 100 }).notNull(),
     passwordHash: varchar("password_hash", { length: 255 }).notNull(),
     pin: varchar("pin", { length: 255 }), // bcrypt-hashed 4-6 digit PIN
+    avatar: varchar("avatar", { length: 500 }),
     role: userRoleEnum("role").notNull(),
     posRole: posRoleEnum("pos_role"),
     isActive: boolean("is_active").notNull().default(true),

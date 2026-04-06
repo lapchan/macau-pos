@@ -1,7 +1,7 @@
 import { getDisplayName } from "@macau-pos/database";
 import { getStorefrontCategories } from "@/lib/storefront-queries";
 
-type Props = { data: Record<string, unknown>; locale: string; tenantId: string };
+type Props = { data: Record<string, unknown>; locale: string; tenantId: string; themeId?: string };
 
 const t = (locale: string, tc: string, en: string, pt: string, ja: string) => {
   const m: Record<string, string> = { tc, sc: tc, en, pt, ja };
@@ -18,12 +18,17 @@ const CATEGORY_COLORS = [
   "from-amber-500 to-yellow-600",
 ];
 
-export default async function CategoryScroll({ data, locale, tenantId }: Props) {
+export default async function CategoryScroll({ data, locale, tenantId, themeId }: Props) {
   const title = ((data.titleTranslations as Record<string, string>)?.[locale]) || (data.title as string) || "";
   const showBrowseAll = data.showBrowseAll !== false;
 
   const categories = await getStorefrontCategories(tenantId);
   if (categories.length === 0) return null;
+
+  /* ─── HUMAN MADE variant — skip category scroll, keep homepage clean ─── */
+  if (themeId === "humanmade") {
+    return null;
+  }
 
   return (
     <section aria-labelledby="category-heading" className="pt-24 sm:pt-32 xl:mx-auto xl:max-w-7xl xl:px-8">
@@ -34,7 +39,7 @@ export default async function CategoryScroll({ data, locale, tenantId }: Props) 
           </h2>
         )}
         {showBrowseAll && (
-          <a href={`/${locale}/products`} className="hidden text-sm font-semibold text-indigo-600 hover:text-indigo-500 sm:block">
+          <a href={`/${locale}/products`} className="hidden text-sm font-semibold text-sf-accent hover:text-sf-accent-hover sm:block">
             {t(locale, "瀏覽所有分類", "Browse all categories", "Ver todas as categorias", "すべてのカテゴリー")}
             <span aria-hidden="true"> &rarr;</span>
           </a>
@@ -71,7 +76,7 @@ export default async function CategoryScroll({ data, locale, tenantId }: Props) 
 
       {showBrowseAll && (
         <div className="mt-6 px-4 sm:hidden">
-          <a href={`/${locale}/products`} className="block text-sm font-semibold text-indigo-600 hover:text-indigo-500">
+          <a href={`/${locale}/products`} className="block text-sm font-semibold text-sf-accent hover:text-sf-accent-hover">
             {t(locale, "瀏覽所有分類", "Browse all categories", "Ver todas as categorias", "すべてのカテゴリー")}
             <span aria-hidden="true"> &rarr;</span>
           </a>

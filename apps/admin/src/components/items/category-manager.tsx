@@ -21,9 +21,8 @@ import {
 export type CategoryWithCount = {
   id: string;
   name: string;
-  nameEn: string | null;
-  namePt: string | null;
-  nameJa: string | null;
+  translations: Record<string, string> | null;
+  parentCategoryId: string | null;
   icon: string | null;
   sortOrder: number;
   isActive: boolean;
@@ -49,6 +48,33 @@ export default function CategoryManager({ open, onClose, categories }: Props) {
 
   // Form state for icon picker
   const [selectedIcon, setSelectedIcon] = useState<string | null>(null);
+  const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
+
+  // Build hierarchical list: parents first, children nested under them
+  const topCategories = categories.filter((c) => !c.parentCategoryId);
+  const childMap = new Map<string, CategoryWithCount[]>();
+  for (const c of categories) {
+    if (c.parentCategoryId) {
+      const siblings = childMap.get(c.parentCategoryId) || [];
+      siblings.push(c);
+      childMap.set(c.parentCategoryId, siblings);
+    }
+  }
+  // Flat ordered list: parent, then its children, then next parent...
+  const orderedCategories: (CategoryWithCount & { depth: number })[] = [];
+  for (const parent of topCategories) {
+    orderedCategories.push({ ...parent, depth: 0 });
+    const children = childMap.get(parent.id) || [];
+    for (const child of children) {
+      orderedCategories.push({ ...child, depth: 1 });
+    }
+  }
+  // Orphaned children (parent not in list) — shouldn't happen but be safe
+  for (const c of categories) {
+    if (c.parentCategoryId && !topCategories.find((p) => p.id === c.parentCategoryId)) {
+      orderedCategories.push({ ...c, depth: 1 });
+    }
+  }
 
   // Reset when opening/closing
   useEffect(() => {
@@ -76,6 +102,7 @@ export default function CategoryManager({ open, onClose, categories }: Props) {
   const handleAdd = () => {
     setEditingCategory(null);
     setSelectedIcon(null);
+    setSelectedParentId(null);
     setError(null);
     setView("edit");
   };
@@ -83,6 +110,7 @@ export default function CategoryManager({ open, onClose, categories }: Props) {
   const handleEdit = (cat: CategoryWithCount) => {
     setEditingCategory(cat);
     setSelectedIcon(cat.icon);
+    setSelectedParentId(cat.parentCategoryId);
     setError(null);
     setView("edit");
   };
@@ -91,6 +119,7 @@ export default function CategoryManager({ open, onClose, categories }: Props) {
     (formData: FormData) => {
       setError(null);
       formData.set("icon", selectedIcon || "");
+      formData.set("parentCategoryId", selectedParentId || "");
 
       if (editingCategory) {
         formData.set("id", editingCategory.id);
@@ -108,7 +137,7 @@ export default function CategoryManager({ open, onClose, categories }: Props) {
         }
       });
     },
-    [editingCategory, selectedIcon]
+    [editingCategory, selectedIcon, selectedParentId]
   );
 
   const handleDelete = useCallback(() => {
@@ -189,13 +218,16 @@ export default function CategoryManager({ open, onClose, categories }: Props) {
               )}
 
               <div className="p-4 space-y-1">
-                {categories.map((cat) => {
+                {orderedCategories.map((cat) => {
                   const Icon = (cat.icon && ICON_MAP[cat.icon]) || LayoutGrid;
+                  const trans = cat.translations as Record<string, string> | null;
+                  const nameEn = trans?.en || null;
                   return (
                     <div
                       key={cat.id}
                       className={cn(
-                        "flex items-center gap-3 px-3 py-3 rounded-[var(--radius-md)] group transition-colors",
+                        "flex items-center gap-3 py-3 rounded-[var(--radius-md)] group transition-colors",
+                        cat.depth === 0 ? "px-3" : "px-3 ml-8",
                         cat.isActive
                           ? "hover:bg-surface-hover"
                           : "opacity-50 hover:bg-surface-hover"
@@ -205,17 +237,26 @@ export default function CategoryManager({ open, onClose, categories }: Props) {
                       <GripVertical className="h-4 w-4 text-text-tertiary shrink-0 opacity-0 group-hover:opacity-100 cursor-grab" />
 
                       {/* Icon */}
-                      <div className="h-9 w-9 rounded-[var(--radius-sm)] bg-surface-hover flex items-center justify-center shrink-0">
-                        <Icon className="h-4.5 w-4.5 text-text-secondary" strokeWidth={1.75} />
+                      <div className={cn(
+                        "rounded-[var(--radius-sm)] bg-surface-hover flex items-center justify-center shrink-0",
+                        cat.depth === 0 ? "h-9 w-9" : "h-7 w-7"
+                      )}>
+                        <Icon className={cn(
+                          "text-text-secondary",
+                          cat.depth === 0 ? "h-4.5 w-4.5" : "h-3.5 w-3.5"
+                        )} strokeWidth={1.75} />
                       </div>
 
                       {/* Names */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-medium text-text-primary truncate">
+                        <p className={cn(
+                          "font-medium text-text-primary truncate",
+                          cat.depth === 0 ? "text-[13px]" : "text-[12px]"
+                        )}>
                           {cat.name}
                         </p>
                         <p className="text-[11px] text-text-tertiary truncate">
-                          {cat.nameEn || "—"}
+                          {nameEn || "—"}
                         </p>
                       </div>
 
@@ -266,7 +307,7 @@ export default function CategoryManager({ open, onClose, categories }: Props) {
                   );
                 })}
 
-                {categories.length === 0 && (
+                {orderedCategories.length === 0 && (
                   <div className="py-12 text-center">
                     <LayoutGrid className="h-8 w-8 text-text-tertiary mx-auto mb-2" strokeWidth={1.5} />
                     <p className="text-sm text-text-secondary">{t(locale, "items.categoryNoProducts")}</p>
@@ -299,6 +340,30 @@ export default function CategoryManager({ open, onClose, categories }: Props) {
                   </div>
                 )}
 
+                {/* Parent category (only show top-level categories as options, exclude self) */}
+                <div>
+                  <label className="block text-[13px] font-medium text-text-primary mb-1.5">
+                    {t(locale, "items.parentCategory")}
+                  </label>
+                  <select
+                    value={selectedParentId || ""}
+                    onChange={(e) => setSelectedParentId(e.target.value || null)}
+                    className="w-full h-10 px-3 text-[14px] bg-background border border-border rounded-[var(--radius-md)] text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all"
+                  >
+                    <option value="">{t(locale, "items.parentCategoryNone")}</option>
+                    {topCategories
+                      .filter((c) => c.id !== editingCategory?.id)
+                      .map((c) => {
+                        const trans = c.translations as Record<string, string> | null;
+                        return (
+                          <option key={c.id} value={c.id}>
+                            {c.name}{trans?.en ? ` (${trans.en})` : ""}
+                          </option>
+                        );
+                      })}
+                  </select>
+                </div>
+
                 {/* Chinese name (required) */}
                 <div>
                   <label className="block text-[13px] font-medium text-text-primary mb-1.5">
@@ -322,7 +387,7 @@ export default function CategoryManager({ open, onClose, categories }: Props) {
                   <input
                     name="nameEn"
                     type="text"
-                    defaultValue={editingCategory?.nameEn || ""}
+                    defaultValue={(editingCategory?.translations as Record<string, string> | null)?.en || ""}
                     placeholder="e.g. Beverages"
                     className="w-full h-10 px-3 text-[14px] bg-background border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all"
                   />
@@ -337,7 +402,7 @@ export default function CategoryManager({ open, onClose, categories }: Props) {
                     <input
                       name="namePt"
                       type="text"
-                      defaultValue={editingCategory?.namePt || ""}
+                      defaultValue={(editingCategory?.translations as Record<string, string> | null)?.pt || ""}
                       placeholder="e.g. Bebidas"
                       className="w-full h-10 px-3 text-[14px] bg-background border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all"
                     />
@@ -349,7 +414,7 @@ export default function CategoryManager({ open, onClose, categories }: Props) {
                     <input
                       name="nameJa"
                       type="text"
-                      defaultValue={editingCategory?.nameJa || ""}
+                      defaultValue={(editingCategory?.translations as Record<string, string> | null)?.ja || ""}
                       placeholder="e.g. 飲料"
                       className="w-full h-10 px-3 text-[14px] bg-background border border-border rounded-[var(--radius-md)] text-text-primary placeholder:text-text-tertiary focus:outline-none focus:ring-2 focus:ring-accent/30 focus:border-accent transition-all"
                     />

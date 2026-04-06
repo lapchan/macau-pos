@@ -17,6 +17,45 @@ function getTranslated(name: string, translations: Record<string, string> | null
   return name;
 }
 
+// Color name → hex lookup for swatch circles
+const COLOR_MAP: Record<string, string> = {
+  // Chinese
+  "白": "#ffffff", "純白": "#ffffff", "純白色": "#ffffff", "純⽩⾊": "#ffffff", "白色": "#ffffff",
+  "黑": "#1a1a1a", "黑色": "#1a1a1a", "暗魂黑": "#1a1a1a", "酷黑": "#111111",
+  "灰": "#9ca3af", "灰色": "#9ca3af", "城堡灰": "#8b8680",
+  "綠": "#22c55e", "綠色": "#22c55e", "森林綠": "#2d5a27",
+  "藍": "#3b82f6", "藍色": "#3b82f6", "深海藍": "#1e3a5f", "粉藍": "#93c5fd", "粉藍色": "#93c5fd",
+  "紅": "#ef4444", "紅色": "#ef4444",
+  "粉紅": "#f9a8d4", "粉紅色": "#f9a8d4", "粉紅 Pink": "#f9a8d4",
+  "粉藍 Blue": "#93c5fd", "純白 White": "#ffffff",
+  "薄荷": "#a7f3d0", "薄荷色": "#a7f3d0", "薄荷⾊": "#a7f3d0",
+  "奶茶": "#c4a882", "奶茶色": "#c4a882", "奶茶⾊": "#c4a882",
+  "紫": "#a855f7", "紫色": "#a855f7",
+  "橙": "#f97316", "橙色": "#f97316",
+  "金": "#eab308", "金色": "#eab308", "銀": "#c0c0c0", "銀色": "#c0c0c0",
+  // English
+  "white": "#ffffff", "black": "#1a1a1a", "grey": "#9ca3af", "gray": "#9ca3af",
+  "green": "#22c55e", "blue": "#3b82f6", "red": "#ef4444", "pink": "#f9a8d4",
+  "mint": "#a7f3d0", "silver": "#c0c0c0", "gold": "#eab308",
+  // Scents / flowers — warm tones
+  "河津櫻": "#f4c2c2", "丁香": "#c8a2c8", "乾燥玫瑰": "#c08081", "夜海": "#2c3e6b",
+  "晨霧": "#d3d3d3", "焙茶": "#8b6914", "紫滕": "#9370db", "落日珊瑚": "#f08080",
+  "薰衣草": "#b57edc", "藍雪花": "#6495ed", "風鈴木": "#f0c420", "綠桔梗": "#77b28c",
+  "蝶豆花": "#4a3fc4", "青檸": "#a8d600", "桂枝": "#c4996c",
+};
+
+function getColorHex(name: string): string | null {
+  const lower = name.toLowerCase().trim();
+  // Direct match
+  if (COLOR_MAP[name]) return COLOR_MAP[name];
+  if (COLOR_MAP[lower]) return COLOR_MAP[lower];
+  // Partial match — check if any key is contained in the name
+  for (const [key, hex] of Object.entries(COLOR_MAP)) {
+    if (name.includes(key) || lower.includes(key.toLowerCase())) return hex;
+  }
+  return null;
+}
+
 export type VariantItem = {
   id: string;
   name: string;
@@ -24,6 +63,7 @@ export type VariantItem = {
   stock: number | null;
   optionCombo: Record<string, string>;
   isActive: boolean;
+  image?: string | null;
 };
 
 type Props = {
@@ -119,7 +159,7 @@ export default function VariantPicker({
       {/* Backdrop */}
       <div
         className={cn(
-          "fixed inset-0 z-50 bg-black/40 transition-opacity duration-300",
+          "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm transition-opacity duration-300",
           closing ? "opacity-0" : "animate-[fadeIn_0.3s_ease-out]"
         )}
         onClick={handleClose}
@@ -128,7 +168,7 @@ export default function VariantPicker({
       {/* Bottom sheet — slides up to 85vh */}
       <div
         className={cn(
-          "fixed inset-x-0 bottom-0 z-50 flex flex-col bg-white rounded-t-2xl shadow-2xl",
+          "fixed inset-x-0 bottom-0 z-50 flex flex-col bg-pos-bg rounded-t-[var(--radius-xl)] shadow-2xl",
           closing
             ? "animate-[variantSlideDown_0.3s_cubic-bezier(0.4,0,1,1)_forwards]"
             : "animate-[variantSlideUp_0.5s_cubic-bezier(0.16,1,0.3,1)_forwards]"
@@ -188,9 +228,9 @@ export default function VariantPicker({
           <button
             onClick={handleClose}
             aria-label="Close"
-            className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-400 hover:bg-gray-200 transition-colors shrink-0 mt-1"
+            className="h-10 w-10 rounded-full bg-black/8 flex items-center justify-center text-pos-text-muted hover:bg-black/15 transition-colors shrink-0"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4.5 w-4.5" />
           </button>
         </div>
 
@@ -198,7 +238,7 @@ export default function VariantPicker({
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <span className="h-6 w-6 border-2 border-blue-200 border-t-blue-600 rounded-full animate-spin" />
+              <span className="h-6 w-6 border-2 border-pos-accent/30 border-t-pos-accent rounded-full animate-spin" />
             </div>
           ) : (
             options.map((opt) => (
@@ -229,13 +269,22 @@ export default function VariantPicker({
                       : null;
                     const valPrice = matchForVal ? parseFloat(matchForVal.sellingPrice) : null;
 
+                    // Find variant image for this option value
+                    const variantForVal = variants.find(
+                      (v) => v.optionCombo[opt.groupName] === val && v.isActive
+                    );
+                    const swatchImage = variantForVal?.image || null;
+                    const swatchColor = getColorHex(val);
+                    const hasSwatch = !!(swatchImage || swatchColor);
+
                     return (
                       <button
                         key={val}
                         onClick={() => handleSelect(opt.groupName, val)}
                         disabled={!hasStock}
                         className={cn(
-                          "min-h-[44px] px-5 rounded-2xl text-[14px] font-medium transition-all border-2",
+                          "min-h-[44px] rounded-2xl text-[14px] font-medium transition-all border-2 flex items-center gap-2.5",
+                          hasSwatch ? "pl-2.5 pr-5" : "px-5",
                           isValSelected
                             ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
                             : hasStock
@@ -243,6 +292,26 @@ export default function VariantPicker({
                             : "border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed line-through"
                         )}
                       >
+                        {hasSwatch && (
+                          <span
+                            className={cn(
+                              "h-7 w-7 rounded-full shrink-0 overflow-hidden border",
+                              isValSelected ? "border-blue-400 ring-2 ring-blue-200" : "border-gray-200"
+                            )}
+                          >
+                            {swatchImage ? (
+                              <img src={swatchImage} alt="" className="h-full w-full object-cover" />
+                            ) : swatchColor ? (
+                              <span
+                                className="block h-full w-full"
+                                style={{
+                                  backgroundColor: swatchColor,
+                                  boxShadow: swatchColor === "#ffffff" ? "inset 0 0 0 1px rgba(0,0,0,0.1)" : undefined,
+                                }}
+                              />
+                            ) : null}
+                          </span>
+                        )}
                         <span>{(() => {
                           const idx = opt.values.indexOf(val);
                           return idx >= 0 && opt.valueTranslations?.[idx]
@@ -266,8 +335,12 @@ export default function VariantPicker({
           {matchingVariant && (
             <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
               <div className="flex items-center gap-3">
-                <div className="h-10 w-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center shrink-0">
-                  <Package className="h-4 w-4 text-gray-400" />
+                <div className="h-10 w-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center shrink-0 overflow-hidden">
+                  {(matchingVariant.image || productImage) ? (
+                    <img src={matchingVariant.image || productImage} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <Package className="h-4 w-4 text-gray-400" />
+                  )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-[13px] font-semibold text-gray-900 truncate">

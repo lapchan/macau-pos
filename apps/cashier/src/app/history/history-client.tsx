@@ -316,7 +316,7 @@ export default function HistoryClient({ orders, orderItems, locale, shiftId }: P
                             <Clock className="h-3 w-3" />
                             <span>{formatDate(order.createdAt)}</span>
                           </div>
-                          <PrintReceipt orderNumber={order.orderNumber}>
+                          <PrintReceipt orderNumber={order.orderNumber} locale={locale}>
                             {({ onPrint, isPrinting }) => (
                               <button
                                 onClick={(e) => { e.stopPropagation(); onPrint(); }}

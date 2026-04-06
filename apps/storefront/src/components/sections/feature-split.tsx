@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 type Feature = { title: string; titleTranslations?: Record<string, string>; description: string; descTranslations?: Record<string, string> };
 type Props = { data: Record<string, unknown>; locale: string; tenantId: string };
 
@@ -14,7 +16,9 @@ export default function FeatureSplit({ data, locale }: Props) {
       <div className={`flex flex-col ${imagePosition === "right" ? "md:flex-row-reverse" : "md:flex-row"} gap-10 items-center`}>
         <div className="flex-1 w-full">
           {image ? (
-            <img src={image} alt={title} className="w-full rounded-[var(--radius-lg)] object-cover aspect-[4/3]" />
+            <div className="relative w-full aspect-[4/3]">
+              <Image src={image} alt={title} fill sizes="(max-width: 768px) 100vw, 50vw" className="rounded-[var(--radius-lg)] object-cover" />
+            </div>
           ) : (
             <div className="w-full aspect-[4/3] rounded-[var(--radius-lg)] bg-sf-surface" />
           )}

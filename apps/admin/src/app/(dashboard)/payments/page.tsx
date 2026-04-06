@@ -4,8 +4,8 @@ import PaymentsClient from "./payments-client";
 export const metadata = { title: "Payments & invoices" };
 
 export default async function PaymentsPage() {
-  let transactions = [];
-  let stats = { todayAmount: "0", todayCount: 0, methodBreakdown: [] };
+  let transactions: Awaited<ReturnType<typeof getPaymentTransactions>> = [];
+  let stats: Awaited<ReturnType<typeof getPaymentStats>> = { todayAmount: "0", todayCount: 0, methodBreakdown: [] };
   try {
     [transactions, stats] = await Promise.all([
       getPaymentTransactions(),

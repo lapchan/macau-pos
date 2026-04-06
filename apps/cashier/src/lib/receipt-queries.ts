@@ -28,9 +28,13 @@ export type ReceiptData = {
     quantity: number;
     unitPrice: number;
     lineTotal: number;
+    discountAmount: number;
+    discountNote?: string;
     variantName?: string;
   }[];
   subtotal: number;
+  discountAmount: number;
+  discountNote?: string;
   taxAmount: number;
   total: number;
   paymentMethod: string;
@@ -95,9 +99,13 @@ export async function getReceiptData(orderNumber: string): Promise<ReceiptData |
       quantity: item.quantity,
       unitPrice: parseFloat(item.unitPrice),
       lineTotal: parseFloat(item.lineTotal),
+      discountAmount: parseFloat(item.discountAmount || "0"),
+      discountNote: item.discountNote || undefined,
       variantName: item.variantName || undefined,
     })),
     subtotal: parseFloat(order.subtotal),
+    discountAmount: parseFloat(order.discountAmount || "0"),
+    discountNote: order.notes || undefined,
     taxAmount: parseFloat(order.taxAmount || "0"),
     total: parseFloat(order.total),
     paymentMethod: payment?.method || "unknown",

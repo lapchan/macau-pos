@@ -1,101 +1,145 @@
 "use client";
 
 import { useState, useCallback, useRef, useEffect } from "react";
-import { createPortal } from "react-dom";
-import ReceiptTemplate from "./receipt-template";
 import { getReceiptData, type ReceiptData } from "@/lib/receipt-queries";
+import { type Locale, t } from "@/i18n/locales";
+import { PAYMENT_METHOD_KEYS } from "@/lib/constants";
 
 type Props = {
-  /** Provide receipt data directly (from checkout flow) */
   receiptData?: ReceiptData | null;
-  /** Or provide order number to fetch data (from history) */
   orderNumber?: string;
-  /** Trigger element — wraps the child button */
+  locale?: Locale;
   children: (props: { onPrint: () => void; isPrinting: boolean }) => React.ReactNode;
 };
 
-export default function PrintReceipt({
-  receiptData,
-  orderNumber,
-  children,
-}: Props) {
+/**
+ * Prints via a hidden iframe so the main app DOM is never touched.
+ * This prevents React re-renders and ghost click events after print dialog closes.
+ */
+export default function PrintReceipt({ receiptData, orderNumber, locale = "tc", children }: Props) {
   const [isPrinting, setIsPrinting] = useState(false);
   const [data, setData] = useState<ReceiptData | null>(receiptData || null);
-  const [mounted, setMounted] = useState(false);
-  const shouldPrintRef = useRef(false);
+  const iframeRef = useRef<HTMLIFrameElement | null>(null);
 
-  useEffect(() => setMounted(true), []);
-
-  // Sync external receiptData prop
   useEffect(() => {
     if (receiptData) setData(receiptData);
   }, [receiptData]);
 
-  // When data updates and we're waiting to print, trigger window.print()
-  useEffect(() => {
-    if (shouldPrintRef.current && data) {
-      shouldPrintRef.current = false;
-      // Double rAF to ensure paint before print
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          window.print();
-          setTimeout(() => setIsPrinting(false), 500);
-        });
-      });
+  const printViaIframe = useCallback((receiptHtml: string) => {
+    // Remove old iframe if exists
+    if (iframeRef.current) {
+      document.body.removeChild(iframeRef.current);
     }
-  }, [data]);
+
+    const iframe = document.createElement("iframe");
+    iframe.style.position = "fixed";
+    iframe.style.top = "-10000px";
+    iframe.style.left = "-10000px";
+    iframe.style.width = "80mm";
+    iframe.style.height = "0";
+    document.body.appendChild(iframe);
+    iframeRef.current = iframe;
+
+    const doc = iframe.contentDocument || iframe.contentWindow?.document;
+    if (!doc) { setIsPrinting(false); return; }
+
+    doc.open();
+    doc.write(`<!DOCTYPE html>
+<html><head>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Courier New", "Courier", monospace; font-size: 12px; width: 80mm; color: #000; }
+  @page { size: 80mm auto; margin: 2mm; }
+  .receipt-center { text-align: center; }
+  .receipt-bold { font-weight: bold; }
+  .receipt-large { font-size: 16px; }
+  .receipt-small { font-size: 10px; }
+  .receipt-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 1px 0; }
+  .receipt-row-left { flex: 1; min-width: 0; word-wrap: break-word; padding-right: 8px; }
+  .receipt-row-right { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .receipt-divider { border: none; border-top: 1px dashed #000; margin: 6px 0; }
+  .receipt-double-divider { border: none; border-top: 2px solid #000; margin: 8px 0; }
+</style>
+</head><body>${receiptHtml}</body></html>`);
+    doc.close();
+
+    // Wait for content to render, then print
+    setTimeout(() => {
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        if (iframeRef.current) {
+          document.body.removeChild(iframeRef.current);
+          iframeRef.current = null;
+        }
+        setIsPrinting(false);
+      }, 500);
+    }, 100);
+  }, []);
+
+  const buildReceiptHtml = useCallback((d: ReceiptData): string => {
+    const cur = d.currency;
+    const paymentLabel = PAYMENT_METHOD_KEYS[d.paymentMethod] ? t(locale, PAYMENT_METHOD_KEYS[d.paymentMethod] as any) : d.paymentMethod;
+
+    const formatDate = (date: Date) => {
+      const dt = new Date(date);
+      return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,"0")}-${String(dt.getDate()).padStart(2,"0")} ${String(dt.getHours()).padStart(2,"0")}:${String(dt.getMinutes()).padStart(2,"0")}:${String(dt.getSeconds()).padStart(2,"0")}`;
+    };
+
+    let html = "";
+    html += `<div class="receipt-center receipt-bold receipt-large" style="margin-bottom:4px">${d.shopName}</div>`;
+    if (d.showAddress && d.shopAddress) html += `<div class="receipt-center receipt-small">${d.shopAddress}</div>`;
+    if (d.showPhone && d.shopPhone) html += `<div class="receipt-center receipt-small">${d.shopPhone}</div>`;
+    html += `<hr class="receipt-double-divider">`;
+    if (d.receiptHeader) html += `<div class="receipt-center receipt-small">${d.receiptHeader}</div><hr class="receipt-divider">`;
+    html += `<div class="receipt-row"><span>${t(locale, "receiptOrder")}: ${d.orderNumber}</span></div>`;
+    html += `<div class="receipt-row receipt-small"><span>${formatDate(d.orderDate)}</span></div>`;
+    html += `<hr class="receipt-divider">`;
+
+    for (const item of d.items) {
+      const rawTotal = (item.unitPrice * item.quantity).toFixed(2);
+      html += `<div class="receipt-row"><span class="receipt-row-left">${item.name} x${item.quantity}</span><span class="receipt-row-right">${cur} ${rawTotal}</span></div>`;
+      if (item.variantName) html += `<div class="receipt-small" style="padding-left:8px;color:#666">· ${item.variantName}</div>`;
+      if (item.discountAmount > 0) html += `<div class="receipt-row receipt-small" style="padding-left:8px;color:#666"><span>${item.discountNote || t(locale, "receiptDiscount")}</span><span class="receipt-row-right">-${cur} ${item.discountAmount.toFixed(2)}</span></div>`;
+    }
+
+    html += `<hr class="receipt-divider">`;
+    html += `<div class="receipt-row"><span>${t(locale, "receiptSubtotal")}</span><span class="receipt-row-right">${cur} ${d.subtotal.toFixed(2)}</span></div>`;
+    if (d.discountAmount > 0) html += `<div class="receipt-row"><span>${d.discountNote || t(locale, "receiptDiscount")}</span><span class="receipt-row-right">-${cur} ${d.discountAmount.toFixed(2)}</span></div>`;
+    if (d.showTax && d.taxAmount > 0) html += `<div class="receipt-row"><span>${t(locale, "receiptTax")} (${d.taxRate}%)</span><span class="receipt-row-right">${cur} ${d.taxAmount.toFixed(2)}</span></div>`;
+    html += `<div class="receipt-row receipt-bold receipt-large" style="margin-top:4px"><span>${t(locale, "receiptTotal")}</span><span class="receipt-row-right">${cur} ${d.total.toFixed(2)}</span></div>`;
+    html += `<hr class="receipt-divider">`;
+    html += `<div class="receipt-row"><span>${paymentLabel}</span><span class="receipt-row-right">${cur} ${d.paymentAmount.toFixed(2)}</span></div>`;
+
+    if (d.paymentMethod === "cash" && d.cashReceived != null) {
+      html += `<div class="receipt-row receipt-small"><span>${t(locale, "receiptCashReceived")}</span><span class="receipt-row-right">${cur} ${d.cashReceived.toFixed(2)}</span></div>`;
+      if (d.changeGiven != null && d.changeGiven > 0) html += `<div class="receipt-row receipt-small"><span>${t(locale, "receiptChange")}</span><span class="receipt-row-right">${cur} ${d.changeGiven.toFixed(2)}</span></div>`;
+    }
+
+    html += `<hr class="receipt-double-divider">`;
+    html += `<div class="receipt-center receipt-small">${d.receiptFooter || t(locale, "receiptThankYou")}</div>`;
+    html += `<div style="height:16px"></div>`;
+
+    return html;
+  }, [locale]);
 
   const handlePrint = useCallback(async () => {
     setIsPrinting(true);
-
     try {
-      if (data) {
-        // Data already available — print after next paint
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            window.print();
-            setTimeout(() => setIsPrinting(false), 500);
-          });
-        });
-        return;
+      let printData = data;
+      if (!printData && orderNumber) {
+        printData = await getReceiptData(orderNumber);
+        if (printData) setData(printData);
       }
-
-      // Fetch data, then let useEffect trigger print after render
-      if (orderNumber) {
-        const printData = await getReceiptData(orderNumber);
-        if (printData) {
-          shouldPrintRef.current = true;
-          setData(printData);
-        } else {
-          console.error("No receipt data found for", orderNumber);
-          setIsPrinting(false);
-        }
+      if (printData) {
+        const html = buildReceiptHtml(printData);
+        printViaIframe(html);
       } else {
-        console.error("No receipt data or order number provided");
         setIsPrinting(false);
       }
-    } catch (err) {
-      console.error("Print failed:", err);
+    } catch {
       setIsPrinting(false);
     }
-  }, [data, orderNumber]);
+  }, [data, orderNumber, buildReceiptHtml, printViaIframe]);
 
-  // Portal the receipt div directly into document.body so it's a direct child,
-  // outside any fixed/overflow containers like modals
-  const receiptPortal =
-    mounted && data
-      ? createPortal(
-          <div className="receipt-print-area">
-            <ReceiptTemplate data={data} />
-          </div>,
-          document.body
-        )
-      : null;
-
-  return (
-    <>
-      {children({ onPrint: handlePrint, isPrinting })}
-      {receiptPortal}
-    </>
-  );
+  return <>{children({ onPrint: handlePrint, isPrinting })}</>;
 }

@@ -8,6 +8,8 @@
  *  - "with-actions"       : List with quick action buttons (reorder, track, invoice)
  */
 
+import Image from "next/image";
+
 type OrderItem = {
   name: string;
   image?: string | null;
@@ -101,9 +103,9 @@ export default function OrderHistoryVariants({ orders, variant = "invoice-list",
             <ul className="divide-y divide-gray-200">
               {order.items.slice(0, 3).map((item, i) => (
                 <li key={i} className="flex gap-4 px-6 py-4">
-                  <div className="size-16 shrink-0 overflow-hidden rounded-md bg-gray-100">
+                  <div className="relative size-16 shrink-0 overflow-hidden rounded-md bg-gray-100">
                     {item.image ? (
-                      <img src={item.image} alt={item.name} className="size-full object-cover" />
+                      <Image src={item.image} alt={item.name} fill sizes="64px" className="object-cover" />
                     ) : (
                       <div className="size-full flex items-center justify-center text-gray-400 text-xs">{item.name.charAt(0)}</div>
                     )}
@@ -177,9 +179,9 @@ export default function OrderHistoryVariants({ orders, variant = "invoice-list",
               {/* Item thumbnails */}
               <div className="flex -space-x-2">
                 {order.items.slice(0, 3).map((item, i) => (
-                  <div key={i} className="inline-block size-10 rounded-full border-2 border-white bg-gray-100 overflow-hidden">
+                  <div key={i} className="relative inline-block size-10 rounded-full border-2 border-white bg-gray-100 overflow-hidden">
                     {item.image ? (
-                      <img src={item.image} alt="" className="size-full object-cover" />
+                      <Image src={item.image} alt="" fill sizes="40px" className="object-cover" />
                     ) : (
                       <div className="size-full flex items-center justify-center text-gray-400 text-[8px]">{item.name.charAt(0)}</div>
                     )}
@@ -226,9 +228,9 @@ export default function OrderHistoryVariants({ orders, variant = "invoice-list",
           </div>
           <div className="mt-4 flex -space-x-2">
             {order.items.slice(0, 5).map((item, i) => (
-              <div key={i} className="inline-block size-10 rounded-lg border-2 border-white bg-gray-100 overflow-hidden">
+              <div key={i} className="relative inline-block size-10 rounded-lg border-2 border-white bg-gray-100 overflow-hidden">
                 {item.image ? (
-                  <img src={item.image} alt="" className="size-full object-cover" />
+                  <Image src={item.image} alt="" fill sizes="40px" className="object-cover" />
                 ) : (
                   <div className="size-full flex items-center justify-center text-gray-400 text-[8px]">{item.name.charAt(0)}</div>
                 )}

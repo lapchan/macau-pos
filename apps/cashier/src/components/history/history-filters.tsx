@@ -1,15 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Search, X, Clock, CheckCircle2, AlertCircle, RotateCcw, Ban, Banknote, CreditCard, QrCode } from "lucide-react";
+import { Search, X, Clock, CheckCircle2, AlertCircle, RotateCcw, Ban, Banknote, CreditCard, QrCode, Calendar, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { type Locale, t } from "@/i18n/locales";
 
 export type FilterState = {
-  dateRange: "all" | "today" | "yesterday" | "last7days" | "thisShift";
+  dateRange: "all" | "today" | "yesterday" | "last7days" | "thisShift" | "custom";
   status: string[];
   paymentMethod: string[];
   search: string;
+  customFrom?: string;
+  customTo?: string;
 };
 
 type Props = {
@@ -29,6 +31,10 @@ type Chip = {
 
 export default function HistoryFilters({ filters, onChange, locale, hasShift }: Props) {
   const [showSearch, setShowSearch] = useState(false);
+  const [showDateMenu, setShowDateMenu] = useState(false);
+  const [calMonth, setCalMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
+  const [calStart, setCalStart] = useState<string | null>(null);
+  const [calEnd, setCalEnd] = useState<string | null>(null);
 
   const dateChips: Chip[] = [
     ...(hasShift
@@ -88,7 +94,7 @@ export default function HistoryFilters({ filters, onChange, locale, hasShift }: 
             <div className="w-full max-w-xl bg-pos-surface rounded-2xl shadow-2xl overflow-hidden relative">
               <button
                 onClick={() => setShowSearch(false)}
-                className="absolute top-3 right-3 h-9 w-9 flex items-center justify-center rounded-full bg-pos-text-muted/15 text-pos-text-secondary hover:bg-pos-text-muted/25 hover:text-pos-text transition-colors z-10"
+                className="absolute top-3 right-3 h-10 w-10 flex items-center justify-center rounded-full bg-black/8 text-pos-text-muted hover:bg-black/15 transition-colors z-10"
               >
                 <X className="h-5 w-5" strokeWidth={2.5} />
               </button>
@@ -112,6 +118,201 @@ export default function HistoryFilters({ filters, onChange, locale, hasShift }: 
         </>
       )}
 
+      {/* Date range picker modal */}
+      {showDateMenu && (() => {
+        // Calendar helpers
+        const year = calMonth.getFullYear();
+        const month = calMonth.getMonth();
+        const firstDay = new Date(year, month, 1).getDay();
+        const daysInMonth = new Date(year, month + 1, 0).getDate();
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+        const monthLabel = new Intl.DateTimeFormat(locale === "en" ? "en-US" : locale === "pt" ? "pt-PT" : locale === "ja" ? "ja-JP" : "zh-TW", { month: "long", year: "numeric" }).format(calMonth);
+        const dayLabels = locale === "ja" ? ["日","月","火","水","木","金","土"]
+          : locale === "pt" ? ["D","S","T","Q","Q","S","S"]
+          : locale === "en" ? ["S","M","T","W","T","F","S"]
+          : ["日","一","二","三","四","五","六"];
+
+        const handleDayClick = (day: number) => {
+          const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          if (!calStart || (calStart && calEnd)) {
+            setCalStart(dateStr);
+            setCalEnd(null);
+          } else {
+            if (dateStr < calStart) {
+              setCalEnd(calStart);
+              setCalStart(dateStr);
+            } else {
+              setCalEnd(dateStr);
+            }
+          }
+        };
+
+        const isInRange = (day: number) => {
+          if (!calStart || !calEnd) return false;
+          const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          return dateStr >= calStart && dateStr <= calEnd;
+        };
+
+        const isStart = (day: number) => {
+          const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          return dateStr === calStart;
+        };
+
+        const isEnd = (day: number) => {
+          const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+          return dateStr === calEnd;
+        };
+
+        const formatDisplay = (d: string) => {
+          const [y, m, dd] = d.split("-");
+          return `${y}/${m}/${dd}`;
+        };
+
+        return (
+          <>
+            <div
+              className="fixed inset-0 z-50 bg-black/40 animate-[fadeIn_0.2s_ease-out]"
+              onClick={() => setShowDateMenu(false)}
+            />
+            <div className="fixed inset-x-0 top-0 z-50 flex justify-center pt-[4vh] px-4 animate-[spotlightOpen_0.25s_cubic-bezier(0.16,1,0.3,1)]">
+              <div className="w-full max-w-[520px] bg-pos-surface rounded-2xl shadow-2xl overflow-hidden">
+                {/* Header */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-pos-border">
+                  <h3 className="text-[17px] font-semibold text-pos-text">
+                    <Calendar className="h-5 w-5 inline mr-2 text-pos-text-muted" />
+                    {calStart && calEnd ? `${formatDisplay(calStart)} — ${formatDisplay(calEnd)}` : calStart ? formatDisplay(calStart) : t(locale, "filterAll")}
+                  </h3>
+                  <button
+                    onClick={() => setShowDateMenu(false)}
+                    className="h-10 w-10 flex items-center justify-center rounded-full bg-black/8 text-pos-text-muted hover:bg-black/15 transition-colors"
+                  >
+                    <X className="h-4.5 w-4.5" />
+                  </button>
+                </div>
+
+                {/* Quick presets */}
+                <div className="px-6 pt-5 pb-3">
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      { label: t(locale, "filterAll"), value: "all" },
+                      ...(hasShift ? [{ label: t(locale, "filterThisShift"), value: "thisShift" }] : []),
+                      { label: t(locale, "filterToday"), value: "today" },
+                      { label: t(locale, "filterYesterday"), value: "yesterday" },
+                      { label: t(locale, "filterLast7Days"), value: "last7days" },
+                    ].map((item) => (
+                      <button
+                        key={item.value}
+                        onClick={() => {
+                          setCalStart(null);
+                          setCalEnd(null);
+                          onChange({ ...filters, dateRange: item.value as FilterState["dateRange"] });
+                          setShowDateMenu(false);
+                        }}
+                        className={cn(
+                          "h-9 px-4 rounded-full text-[13px] font-medium border transition-all active:scale-[0.97]",
+                          filters.dateRange === item.value && !calStart
+                            ? "bg-pos-accent border-pos-accent text-white shadow-sm"
+                            : "bg-pos-surface border-pos-border text-pos-text-secondary hover:border-pos-border-strong"
+                        )}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Calendar */}
+                <div className="px-6 pb-5">
+                  {/* Month nav */}
+                  <div className="flex items-center justify-between mb-4">
+                    <button
+                      onClick={() => setCalMonth(new Date(year, month - 1, 1))}
+                      className="h-11 w-11 flex items-center justify-center rounded-full hover:bg-pos-surface-hover transition-colors text-pos-text-secondary"
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </button>
+                    <span className="text-[16px] font-semibold text-pos-text">{monthLabel}</span>
+                    <button
+                      onClick={() => setCalMonth(new Date(year, month + 1, 1))}
+                      className="h-11 w-11 flex items-center justify-center rounded-full hover:bg-pos-surface-hover transition-colors text-pos-text-secondary"
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </button>
+                  </div>
+
+                  {/* Day headers */}
+                  <div className="grid grid-cols-7 mb-2">
+                    {dayLabels.map((d, i) => (
+                      <div key={i} className="text-center text-[12px] font-medium text-pos-text-muted py-1">{d}</div>
+                    ))}
+                  </div>
+
+                  {/* Day grid */}
+                  <div className="grid grid-cols-7">
+                    {/* Empty cells before first day */}
+                    {Array.from({ length: firstDay }).map((_, i) => (
+                      <div key={`empty-${i}`} className="h-12" />
+                    ))}
+                    {Array.from({ length: daysInMonth }).map((_, i) => {
+                      const day = i + 1;
+                      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                      const isSel = isStart(day) || isEnd(day);
+                      const inRange = isInRange(day);
+                      const isToday = dateStr === todayStr;
+                      return (
+                        <button
+                          key={day}
+                          onClick={() => handleDayClick(day)}
+                          className={cn(
+                            "h-12 flex items-center justify-center text-[15px] transition-colors relative",
+                            isSel
+                              ? "text-white font-semibold"
+                              : inRange
+                              ? "text-pos-text"
+                              : "text-pos-text-secondary hover:text-pos-text"
+                          )}
+                        >
+                          {/* Range background */}
+                          {inRange && !isSel && (
+                            <span className="absolute inset-0" style={{ backgroundColor: "color-mix(in srgb, var(--color-pos-accent) 12%, transparent)" }} />
+                          )}
+                          {/* Selected circle */}
+                          {isSel && (
+                            <span className="absolute h-10 w-10 rounded-full" style={{ backgroundColor: "var(--color-pos-accent)" }} />
+                          )}
+                          {/* Today ring */}
+                          {isToday && !isSel && (
+                            <span className="absolute h-10 w-10 rounded-full border-2 border-pos-accent/40" />
+                          )}
+                          <span className="relative z-[1]">{day}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Apply button */}
+                {calStart && calEnd && (
+                  <div className="px-6 pb-5">
+                    <button
+                      onClick={() => {
+                        onChange({ ...filters, dateRange: "custom", customFrom: calStart!, customTo: calEnd! });
+                        setShowDateMenu(false);
+                      }}
+                      className="w-full h-12 rounded-[var(--radius-md)] text-[15px] font-medium text-white transition-all active:scale-[0.98]"
+                      style={{ backgroundColor: "var(--color-pos-accent)" }}
+                    >
+                      {t(locale, "confirm")} · {formatDisplay(calStart)} — {formatDisplay(calEnd)}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </>
+        );
+      })()}
+
       {/* Horizontal scroll chips */}
       <div className="flex items-center gap-1.5 px-4 overflow-x-auto hide-scrollbar">
         {/* Search toggle */}
@@ -130,26 +331,21 @@ export default function HistoryFilters({ filters, onChange, locale, hasShift }: 
         {/* Divider */}
         <div className="shrink-0 w-px h-5 bg-pos-border" />
 
-        {/* Date chips */}
-        {dateChips.map((chip) => {
-          const active = filters.dateRange === chip.value;
-          const Icon = chip.icon;
-          return (
-            <button
-              key={chip.key}
-              onClick={() => handleDateChip(chip.value)}
-              className={cn(
-                "shrink-0 h-8 flex items-center gap-1.5 px-3 rounded-full text-[12px] font-medium border transition-all duration-150 active:scale-[0.97]",
-                active
-                  ? "bg-pos-accent border-pos-accent text-white shadow-sm"
-                  : "bg-pos-surface border-pos-border text-pos-text-secondary hover:border-pos-border-strong"
-              )}
-            >
-              {Icon && <Icon className="h-3 w-3" />}
-              {chip.label}
-            </button>
-          );
-        })}
+        {/* Date range button → opens modal */}
+        <button
+          onClick={() => { setCalStart(null); setCalEnd(null); setCalMonth(new Date(new Date().getFullYear(), new Date().getMonth(), 1)); setShowDateMenu(true); }}
+          className={cn(
+            "shrink-0 h-8 flex items-center gap-1.5 px-3 rounded-full text-[12px] font-medium border transition-all duration-150",
+            filters.dateRange !== "all"
+              ? "bg-pos-accent border-pos-accent text-white shadow-sm"
+              : "bg-pos-surface border-pos-border text-pos-text-secondary hover:border-pos-border-strong"
+          )}
+        >
+          <Calendar className="h-3 w-3" />
+          {filters.dateRange === "custom" && filters.customFrom && filters.customTo
+            ? `${filters.customFrom.slice(5)} — ${filters.customTo.slice(5)}`
+            : dateChips.find(c => c.value === filters.dateRange)?.label || t(locale, "filterAll")}
+        </button>
 
         {/* Divider */}
         <div className="shrink-0 w-px h-5 bg-pos-border" />

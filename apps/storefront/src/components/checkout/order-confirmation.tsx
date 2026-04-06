@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { CheckCircleIcon } from "@heroicons/react/24/solid";
 
 type OrderItem = {
@@ -61,9 +62,9 @@ export default function OrderConfirmation({
           <ul role="list" className="mt-6 divide-y divide-gray-200 border-t border-gray-200">
             {items.map((item, i) => (
               <li key={i} className="flex py-6">
-                <div className="size-16 shrink-0 overflow-hidden rounded-lg bg-gray-100">
+                <div className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-gray-100">
                   {item.image ? (
-                    <img src={item.image} alt={item.name} className="size-full object-cover" />
+                    <Image src={item.image} alt={item.name} fill sizes="64px" className="object-cover" />
                   ) : (
                     <div className="size-full flex items-center justify-center text-gray-400 text-xs font-bold">
                       {item.name.charAt(0)}

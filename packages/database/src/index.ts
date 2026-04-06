@@ -5,6 +5,7 @@ export type { Database } from "./client";
 export * from "./schema";
 export * from "./constants";
 export { getDisplayName } from "./utils";
+export { normalizePhone, phoneSearchCandidates, formatPhoneDisplay } from "./phone";
 
 // Auth exports
 export {

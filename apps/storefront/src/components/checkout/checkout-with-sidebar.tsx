@@ -8,6 +8,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { LockClosedIcon } from "@heroicons/react/20/solid";
 
 type CartItem = {
@@ -75,9 +76,9 @@ export default function CheckoutWithSidebar({
   // Shared order item row
   const OrderItemRow = ({ item }: { item: CartItem }) => (
     <li className="flex space-x-6 py-6">
-      <div className="size-24 shrink-0 overflow-hidden rounded-md bg-gray-200">
+      <div className="relative size-24 shrink-0 overflow-hidden rounded-md bg-gray-200">
         {item.image ? (
-          <img src={item.image} alt={item.name} className="size-full object-cover" />
+          <Image src={item.image} alt={item.name} fill sizes="96px" className="object-cover" />
         ) : (
           <div className="size-full flex items-center justify-center text-gray-400 text-xs font-bold">
             {item.name.charAt(0)}

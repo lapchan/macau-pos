@@ -1,4 +1,7 @@
 import OrderHistoryList from "@/components/account/order-history-list";
+import { resolveTenant } from "@/lib/tenant-resolver";
+import { getCurrentCustomer } from "@/lib/actions/auth";
+import { getCustomerOrders } from "@/lib/storefront-queries";
 
 export default async function OrdersPage({
   params,
@@ -9,8 +12,12 @@ export default async function OrdersPage({
 
   const t = (tc: string, en: string) => locale === "en" ? en : tc;
 
-  // TODO: Load orders from DB via customer session
-  const orders: [] = [];
+  const customer = await getCurrentCustomer();
+  const tenant = await resolveTenant();
+
+  const orders = customer && tenant
+    ? await getCustomerOrders(tenant.id, customer.id)
+    : [];
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-12 lg:px-8">

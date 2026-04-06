@@ -36,6 +36,8 @@ export const orderItems = pgTable(
 
     unitPrice: decimal("unit_price", { precision: 10, scale: 2 }).notNull(),
     quantity: integer("quantity").notNull(),
+    discountAmount: decimal("discount_amount", { precision: 10, scale: 2 }).default("0"),
+    discountNote: varchar("discount_note", { length: 100 }),
     lineTotal: decimal("line_total", { precision: 10, scale: 2 }).notNull(),
   },
   (table) => [index("idx_order_items_order").on(table.orderId)]

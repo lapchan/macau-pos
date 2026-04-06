@@ -1,4 +1,6 @@
-type Props = { data: Record<string, unknown>; locale: string; tenantId: string };
+import Image from "next/image";
+
+type Props = { data: Record<string, unknown>; locale: string; tenantId: string; themeId?: string };
 
 type CollectionItem = {
   title: string;
@@ -9,12 +11,17 @@ type CollectionItem = {
   href: string;
 };
 
-export default function CollectionGrid({ data, locale }: Props) {
+export default function CollectionGrid({ data, locale, tenantId, themeId }: Props) {
   const title = ((data.titleTranslations as Record<string, string>)?.[locale]) || (data.title as string) || "";
   const subtitle = ((data.subtitleTranslations as Record<string, string>)?.[locale]) || (data.subtitle as string) || "";
   const items = (data.items as CollectionItem[]) || [];
 
   if (items.length === 0) return null;
+
+  /* ─── HUMAN MADE variant — skip collections, keep homepage clean ─── */
+  if (themeId === "humanmade") {
+    return null;
+  }
 
   return (
     <section aria-labelledby="collection-heading" className="mx-auto max-w-xl px-4 pt-24 sm:px-6 sm:pt-32 lg:max-w-7xl lg:px-8">
@@ -33,11 +40,13 @@ export default function CollectionGrid({ data, locale }: Props) {
           const itemDesc = item.descriptionTranslations?.[locale] || item.description;
           return (
             <a key={i} href={item.href || `/${locale}/products`} className="group block">
-              <div className="aspect-[3/2] w-full overflow-hidden rounded-lg lg:aspect-[5/6]">
-                <img
+              <div className="relative aspect-[3/2] w-full overflow-hidden rounded-lg lg:aspect-[5/6]">
+                <Image
                   src={item.image}
                   alt={itemTitle}
-                  className="size-full object-cover group-hover:opacity-75 transition-opacity"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 33vw"
+                  className="object-cover group-hover:opacity-75 transition-opacity"
                 />
               </div>
               <h3 className="mt-4 text-base font-semibold text-gray-900">{itemTitle}</h3>

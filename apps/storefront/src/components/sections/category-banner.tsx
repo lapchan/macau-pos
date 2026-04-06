@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getDisplayName } from "@macau-pos/database";
 import { getStorefrontCategories } from "@/lib/storefront-queries";
 
@@ -30,10 +31,12 @@ export default async function CategoryBanner({ data, locale, tenantId }: Props) 
               >
                 <div className="relative h-80 w-full overflow-hidden rounded-lg sm:aspect-[2/1] sm:h-auto lg:aspect-square">
                   {bannerImage ? (
-                    <img
+                    <Image
                       src={bannerImage}
                       alt={name}
-                      className="size-full object-cover object-center group-hover:opacity-75 transition-opacity"
+                      fill
+                      sizes="(max-width: 1024px) 100vw, 33vw"
+                      className="object-cover object-center group-hover:opacity-75 transition-opacity"
                     />
                   ) : (
                     <div className="size-full bg-gradient-to-br from-gray-200 to-gray-300 group-hover:opacity-75 transition-opacity" />

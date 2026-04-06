@@ -36,11 +36,69 @@ type TranslationKeys = {
   library: string;
   favorites: string;
   favoritesDesc: string;
+  removeFavoriteTitle: string;
+  removeFavoriteHint: string;
   addCustomer: string;
   searchByPhone: string;
   scanMembership: string;
   noCustomerFound: string;
   customerLinked: string;
+  customerProfile: string;
+  phone: string;
+  email: string;
+  memberSince: string;
+  lastVisit: string;
+  totalSpent: string;
+  cashierTab: string;
+  orders: string;
+  reportsTab: string;
+  drawerReport: string;
+  salesReport: string;
+  allOrders: string;
+  posOrders: string;
+  onlineOrders: string;
+  totalSales: string;
+  avgOrder: string;
+  refunds: string;
+  notes: string;
+  removeCustomer: string;
+
+  // Drawer ledger
+  drawerLedger: string;
+  drawerTime: string;
+  drawerEvent: string;
+  drawerIn: string;
+  drawerOut: string;
+  drawerBalance: string;
+  drawerNoEntries: string;
+  eventOpeningFloat: string;
+  eventCashSale: string;
+  eventChangeGiven: string;
+  eventRefund: string;
+  eventShiftClose: string;
+
+  // Payment methods (shared)
+  paymentCash: string;
+  paymentCardTap: string;
+  paymentCardInsert: string;
+  paymentQr: string;
+  paymentSubTap: string;
+  paymentSubInsert: string;
+  paymentSubQr: string;
+  paymentUnknown: string;
+
+  // Lock screen
+  lockTooManyAttempts: string;
+  lockInvalidPin: string;
+  lockConnectionError: string;
+
+  // Misc
+  receiptDiscount: string;
+  startShiftToSeeDrawer: string;
+  comingSoon: string;
+  pointsAbbrev: string;
+  searchMoreResults: string;
+  scanBarcode: string;
 
   // Categories
   all: string;
@@ -79,7 +137,6 @@ type TranslationKeys = {
   cash: string;
   card: string;
   qrPay: string;
-  cancel: string;
   processing: string;
   paymentSuccess: string;
   paymentFailed: string;
@@ -95,6 +152,9 @@ type TranslationKeys = {
   takePayment: string;
   orderSummary: string;
   discount: string;
+  addDiscount: string;
+  applyDiscount: string;
+  percentage: string;
   serviceFee: string;
   itemCount: string;
   selectPayment: string;
@@ -118,7 +178,12 @@ type TranslationKeys = {
   done: string;
   payAnother: string;
   terminalConnected: string;
+  terminalOffline: string;
   terminalMode: string;
+  orderSavedOffline: string;
+  orderSavedOfflineHint: string;
+  pendingOrders: string;
+  ordersSynced: string;
 
   // History
   history: string;
@@ -149,12 +214,22 @@ type TranslationKeys = {
   status_pending: string;
   status_refunded: string;
   status_voided: string;
+  voidOrder: string;
+  refundOrder: string;
+  voidConfirmTitle: string;
+  refundConfirmTitle: string;
+  voidConfirmBody: string;
+  refundConfirmBody: string;
+  cashRefundAmount: string;
 
   // History filters
   filterThisShift: string;
   filterToday: string;
   filterYesterday: string;
   filterLast7Days: string;
+  filterAll: string;
+  filterQuick: string;
+  filterCustomRange: string;
   filterClear: string;
   searchOrderNumber: string;
   noMatchingOrders: string;
@@ -213,11 +288,61 @@ const translations: Record<Locale, TranslationKeys> = {
     library: "商品庫",
     favorites: "收藏",
     favoritesDesc: "尚未收藏任何商品",
+    removeFavoriteTitle: "取消收藏？",
+    removeFavoriteHint: "此商品將從收藏清單中移除",
     addCustomer: "新增顧客",
     searchByPhone: "輸入手機號碼搜尋...",
     scanMembership: "掃描會員碼",
     noCustomerFound: "找不到顧客",
     customerLinked: "已連結顧客",
+    customerProfile: "顧客資料",
+    phone: "電話",
+    email: "電郵",
+    memberSince: "加入日期",
+    lastVisit: "最近到訪",
+    totalSpent: "累計消費",
+    cashierTab: "收銀台",
+    orders: "訂單",
+    reportsTab: "報表",
+    drawerReport: "現金錢櫃",
+    salesReport: "銷售",
+    allOrders: "全部訂單",
+    posOrders: "門店",
+    onlineOrders: "線上",
+    totalSales: "總銷售",
+    avgOrder: "平均訂單",
+    refunds: "退款",
+    notes: "備註",
+    removeCustomer: "移除顧客",
+    drawerLedger: "現金錢櫃記錄",
+    drawerTime: "時間",
+    drawerEvent: "事件",
+    drawerIn: "收入",
+    drawerOut: "支出",
+    drawerBalance: "結餘",
+    drawerNoEntries: "暫無記錄",
+    eventOpeningFloat: "開工備用金",
+    eventCashSale: "現金銷售",
+    eventChangeGiven: "找零",
+    eventRefund: "退款",
+    eventShiftClose: "收班結算",
+    paymentCash: "現金",
+    paymentCardTap: "拍卡",
+    paymentCardInsert: "插卡",
+    paymentQr: "掃碼支付",
+    paymentSubTap: "NFC / Apple Pay",
+    paymentSubInsert: "晶片 / 刷卡",
+    paymentSubQr: "支付寶 / 微信",
+    paymentUnknown: "未知",
+    lockTooManyAttempts: "嘗試次數過多，正在登出...",
+    lockInvalidPin: "PIN碼錯誤（剩餘{remaining}次）",
+    lockConnectionError: "連接錯誤，請重試。",
+    receiptDiscount: "折扣",
+    startShiftToSeeDrawer: "開始班次以查看錢櫃",
+    comingSoon: "即將推出",
+    pointsAbbrev: "積分",
+    searchMoreResults: "還有{count}個",
+    scanBarcode: "掃描條碼",
     all: "全部",
     beverages: "飲品",
     snacks: "零食",
@@ -248,7 +373,6 @@ const translations: Record<Locale, TranslationKeys> = {
     cash: "現金",
     card: "刷卡",
     qrPay: "掃碼支付",
-    cancel: "取消",
     processing: "付款處理中...",
     paymentSuccess: "付款成功",
     paymentFailed: "付款失敗",
@@ -262,6 +386,9 @@ const translations: Record<Locale, TranslationKeys> = {
     takePayment: "收款",
     orderSummary: "訂單摘要",
     discount: "折扣",
+    addDiscount: "新增折扣",
+    applyDiscount: "套用折扣",
+    percentage: "百分比",
     serviceFee: "服務費",
     itemCount: "件商品",
     selectPayment: "選擇付款方式",
@@ -285,7 +412,12 @@ const translations: Record<Locale, TranslationKeys> = {
     done: "完成",
     payAnother: "繼續收款",
     terminalConnected: "終端已連接",
+    terminalOffline: "離線",
     terminalMode: "終端模式",
+    orderSavedOffline: "訂單已本地儲存",
+    orderSavedOfflineHint: "連線恢復後將自動同步",
+    pendingOrders: "待同步",
+    ordersSynced: "訂單已同步",
     history: "紀錄",
     receipts: "單據",
     receiptOrder: "訂單",
@@ -310,10 +442,20 @@ const translations: Record<Locale, TranslationKeys> = {
     status_pending: "處理中",
     status_refunded: "已退款",
     status_voided: "已作廢",
+    voidOrder: "作廢訂單",
+    refundOrder: "退款",
+    voidConfirmTitle: "確定作廢此訂單？",
+    refundConfirmTitle: "確定退款此訂單？",
+    voidConfirmBody: "訂單將被取消，庫存將恢復",
+    refundConfirmBody: "將退還全額，庫存將恢復",
+    cashRefundAmount: "需退還現金",
     filterThisShift: "本班",
     filterToday: "今天",
     filterYesterday: "昨天",
     filterLast7Days: "近7天",
+    filterAll: "全部日期",
+    filterQuick: "快速選擇",
+    filterCustomRange: "自訂日期",
     filterClear: "清除",
     searchOrderNumber: "搜尋訂單編號...",
     noMatchingOrders: "沒有符合的訂單",
@@ -366,11 +508,61 @@ const translations: Record<Locale, TranslationKeys> = {
     library: "商品库",
     favorites: "收藏",
     favoritesDesc: "尚未收藏任何商品",
+    removeFavoriteTitle: "取消收藏？",
+    removeFavoriteHint: "此商品将从收藏列表中移除",
     addCustomer: "添加顾客",
     searchByPhone: "输入手机号码搜索...",
     scanMembership: "扫描会员码",
     noCustomerFound: "找不到顾客",
     customerLinked: "已关联顾客",
+    customerProfile: "顾客资料",
+    phone: "电话",
+    email: "邮箱",
+    memberSince: "加入日期",
+    lastVisit: "最近到访",
+    totalSpent: "累计消费",
+    cashierTab: "收银台",
+    orders: "订单",
+    reportsTab: "报表",
+    drawerReport: "现金钱柜",
+    salesReport: "销售",
+    allOrders: "全部订单",
+    posOrders: "门店",
+    onlineOrders: "线上",
+    totalSales: "总销售",
+    avgOrder: "平均订单",
+    refunds: "退款",
+    notes: "备注",
+    removeCustomer: "移除顾客",
+    drawerLedger: "现金钱柜记录",
+    drawerTime: "时间",
+    drawerEvent: "事件",
+    drawerIn: "收入",
+    drawerOut: "支出",
+    drawerBalance: "结余",
+    drawerNoEntries: "暂无记录",
+    eventOpeningFloat: "开班备用金",
+    eventCashSale: "现金销售",
+    eventChangeGiven: "找零",
+    eventRefund: "退款",
+    eventShiftClose: "收班结算",
+    paymentCash: "现金",
+    paymentCardTap: "拍卡",
+    paymentCardInsert: "插卡",
+    paymentQr: "扫码支付",
+    paymentSubTap: "NFC / Apple Pay",
+    paymentSubInsert: "芯片 / 刷卡",
+    paymentSubQr: "支付宝 / 微信",
+    paymentUnknown: "未知",
+    lockTooManyAttempts: "尝试次数过多，正在登出...",
+    lockInvalidPin: "PIN码错误（剩余{remaining}次）",
+    lockConnectionError: "连接错误，请重试。",
+    receiptDiscount: "折扣",
+    startShiftToSeeDrawer: "开始班次以查看钱柜",
+    comingSoon: "即将推出",
+    pointsAbbrev: "积分",
+    searchMoreResults: "还有{count}个",
+    scanBarcode: "扫描条码",
     all: "全部",
     beverages: "饮品",
     snacks: "零食",
@@ -401,7 +593,6 @@ const translations: Record<Locale, TranslationKeys> = {
     cash: "现金",
     card: "刷卡",
     qrPay: "扫码支付",
-    cancel: "取消",
     processing: "付款处理中...",
     paymentSuccess: "付款成功",
     paymentFailed: "付款失败",
@@ -415,6 +606,9 @@ const translations: Record<Locale, TranslationKeys> = {
     takePayment: "收款",
     orderSummary: "订单摘要",
     discount: "折扣",
+    addDiscount: "添加折扣",
+    applyDiscount: "应用折扣",
+    percentage: "百分比",
     serviceFee: "服务费",
     itemCount: "件商品",
     selectPayment: "选择付款方式",
@@ -438,7 +632,12 @@ const translations: Record<Locale, TranslationKeys> = {
     done: "完成",
     payAnother: "继续收款",
     terminalConnected: "终端已连接",
+    terminalOffline: "离线",
     terminalMode: "终端模式",
+    orderSavedOffline: "订单已本地保存",
+    orderSavedOfflineHint: "恢复连接后将自动同步",
+    pendingOrders: "待同步",
+    ordersSynced: "订单已同步",
     history: "记录",
     receipts: "单据",
     receiptOrder: "订单",
@@ -463,10 +662,20 @@ const translations: Record<Locale, TranslationKeys> = {
     status_pending: "处理中",
     status_refunded: "已退款",
     status_voided: "已作废",
+    voidOrder: "作废订单",
+    refundOrder: "退款",
+    voidConfirmTitle: "确定作废此订单？",
+    refundConfirmTitle: "确定退款此订单？",
+    voidConfirmBody: "订单将被取消，库存将恢复",
+    refundConfirmBody: "将退还全额，库存将恢复",
+    cashRefundAmount: "需退还现金",
     filterThisShift: "本班",
     filterToday: "今天",
     filterYesterday: "昨天",
     filterLast7Days: "近7天",
+    filterAll: "全部日期",
+    filterQuick: "快速选择",
+    filterCustomRange: "自定义日期",
     filterClear: "清除",
     searchOrderNumber: "搜索订单编号...",
     noMatchingOrders: "没有符合的订单",
@@ -519,11 +728,61 @@ const translations: Record<Locale, TranslationKeys> = {
     library: "Library",
     favorites: "Favorites",
     favoritesDesc: "No favorites yet",
+    removeFavoriteTitle: "Remove favorite?",
+    removeFavoriteHint: "This item will be removed from favorites",
     addCustomer: "Add Customer",
     searchByPhone: "Enter phone number...",
     scanMembership: "Scan membership",
     noCustomerFound: "No customer found",
     customerLinked: "Customer linked",
+    customerProfile: "Customer Profile",
+    phone: "Phone",
+    email: "Email",
+    memberSince: "Member since",
+    lastVisit: "Last visit",
+    totalSpent: "Total spent",
+    cashierTab: "Cashier",
+    orders: "Orders",
+    reportsTab: "Reports",
+    drawerReport: "Drawer",
+    salesReport: "Sales",
+    allOrders: "All Orders",
+    posOrders: "In-store",
+    onlineOrders: "Online",
+    totalSales: "Total Sales",
+    avgOrder: "Avg Order",
+    refunds: "Refunds",
+    notes: "Notes",
+    removeCustomer: "Remove Customer",
+    drawerLedger: "Cash Drawer Ledger",
+    drawerTime: "Time",
+    drawerEvent: "Event",
+    drawerIn: "In",
+    drawerOut: "Out",
+    drawerBalance: "Balance",
+    drawerNoEntries: "No entries yet",
+    eventOpeningFloat: "Opening Float",
+    eventCashSale: "Cash Sale",
+    eventChangeGiven: "Change Given",
+    eventRefund: "Refund",
+    eventShiftClose: "Shift Close",
+    paymentCash: "Cash",
+    paymentCardTap: "Card (Tap)",
+    paymentCardInsert: "Card (Insert)",
+    paymentQr: "QR Pay",
+    paymentSubTap: "NFC / Apple Pay",
+    paymentSubInsert: "Chip / Swipe",
+    paymentSubQr: "Alipay / WeChat",
+    paymentUnknown: "Unknown",
+    lockTooManyAttempts: "Too many attempts. Logging out...",
+    lockInvalidPin: "Invalid PIN ({remaining} left)",
+    lockConnectionError: "Connection error. Try again.",
+    receiptDiscount: "Discount",
+    startShiftToSeeDrawer: "Start a shift to see drawer",
+    comingSoon: "Coming soon",
+    pointsAbbrev: "pts",
+    searchMoreResults: "+{count} more",
+    scanBarcode: "Scan Barcode",
     all: "All",
     beverages: "Drinks",
     snacks: "Snacks",
@@ -554,7 +813,6 @@ const translations: Record<Locale, TranslationKeys> = {
     cash: "Cash",
     card: "Card",
     qrPay: "QR Pay",
-    cancel: "Cancel",
     processing: "Processing payment...",
     paymentSuccess: "Payment successful",
     paymentFailed: "Payment failed",
@@ -568,6 +826,9 @@ const translations: Record<Locale, TranslationKeys> = {
     takePayment: "Take payment",
     orderSummary: "Order summary",
     discount: "Discount",
+    addDiscount: "Add Discount",
+    applyDiscount: "Apply Discount",
+    percentage: "Percentage",
     serviceFee: "Service fee",
     itemCount: "items",
     selectPayment: "Select payment method",
@@ -591,7 +852,12 @@ const translations: Record<Locale, TranslationKeys> = {
     done: "Done",
     payAnother: "Next order",
     terminalConnected: "Terminal connected",
+    terminalOffline: "Offline",
     terminalMode: "Terminal mode",
+    orderSavedOffline: "Order saved locally",
+    orderSavedOfflineHint: "Will sync when connection returns",
+    pendingOrders: "pending",
+    ordersSynced: "orders synced",
     history: "History",
     receipts: "Receipts",
     receiptOrder: "Order",
@@ -616,10 +882,20 @@ const translations: Record<Locale, TranslationKeys> = {
     status_pending: "Pending",
     status_refunded: "Refunded",
     status_voided: "Voided",
+    voidOrder: "Void",
+    refundOrder: "Refund",
+    voidConfirmTitle: "Void this order?",
+    refundConfirmTitle: "Refund this order?",
+    voidConfirmBody: "Order will be cancelled, stock restored",
+    refundConfirmBody: "Full amount will be refunded, stock restored",
+    cashRefundAmount: "Cash to return",
     filterThisShift: "This Shift",
     filterToday: "Today",
     filterYesterday: "Yesterday",
     filterLast7Days: "Last 7 Days",
+    filterAll: "All Dates",
+    filterQuick: "Quick Select",
+    filterCustomRange: "Custom Range",
     filterClear: "Clear",
     searchOrderNumber: "Search order number...",
     noMatchingOrders: "No matching orders",
@@ -672,11 +948,61 @@ const translations: Record<Locale, TranslationKeys> = {
     library: "Biblioteca",
     favorites: "Favoritos",
     favoritesDesc: "Ainda sem favoritos",
+    removeFavoriteTitle: "Remover favorito?",
+    removeFavoriteHint: "Este item sera removido dos favoritos",
     addCustomer: "Adicionar Cliente",
     searchByPhone: "Introduzir número de telefone...",
     scanMembership: "Digitalizar membro",
     noCustomerFound: "Cliente não encontrado",
     customerLinked: "Cliente associado",
+    customerProfile: "Perfil do Cliente",
+    phone: "Telefone",
+    email: "E-mail",
+    memberSince: "Membro desde",
+    lastVisit: "Última visita",
+    totalSpent: "Total gasto",
+    cashierTab: "Caixa",
+    orders: "Pedidos",
+    reportsTab: "Relatórios",
+    drawerReport: "Gaveta",
+    salesReport: "Vendas",
+    allOrders: "Todos Pedidos",
+    posOrders: "Na Loja",
+    onlineOrders: "Online",
+    totalSales: "Vendas Totais",
+    avgOrder: "Pedido Médio",
+    refunds: "Reembolsos",
+    notes: "Notas",
+    removeCustomer: "Remover Cliente",
+    drawerLedger: "Registo de Caixa",
+    drawerTime: "Hora",
+    drawerEvent: "Evento",
+    drawerIn: "Entrada",
+    drawerOut: "Saída",
+    drawerBalance: "Saldo",
+    drawerNoEntries: "Sem registos",
+    eventOpeningFloat: "Fundo de Caixa",
+    eventCashSale: "Venda a Dinheiro",
+    eventChangeGiven: "Troco",
+    eventRefund: "Reembolso",
+    eventShiftClose: "Fecho de Turno",
+    paymentCash: "Dinheiro",
+    paymentCardTap: "Cartão (Tap)",
+    paymentCardInsert: "Cartão (Chip)",
+    paymentQr: "QR Pay",
+    paymentSubTap: "NFC / Apple Pay",
+    paymentSubInsert: "Chip / Banda",
+    paymentSubQr: "Alipay / WeChat",
+    paymentUnknown: "Desconhecido",
+    lockTooManyAttempts: "Demasiadas tentativas. A terminar sessão...",
+    lockInvalidPin: "PIN inválido ({remaining} restantes)",
+    lockConnectionError: "Erro de conexão. Tente novamente.",
+    receiptDiscount: "Desconto",
+    startShiftToSeeDrawer: "Iniciar turno para ver caixa",
+    comingSoon: "Em breve",
+    pointsAbbrev: "pts",
+    searchMoreResults: "+{count} mais",
+    scanBarcode: "Ler Código",
     all: "Todos",
     beverages: "Bebidas",
     snacks: "Lanches",
@@ -707,7 +1033,6 @@ const translations: Record<Locale, TranslationKeys> = {
     cash: "Dinheiro",
     card: "Cartão",
     qrPay: "QR Pay",
-    cancel: "Cancelar",
     processing: "Processando pagamento...",
     paymentSuccess: "Pagamento bem-sucedido",
     paymentFailed: "Pagamento falhou",
@@ -721,6 +1046,9 @@ const translations: Record<Locale, TranslationKeys> = {
     takePayment: "Receber pagamento",
     orderSummary: "Resumo do pedido",
     discount: "Desconto",
+    addDiscount: "Adicionar Desconto",
+    applyDiscount: "Aplicar Desconto",
+    percentage: "Percentagem",
     serviceFee: "Taxa de serviço",
     itemCount: "produtos",
     selectPayment: "Selecione o método de pagamento",
@@ -744,7 +1072,12 @@ const translations: Record<Locale, TranslationKeys> = {
     done: "Concluído",
     payAnother: "Próximo pedido",
     terminalConnected: "Terminal conectado",
+    terminalOffline: "Offline",
     terminalMode: "Modo terminal",
+    orderSavedOffline: "Pedido guardado localmente",
+    orderSavedOfflineHint: "Sincroniza ao restabelecer ligação",
+    pendingOrders: "pendentes",
+    ordersSynced: "pedidos sincronizados",
     history: "Histórico",
     receipts: "Recibos",
     receiptOrder: "Pedido",
@@ -769,10 +1102,20 @@ const translations: Record<Locale, TranslationKeys> = {
     status_pending: "Pendente",
     status_refunded: "Reembolsado",
     status_voided: "Anulado",
+    voidOrder: "Anular",
+    refundOrder: "Reembolso",
+    voidConfirmTitle: "Anular este pedido?",
+    refundConfirmTitle: "Reembolsar este pedido?",
+    voidConfirmBody: "Pedido sera cancelado, stock restaurado",
+    refundConfirmBody: "Valor total sera reembolsado, stock restaurado",
+    cashRefundAmount: "Dinheiro a devolver",
     filterThisShift: "Este Turno",
     filterToday: "Hoje",
     filterYesterday: "Ontem",
     filterLast7Days: "Últimos 7 Dias",
+    filterAll: "Todas as Datas",
+    filterQuick: "Seleção Rápida",
+    filterCustomRange: "Intervalo Personalizado",
     filterClear: "Limpar",
     searchOrderNumber: "Pesquisar número do pedido...",
     noMatchingOrders: "Nenhum pedido encontrado",
@@ -825,11 +1168,61 @@ const translations: Record<Locale, TranslationKeys> = {
     library: "ライブラリ",
     favorites: "お気に入り",
     favoritesDesc: "お気に入りはまだありません",
+    removeFavoriteTitle: "お気に入りを解除？",
+    removeFavoriteHint: "この商品はお気に入りから削除されます",
     addCustomer: "顧客を追加",
     searchByPhone: "電話番号を入力...",
     scanMembership: "会員コードをスキャン",
     noCustomerFound: "顧客が見つかりません",
     customerLinked: "顧客をリンクしました",
+    customerProfile: "顧客プロフィール",
+    phone: "電話",
+    email: "メール",
+    memberSince: "会員登録日",
+    lastVisit: "最終来店",
+    totalSpent: "累計利用額",
+    cashierTab: "レジ",
+    orders: "注文",
+    reportsTab: "レポート",
+    drawerReport: "ドロワー",
+    salesReport: "売上",
+    allOrders: "全注文",
+    posOrders: "店舗",
+    onlineOrders: "オンライン",
+    totalSales: "総売上",
+    avgOrder: "平均注文",
+    refunds: "返金",
+    notes: "メモ",
+    removeCustomer: "顧客を削除",
+    drawerLedger: "現金ドロワー記録",
+    drawerTime: "時刻",
+    drawerEvent: "イベント",
+    drawerIn: "入金",
+    drawerOut: "出金",
+    drawerBalance: "残高",
+    drawerNoEntries: "記録なし",
+    eventOpeningFloat: "開始時フロート",
+    eventCashSale: "現金売上",
+    eventChangeGiven: "お釣り",
+    eventRefund: "返金",
+    eventShiftClose: "シフト精算",
+    paymentCash: "現金",
+    paymentCardTap: "カード（タップ）",
+    paymentCardInsert: "カード（挿入）",
+    paymentQr: "QR決済",
+    paymentSubTap: "NFC / Apple Pay",
+    paymentSubInsert: "チップ / スワイプ",
+    paymentSubQr: "Alipay / WeChat",
+    paymentUnknown: "不明",
+    lockTooManyAttempts: "試行回数を超えました。ログアウトします...",
+    lockInvalidPin: "PINが無効です（残り{remaining}回）",
+    lockConnectionError: "接続エラー。再試行してください。",
+    receiptDiscount: "割引",
+    startShiftToSeeDrawer: "シフトを開始してドロワーを表示",
+    comingSoon: "近日公開",
+    pointsAbbrev: "ポイント",
+    searchMoreResults: "他{count}件",
+    scanBarcode: "バーコードスキャン",
     all: "すべて",
     beverages: "ドリンク",
     snacks: "スナック",
@@ -860,7 +1253,6 @@ const translations: Record<Locale, TranslationKeys> = {
     cash: "現金",
     card: "カード",
     qrPay: "QR決済",
-    cancel: "キャンセル",
     processing: "支払い処理中...",
     paymentSuccess: "支払い完了",
     paymentFailed: "支払い失敗",
@@ -874,6 +1266,9 @@ const translations: Record<Locale, TranslationKeys> = {
     takePayment: "お支払い",
     orderSummary: "注文内容",
     discount: "割引",
+    addDiscount: "割引を追加",
+    applyDiscount: "割引を適用",
+    percentage: "パーセント",
     serviceFee: "サービス料",
     itemCount: "件の商品",
     selectPayment: "お支払い方法を選択",
@@ -897,7 +1292,12 @@ const translations: Record<Locale, TranslationKeys> = {
     done: "完了",
     payAnother: "次の注文",
     terminalConnected: "端末接続済み",
+    terminalOffline: "オフライン",
     terminalMode: "端末モード",
+    orderSavedOffline: "注文をローカルに保存",
+    orderSavedOfflineHint: "接続回復時に自動同期します",
+    pendingOrders: "同期待ち",
+    ordersSynced: "件の注文を同期済み",
     history: "履歴",
     receipts: "レシート",
     receiptOrder: "注文番号",
@@ -922,10 +1322,20 @@ const translations: Record<Locale, TranslationKeys> = {
     status_pending: "保留中",
     status_refunded: "返金済み",
     status_voided: "無効",
+    voidOrder: "取消",
+    refundOrder: "返金",
+    voidConfirmTitle: "この注文を取消しますか？",
+    refundConfirmTitle: "この注文を返金しますか？",
+    voidConfirmBody: "注文がキャンセルされ、在庫が復元されます",
+    refundConfirmBody: "全額返金され、在庫が復元されます",
+    cashRefundAmount: "返金する現金",
     filterThisShift: "このシフト",
     filterToday: "今日",
     filterYesterday: "昨日",
     filterLast7Days: "過去7日間",
+    filterAll: "全期間",
+    filterQuick: "クイック選択",
+    filterCustomRange: "カスタム期間",
     filterClear: "クリア",
     searchOrderNumber: "注文番号を検索...",
     noMatchingOrders: "該当する注文がありません",

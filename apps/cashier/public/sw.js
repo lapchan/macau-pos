@@ -1,0 +1,74 @@
+const CACHE_NAME = "pos-v1";
+
+// App shell files to cache on install
+const APP_SHELL = [
+  "/",
+  "/login",
+  "/manifest.json",
+  "/icons/icon-192.png",
+  "/icons/icon-512.png",
+];
+
+// Install — cache app shell
+self.addEventListener("install", (event) => {
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
+  );
+  self.skipWaiting();
+});
+
+// Activate — clean old caches
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    caches.keys().then((keys) =>
+      Promise.all(keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
+
+// Fetch — network first, fallback to cache
+self.addEventListener("fetch", (event) => {
+  const { request } = event;
+
+  // Skip non-GET requests (POST for server actions, etc.)
+  if (request.method !== "GET") return;
+
+  // Skip API routes — always go to network
+  const url = new URL(request.url);
+  if (url.pathname.startsWith("/api/")) return;
+
+  event.respondWith(
+    fetch(request)
+      .then((response) => {
+        // Cache successful responses for Next.js pages and static assets
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            // Cache pages and static assets
+            if (
+              url.pathname === "/" ||
+              url.pathname === "/login" ||
+              url.pathname.startsWith("/_next/static/") ||
+              url.pathname.startsWith("/icons/") ||
+              url.pathname.startsWith("/products/")
+            ) {
+              cache.put(request, clone);
+            }
+          });
+        }
+        return response;
+      })
+      .catch(() => {
+        // Network failed — serve from cache
+        return caches.match(request).then((cached) => {
+          if (cached) return cached;
+          // For navigation requests, serve cached root page
+          if (request.mode === "navigate") {
+            return caches.match("/");
+          }
+          return new Response("Offline", { status: 503 });
+        });
+      })
+  );
+});

@@ -9,6 +9,7 @@
  */
 "use client";
 
+import Image from "next/image";
 import { CheckIcon } from "@heroicons/react/24/solid";
 
 type OrderItem = {
@@ -104,9 +105,9 @@ function ProgressTracker({ steps }: { steps: FulfillmentStep[] }) {
 function ItemRowCompact({ item, locale, currency }: { item: OrderItem; locale: string; currency: string }) {
   return (
     <li className="flex space-x-6 py-6">
-      <div className="size-24 shrink-0 overflow-hidden rounded-md bg-gray-100">
+      <div className="relative size-24 shrink-0 overflow-hidden rounded-md bg-gray-100">
         {item.image ? (
-          <img src={item.image} alt={item.name} className="size-full object-cover object-center" />
+          <Image src={item.image} alt={item.name} fill sizes="96px" className="object-cover object-center" />
         ) : (
           <div className="size-full flex items-center justify-center text-gray-400 text-xs font-bold">
             {item.name.charAt(0)}
@@ -142,9 +143,9 @@ function ItemRowLarge({ item, locale, currency, steps }: { item: OrderItem; loca
       <div className="flex flex-col sm:flex-row">
         {/* Large image */}
         <div className="sm:w-40 sm:shrink-0">
-          <div className="aspect-square w-full overflow-hidden rounded-lg bg-gray-100 sm:aspect-[2/3] sm:h-60">
+          <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-100 sm:aspect-[2/3] sm:h-60">
             {item.image ? (
-              <img src={item.image} alt={item.name} className="size-full object-cover object-center" />
+              <Image src={item.image} alt={item.name} fill sizes="(max-width: 640px) 100vw, 160px" className="object-cover object-center" />
             ) : (
               <div className="size-full flex items-center justify-center text-gray-300">
                 <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
@@ -309,7 +310,9 @@ export default function OrderSummary({
           {/* Right — Large image */}
           <div className="mt-12 lg:col-start-1 lg:row-start-1 lg:mt-0">
             {heroImage ? (
-              <img src={heroImage} alt="" className="aspect-square w-full rounded-lg bg-gray-100 object-cover lg:aspect-auto lg:h-full" />
+              <div className="relative aspect-square w-full rounded-lg bg-gray-100 lg:aspect-auto lg:h-full">
+                <Image src={heroImage} alt="" fill sizes="(max-width: 1024px) 100vw, 50vw" className="rounded-lg object-cover" />
+              </div>
             ) : (
               <div className="aspect-square w-full rounded-lg bg-gradient-to-br from-indigo-50 to-indigo-100 flex items-center justify-center lg:aspect-auto lg:h-full">
                 <CheckIcon className="size-24 text-indigo-200" />
@@ -401,9 +404,9 @@ export default function OrderSummary({
 
             {items.map((item, i) => (
               <div key={i} className="flex space-x-6 border-b border-gray-200 py-10">
-                <div className="size-20 shrink-0 overflow-hidden rounded-lg bg-gray-100 sm:size-40">
+                <div className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-gray-100 sm:size-40">
                   {item.image ? (
-                    <img src={item.image} alt={item.name} className="size-full object-cover" />
+                    <Image src={item.image} alt={item.name} fill sizes="(max-width: 640px) 80px, 160px" className="object-cover" />
                   ) : (
                     <div className="size-full flex items-center justify-center text-gray-400 text-xs font-bold">
                       {item.name.charAt(0)}

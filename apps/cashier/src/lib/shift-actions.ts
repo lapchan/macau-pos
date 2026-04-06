@@ -115,16 +115,16 @@ export async function getShiftSummary(shiftId: string) {
 
   if (!shift) return null;
 
-  // Get order aggregates for this shift
+  // Get order aggregates for this shift (exclude voided/refunded)
   const [orderStats] = await db
     .select({
       totalOrders: count(),
       totalSales: sql<string>`COALESCE(SUM(${orders.total}::numeric), 0)`,
     })
     .from(orders)
-    .where(eq(orders.shiftId, shiftId));
+    .where(and(eq(orders.shiftId, shiftId), eq(orders.status, "completed")));
 
-  // Get payment breakdown
+  // Get payment breakdown (exclude voided/refunded)
   const paymentRows = await db
     .select({
       method: payments.method,
@@ -133,7 +133,7 @@ export async function getShiftSummary(shiftId: string) {
     })
     .from(payments)
     .innerJoin(orders, eq(payments.orderId, orders.id))
-    .where(eq(orders.shiftId, shiftId))
+    .where(and(eq(orders.shiftId, shiftId), eq(orders.status, "completed")))
     .groupBy(payments.method);
 
   const paymentBreakdown: Record<string, number> = {};
@@ -210,4 +210,18 @@ export async function closeShift(
     console.error("closeShift error:", err);
     return { success: false, error: "Failed to close shift" };
   }
+}
+
+// ─── Fetch Cash Log for Drawer Ledger ───────────────────────
+export async function fetchCashLog(shiftId: string) {
+  const { getCashLogByShift } = await import("@macau-pos/database");
+  const entries = await getCashLogByShift(shiftId);
+  // Serialize dates for client
+  return entries.map(e => ({
+    ...e,
+    creditAmount: String(e.creditAmount),
+    debitAmount: String(e.debitAmount),
+    balanceAfter: String(e.balanceAfter),
+    createdAt: new Date(e.createdAt),
+  }));
 }

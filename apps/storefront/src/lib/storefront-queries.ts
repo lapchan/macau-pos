@@ -6,6 +6,9 @@ import {
   storefrontConfigs,
   storefrontPages,
   deliveryZones,
+  orders,
+  orderItems,
+  payments,
   eq,
   and,
   isNull,
@@ -44,7 +47,15 @@ export async function getStorefrontProducts(
       .from(categories)
       .where(and(eq(categories.tenantId, tenantId), eq(categories.slug, filters.categorySlug)))
       .limit(1);
-    if (cat) conditions.push(eq(products.categoryId, cat.id));
+    if (cat) {
+      // Also include products from sub-categories when filtering by a parent category
+      const childCats = await db
+        .select({ id: categories.id })
+        .from(categories)
+        .where(and(eq(categories.tenantId, tenantId), eq(categories.parentCategoryId, cat.id)));
+      const allCatIds = [cat.id, ...childCats.map((c) => c.id)];
+      conditions.push(sql`${products.categoryId} IN (${sql.join(allCatIds.map(id => sql`${id}`), sql`, `)})`);
+    }
   }
 
   if (filters?.search) {
@@ -218,4 +229,145 @@ export async function getDeliveryZonesForCheckout(tenantId: string, locationId: 
       )
     )
     .orderBy(asc(deliveryZones.sortOrder));
+}
+
+// ── Order queries ──────────────────────────────────────────
+
+export async function getOrderByNumber(tenantId: string, orderNumber: string) {
+  const [order] = await db
+    .select({
+      id: orders.id,
+      orderNumber: orders.orderNumber,
+      status: orders.status,
+      subtotal: orders.subtotal,
+      discountAmount: orders.discountAmount,
+      taxAmount: orders.taxAmount,
+      total: orders.total,
+      itemCount: orders.itemCount,
+      currency: orders.currency,
+      deliveryMethod: orders.deliveryMethod,
+      shippingAddress: orders.shippingAddress,
+      deliveryFee: orders.deliveryFee,
+      fulfillmentStatus: orders.fulfillmentStatus,
+      estimatedDeliveryAt: orders.estimatedDeliveryAt,
+      createdAt: orders.createdAt,
+    })
+    .from(orders)
+    .where(
+      and(
+        eq(orders.tenantId, tenantId),
+        eq(orders.orderNumber, orderNumber),
+        eq(orders.channel, "online"),
+      )
+    )
+    .limit(1);
+
+  if (!order) return null;
+
+  const items = await db
+    .select({
+      name: orderItems.name,
+      translations: orderItems.translations,
+      unitPrice: orderItems.unitPrice,
+      quantity: orderItems.quantity,
+      lineTotal: orderItems.lineTotal,
+      productId: orderItems.productId,
+    })
+    .from(orderItems)
+    .where(eq(orderItems.orderId, order.id));
+
+  // Get product images for items
+  const productIds = items.map((i) => i.productId).filter(Boolean) as string[];
+  const productImages: Record<string, string | null> = {};
+  if (productIds.length > 0) {
+    const imgs = await db
+      .select({ id: products.id, image: products.image })
+      .from(products)
+      .where(sql`${products.id} IN (${sql.join(productIds.map((id) => sql`${id}`), sql`, `)})`);
+    for (const p of imgs) productImages[p.id] = p.image;
+  }
+
+  const [payment] = await db
+    .select({ method: payments.method })
+    .from(payments)
+    .where(eq(payments.orderId, order.id))
+    .limit(1);
+
+  return {
+    ...order,
+    items: items.map((i) => ({
+      name: i.name,
+      translations: i.translations as Record<string, string> | null,
+      unitPrice: parseFloat(String(i.unitPrice)),
+      quantity: i.quantity,
+      lineTotal: parseFloat(String(i.lineTotal)),
+      image: i.productId ? productImages[i.productId] : null,
+    })),
+    paymentMethod: payment?.method || null,
+  };
+}
+
+export async function getCustomerOrders(tenantId: string, customerId: string) {
+  const rows = await db
+    .select({
+      id: orders.id,
+      orderNumber: orders.orderNumber,
+      status: orders.status,
+      total: orders.total,
+      itemCount: orders.itemCount,
+      fulfillmentStatus: orders.fulfillmentStatus,
+      deliveryMethod: orders.deliveryMethod,
+      createdAt: orders.createdAt,
+    })
+    .from(orders)
+    .where(
+      and(
+        eq(orders.tenantId, tenantId),
+        eq(orders.customerId, customerId),
+        eq(orders.channel, "online"),
+      )
+    )
+    .orderBy(desc(orders.createdAt));
+
+  // Load items for each order (for thumbnail previews)
+  const result = await Promise.all(
+    rows.map(async (order) => {
+      const items = await db
+        .select({
+          name: orderItems.name,
+          quantity: orderItems.quantity,
+          unitPrice: orderItems.unitPrice,
+          productId: orderItems.productId,
+        })
+        .from(orderItems)
+        .where(eq(orderItems.orderId, order.id));
+
+      const productIds = items.map((i) => i.productId).filter(Boolean) as string[];
+      const productImages: Record<string, string | null> = {};
+      if (productIds.length > 0) {
+        const imgs = await db
+          .select({ id: products.id, image: products.image })
+          .from(products)
+          .where(sql`${products.id} IN (${sql.join(productIds.map((id) => sql`${id}`), sql`, `)})`);
+        for (const p of imgs) productImages[p.id] = p.image;
+      }
+
+      return {
+        id: order.id,
+        receiptNo: order.orderNumber,
+        createdAt: order.createdAt.toISOString(),
+        status: order.fulfillmentStatus || order.status,
+        total: parseFloat(String(order.total)),
+        itemCount: order.itemCount,
+        items: items.map((i) => ({
+          name: i.name,
+          image: i.productId ? productImages[i.productId] : null,
+          quantity: i.quantity,
+          price: parseFloat(String(i.unitPrice)),
+        })),
+      };
+    })
+  );
+
+  return result;
 }

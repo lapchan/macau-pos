@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback, useTransition } from "react";
-import { Plus, X, Trash2, ChevronDown, ChevronUp, Package, Loader2 } from "lucide-react";
+import { Plus, X, Trash2, ChevronDown, ChevronUp, Package, Loader2, ImagePlus } from "lucide-react";
+import { useRef } from "react";
 import { cn } from "@/lib/cn";
 import { useLocale } from "@/i18n/context";
 import { t } from "@/i18n/locales";
@@ -15,6 +16,36 @@ import {
   updateVariant,
 } from "@/lib/variant-actions";
 
+// Color name → hex lookup for swatch display
+const COLOR_MAP: Record<string, string> = {
+  "白": "#ffffff", "純白": "#ffffff", "純白色": "#ffffff", "純⽩⾊": "#ffffff", "白色": "#ffffff",
+  "黑": "#1a1a1a", "黑色": "#1a1a1a", "暗魂黑": "#1a1a1a", "酷黑": "#111111",
+  "灰": "#9ca3af", "灰色": "#9ca3af", "城堡灰": "#8b8680",
+  "綠": "#22c55e", "綠色": "#22c55e", "森林綠": "#2d5a27",
+  "藍": "#3b82f6", "藍色": "#3b82f6", "深海藍": "#1e3a5f",
+  "粉紅": "#f9a8d4", "粉紅色": "#f9a8d4", "粉藍": "#93c5fd", "粉藍色": "#93c5fd",
+  "薄荷": "#a7f3d0", "薄荷色": "#a7f3d0", "薄荷⾊": "#a7f3d0",
+  "奶茶": "#c4a882", "奶茶色": "#c4a882", "奶茶⾊": "#c4a882",
+  "紫": "#a855f7", "橙": "#f97316", "金": "#eab308", "銀": "#c0c0c0",
+  "河津櫻": "#f4c2c2", "丁香": "#c8a2c8", "乾燥玫瑰": "#c08081", "夜海": "#2c3e6b",
+  "晨霧": "#d3d3d3", "焙茶": "#8b6914", "紫滕": "#9370db", "落日珊瑚": "#f08080",
+  "薰衣草": "#b57edc", "藍雪花": "#6495ed", "風鈴木": "#f0c420", "綠桔梗": "#77b28c",
+  "蝶豆花": "#4a3fc4", "青檸": "#a8d600", "桂枝": "#c4996c",
+  "white": "#ffffff", "black": "#1a1a1a", "grey": "#9ca3af", "gray": "#9ca3af",
+  "green": "#22c55e", "blue": "#3b82f6", "red": "#ef4444", "pink": "#f9a8d4",
+  "mint": "#a7f3d0", "silver": "#c0c0c0", "gold": "#eab308",
+};
+
+function getColorHex(name: string): string | null {
+  if (COLOR_MAP[name]) return COLOR_MAP[name];
+  const lower = name.toLowerCase().trim();
+  if (COLOR_MAP[lower]) return COLOR_MAP[lower];
+  for (const [key, hex] of Object.entries(COLOR_MAP)) {
+    if (name.includes(key) || lower.includes(key.toLowerCase())) return hex;
+  }
+  return null;
+}
+
 type OptionValue = { id: string; value: string; sortOrder: number };
 type OptionGroup = { id: string; name: string; sortOrder: number; values: OptionValue[] };
 type Variant = {
@@ -26,6 +57,7 @@ type Variant = {
   stock: number | null;
   optionCombo: Record<string, string>;
   isActive: boolean;
+  image: string | null;
 };
 
 type Props = {
@@ -152,6 +184,18 @@ export default function VariantEditor({
         prev.map((v) => (v.id === variantId ? { ...v, [field]: field === "stock" ? (value === "" ? null : parseInt(value, 10)) : value } : v))
       );
     });
+  }, []);
+
+  // Upload variant image
+  const handleVariantImageUpload = useCallback(async (variantId: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch("/api/upload", { method: "POST", body: formData });
+    const data = await res.json();
+    if (data.success && data.path) {
+      await updateVariant(variantId, { image: data.path });
+      setVariants((prev) => prev.map((v) => v.id === variantId ? { ...v, image: data.path } : v));
+    }
   }, []);
 
   const totalValues = groups.reduce((sum, g) => sum + g.values.length, 0);
@@ -291,6 +335,7 @@ export default function VariantEditor({
                 <table className="w-full text-[12px]">
                   <thead>
                     <tr className="bg-surface-hover/50 border-b border-border">
+                      <th className="text-center px-2 py-2 font-semibold text-text-secondary whitespace-nowrap w-[52px]">{t(locale, "items.image") || "Image"}</th>
                       <th className="text-left px-3 py-2 font-semibold text-text-secondary whitespace-nowrap">{t(locale, "items.colItem")}</th>
                       <th className="text-left px-3 py-2 font-semibold text-text-secondary whitespace-nowrap">SKU</th>
                       <th className="text-left px-3 py-2 font-semibold text-text-secondary whitespace-nowrap">{t(locale, "items.barcode")}</th>
@@ -299,11 +344,62 @@ export default function VariantEditor({
                     </tr>
                   </thead>
                   <tbody>
-                    {variants.map((v) => (
+                    {variants.map((v) => {
+                      const comboValues = Object.values(v.optionCombo);
+                      const colorHex = comboValues.length > 0 ? getColorHex(comboValues[0]) : null;
+                      return (
                       <tr key={v.id} className="border-b border-border last:border-0 hover:bg-surface-hover/30 transition-colors">
+                        {/* Image / Color swatch */}
+                        <td className="px-2 py-2 text-center">
+                          <label className="cursor-pointer inline-flex items-center justify-center">
+                            {v.image ? (
+                              <div className="relative group">
+                                <img src={v.image} alt="" className="h-8 w-8 rounded-full object-cover border border-border" />
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    updateVariant(v.id, { image: null });
+                                    setVariants((prev) => prev.map((x) => x.id === v.id ? { ...x, image: null } : x));
+                                  }}
+                                  className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                  <X className="h-2.5 w-2.5" />
+                                </button>
+                              </div>
+                            ) : colorHex ? (
+                              <div className="relative group">
+                                <span
+                                  className="block h-8 w-8 rounded-full border border-border"
+                                  style={{
+                                    backgroundColor: colorHex,
+                                    boxShadow: colorHex === "#ffffff" ? "inset 0 0 0 1px rgba(0,0,0,0.1)" : undefined,
+                                  }}
+                                />
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                  <ImagePlus className="h-3.5 w-3.5 text-white drop-shadow-md" />
+                                </div>
+                              </div>
+                            ) : (
+                              <span className="h-8 w-8 rounded-full border border-dashed border-border flex items-center justify-center text-text-tertiary hover:border-accent hover:text-accent transition-colors">
+                                <ImagePlus className="h-3.5 w-3.5" />
+                              </span>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (file) handleVariantImageUpload(v.id, file);
+                                e.target.value = "";
+                              }}
+                            />
+                          </label>
+                        </td>
                         <td className="px-3 py-2.5">
                           <span className="text-text-primary font-medium">
-                            {Object.values(v.optionCombo).join(" / ")}
+                            {comboValues.join(" / ")}
                           </span>
                         </td>
                         <td className="px-3 py-2.5">
@@ -343,7 +439,8 @@ export default function VariantEditor({
                           />
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

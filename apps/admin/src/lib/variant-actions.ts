@@ -280,6 +280,7 @@ export async function updateVariant(
     sku?: string | null;
     barcode?: string | null;
     isActive?: boolean;
+    image?: string | null;
   }
 ): Promise<ActionResult> {
   try {

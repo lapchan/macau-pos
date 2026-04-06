@@ -96,6 +96,7 @@ export async function getSession(token: string) {
       sessionId: sessions.id,
       userId: users.id,
       userName: users.name,
+      userAvatar: users.avatar,
       userEmail: users.email,
       userPhone: users.phone,
       userRole: users.role,

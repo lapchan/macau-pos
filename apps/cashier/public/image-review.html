@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<title>Product Image Review</title>
+<style>
+body { font-family: system-ui; max-width: 1200px; margin: 0 auto; padding: 20px; background: #f5f5f7; }
+h1 { margin-bottom: 8px; }
+.info { color: #666; margin-bottom: 20px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 12px; }
+.card { background: white; border-radius: 12px; padding: 12px; border: 2px solid #e5e5e7; position: relative; }
+.card.wrong { border-color: #ff3b30; background: #fff5f5; opacity: 0.5; }
+.card img { width: 100%; aspect-ratio: 1; object-fit: contain; border-radius: 8px; background: #f5f5f7; }
+.card .name { font-size: 13px; font-weight: 600; margin-top: 8px; line-height: 1.3; }
+.card .id { font-size: 10px; color: #999; margin-top: 4px; word-break: break-all; }
+.btn { position: absolute; top: 8px; right: 8px; width: 32px; height: 32px; border-radius: 50%; border: none; font-size: 18px; cursor: pointer; }
+.btn-wrong { background: #ff3b30; color: white; }
+.btn-ok { background: #34c759; color: white; }
+#actions { position: sticky; top: 0; background: #f5f5f7; padding: 12px 0; z-index: 10; display: flex; gap: 12px; align-items: center; }
+#actions button { padding: 8px 16px; border-radius: 8px; border: none; font-size: 14px; font-weight: 600; cursor: pointer; }
+#clear-btn { background: #ff3b30; color: white; }
+#count { font-size: 14px; color: #666; }
+textarea { width: 100%; height: 80px; margin-top: 12px; font-family: monospace; font-size: 11px; display: none; }
+</style>
+</head><body>
+<h1>Product Image Review</h1>
+<p class="info">Click ✕ on wrong images. Then click "Generate Cleanup SQL" to get the fix command.</p>
+<div id="actions">
+  <button id="clear-btn" onclick="generateSQL()">Generate Cleanup SQL</button>
+  <span id="count"></span>
+</div>
+<textarea id="sql"></textarea>
+<div class="grid">
+<div class="card" data-id="a249da36-2a25-4115-b75f-555962b4a58f">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/630227ae38d93d00109d2e79.jpg" alt="853口罩" loading="lazy">
+  <div class="name">853口罩</div>
+  <div class="id">a249da36-2a25-4115-b75f-555962b4a58f</div>
+</div>
+<div class="card" data-id="9d9c5f7f-c059-40e8-9d4b-2db63caecc9a">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/687e0a889dc7bb000e838e95.jpg" alt="AirFlow香薰片" loading="lazy">
+  <div class="name">AirFlow香薰片</div>
+  <div class="id">9d9c5f7f-c059-40e8-9d4b-2db63caecc9a</div>
+</div>
+<div class="card" data-id="bcd93ccf-f038-4de1-a247-606874d2ee1f">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/6954975a432d4100186f9f85.jpg" alt="HEALTHCHAIR X CARBON - XC1 超輕量級智能健康椅" loading="lazy">
+  <div class="name">HEALTHCHAIR X CARBON - XC1 超輕量級智能健康椅</div>
+  <div class="id">bcd93ccf-f038-4de1-a247-606874d2ee1f</div>
+</div>
+<div class="card" data-id="8bf0985b-d981-4504-829b-113e65eba55e">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/6244227a3c992f0021b0182e.jpg" alt="SAVEWO 3DMASK HANA 救世超立體口罩 花色系列 藍雪花KF94 + ASTM LEVEL3(30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO 3DMASK HANA 救世超立體口罩 花色系列 藍雪花KF94 + ASTM LEVEL3(30片獨立包裝/盒)</div>
+  <div class="id">8bf0985b-d981-4504-829b-113e65eba55e</div>
+</div>
+<div class="card" data-id="dd21509c-ac81-46da-bbab-fb7b8886523d">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/61c4628c3395050018a51f44.jpg" alt="SAVEWO 3DMASK KURO CASTLE GREY 救世超立體口罩 深色系列 城堡灰 (30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO 3DMASK KURO CASTLE GREY 救世超立體口罩 深色系列 城堡灰 (30片獨立包裝/盒)</div>
+  <div class="id">dd21509c-ac81-46da-bbab-fb7b8886523d</div>
+</div>
+<div class="card" data-id="4da09614-d519-45b8-857b-6721c5497add">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/636cbfa057df2300251923e5.jpg" alt="SAVEWO 3DMASK KURO COLLECTOR’S KIT 救世超立體口罩深色收藏家套裝KF94 + ASTM LEVEL3( 4色各1盒，沒禮盒包裝）" loading="lazy">
+  <div class="name">SAVEWO 3DMASK KURO COLLECTOR’S KIT 救世超立體口罩深色收藏家套裝KF94 + ASTM LEVEL3( 4色各1盒，沒禮盒包裝）</div>
+  <div class="id">4da09614-d519-45b8-857b-6721c5497add</div>
+</div>
+<div class="card" data-id="bdf264c0-c068-4188-9ecc-b36d57e0e29f">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/61c4655d8a011d0011cd01bb.jpg" alt="SAVEWO 3DMASK KURO COLLECTOR’S KIT 救世超立體口罩深色收藏家套裝KF94 + ASTM LEVEL3(4色各1盒，沒禮盒包裝)" loading="lazy">
+  <div class="name">SAVEWO 3DMASK KURO COLLECTOR’S KIT 救世超立體口罩深色收藏家套裝KF94 + ASTM LEVEL3(4色各1盒，沒禮盒包裝)</div>
+  <div class="id">bdf264c0-c068-4188-9ecc-b36d57e0e29f</div>
+</div>
+<div class="card" data-id="0f94aeb1-879d-4557-a828-d08e1c7bdb2d">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/61c46428f54ffb001db2e3ff.jpg" alt="SAVEWO 3DMASK KURO DEEPSEA BLUE 救世超立體口罩 深色系列 深海藍 (30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO 3DMASK KURO DEEPSEA BLUE 救世超立體口罩 深色系列 深海藍 (30片獨立包裝/盒)</div>
+  <div class="id">0f94aeb1-879d-4557-a828-d08e1c7bdb2d</div>
+</div>
+<div class="card" data-id="810d0035-93ff-4492-b443-0819e9cb7cef">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/61c4655d8a011d0011cd01bb.jpg" alt="SAVEWO 3DMASK Kuro Collection" loading="lazy">
+  <div class="name">SAVEWO 3DMASK Kuro Collection</div>
+  <div class="id">810d0035-93ff-4492-b443-0819e9cb7cef</div>
+</div>
+<div class="card" data-id="87198f1f-2139-470d-b1ec-fb2c2d0f7dcc">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/61c4628942283c0020a09297.jpg" alt="SAVEWO 3DMASK Kuro Collection（Type.Cool+） 城堡灰（30片獨立包裝/盒）大碼" loading="lazy">
+  <div class="name">SAVEWO 3DMASK Kuro Collection（Type.Cool+） 城堡灰（30片獨立包裝/盒）大碼</div>
+  <div class="id">87198f1f-2139-470d-b1ec-fb2c2d0f7dcc</div>
+</div>
+<div class="card" data-id="62f2d190-12e2-4299-9e40-75b68ec325ad">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/6674faaa18700200134bd6c1.jpg" alt="SAVEWO 3DMASK Memories 救世超立體口罩 丁香 (30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO 3DMASK Memories 救世超立體口罩 丁香 (30片獨立包裝/盒)</div>
+  <div class="id">62f2d190-12e2-4299-9e40-75b68ec325ad</div>
+</div>
+<div class="card" data-id="f09dfc37-9ec9-4413-b1d2-f3e00285da61">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/637f5384b263c2001f0ab518.jpg" alt="SAVEWO 3DMASK Memories 救世超立體口罩 乾燥玫瑰 (30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO 3DMASK Memories 救世超立體口罩 乾燥玫瑰 (30片獨立包裝/盒)</div>
+  <div class="id">f09dfc37-9ec9-4413-b1d2-f3e00285da61</div>
+</div>
+<div class="card" data-id="a2f0e254-2f7c-4333-89a2-4e5b696b774c">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/637f53c611edfe002b828c35.jpg" alt="SAVEWO 3DMASK Memories 救世超立體口罩 夜海 (30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO 3DMASK Memories 救世超立體口罩 夜海 (30片獨立包裝/盒)</div>
+  <div class="id">a2f0e254-2f7c-4333-89a2-4e5b696b774c</div>
+</div>
+<div class="card" data-id="dc85714f-d029-436f-ac64-08f7e27ab0e1">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/61c4655d8a011d0011cd01bb.jpg" alt="SAVEWO 3DMASK Memories 救世超立體口罩 晨霧 (30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO 3DMASK Memories 救世超立體口罩 晨霧 (30片獨立包裝/盒)</div>
+  <div class="id">dc85714f-d029-436f-ac64-08f7e27ab0e1</div>
+</div>
+<div class="card" data-id="ff6e46e6-e2e3-466d-9c16-d8ce552fd93a">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/61c4655d8a011d0011cd01bb.jpg" alt="SAVEWO 3DMASK Memories 救世超立體口罩 暮色 (一盒三款共 30 個, 每款 10 個獨立包裝)" loading="lazy">
+  <div class="name">SAVEWO 3DMASK Memories 救世超立體口罩 暮色 (一盒三款共 30 個, 每款 10 個獨立包裝)</div>
+  <div class="id">ff6e46e6-e2e3-466d-9c16-d8ce552fd93a</div>
+</div>
+<div class="card" data-id="7c733a9d-618c-4549-845a-c1a6c4624689">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/6674faaa18700200134bd6c1.jpg" alt="SAVEWO 3DMASK Memories 救世超立體口罩 紫藤 (30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO 3DMASK Memories 救世超立體口罩 紫藤 (30片獨立包裝/盒)</div>
+  <div class="id">7c733a9d-618c-4549-845a-c1a6c4624689</div>
+</div>
+<div class="card" data-id="a7f40438-ad70-4e87-8227-454891c5c1a2">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/637f5384b263c2001f0ab518.jpg" alt="SAVEWO 3DMASK Memories 救世超立體口罩 落日珊瑚 (30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO 3DMASK Memories 救世超立體口罩 落日珊瑚 (30片獨立包裝/盒)</div>
+  <div class="id">a7f40438-ad70-4e87-8227-454891c5c1a2</div>
+</div>
+<div class="card" data-id="9ef560a0-018c-403a-9b7d-32d9710ba2f6">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/693298b38d0b5400162a414e.jpg" alt="SAVEWO 3DMASK SMILE 救世超立體口罩 SMILE (20片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO 3DMASK SMILE 救世超立體口罩 SMILE (20片獨立包裝/盒)</div>
+  <div class="id">9ef560a0-018c-403a-9b7d-32d9710ba2f6</div>
+</div>
+<div class="card" data-id="0004de5c-fe95-4730-899a-1961d0262164">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/693298b38d0b5400162a414e.jpg" alt="SAVEWO 3DMASK ULTRA TYPECOOL+" loading="lazy">
+  <div class="name">SAVEWO 3DMASK ULTRA TYPECOOL+</div>
+  <div class="id">0004de5c-fe95-4730-899a-1961d0262164</div>
+</div>
+<div class="card" data-id="2cec6f45-7f8b-44df-a3d4-584aa5ec4152">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/62fb1cbc2ea84500283cd5ed.jpg" alt="SAVEWO 3DMASK V1 救世超立體口罩 (30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO 3DMASK V1 救世超立體口罩 (30片獨立包裝/盒)</div>
+  <div class="id">2cec6f45-7f8b-44df-a3d4-584aa5ec4152</div>
+</div>
+<div class="card" data-id="6ebfc21d-e52d-4a1d-a2b4-a03894232ff7">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/62e1f59ebac079001a195959.jpg" alt="SAVEWO 3DMASK Vplus 救世超立體口罩 (30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO 3DMASK Vplus 救世超立體口罩 (30片獨立包裝/盒)</div>
+  <div class="id">6ebfc21d-e52d-4a1d-a2b4-a03894232ff7</div>
+</div>
+<div class="card" data-id="fa74c2c8-0142-425c-80a5-21ede81be4f8">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/693298b38d0b5400162a414e.jpg" alt="SAVEWO 3DMASK Vplus(KN壓印) 救世超立體口罩Vplus - (30片獨立包裝/盒) (REGULAR SIZE 標準碼)" loading="lazy">
+  <div class="name">SAVEWO 3DMASK Vplus(KN壓印) 救世超立體口罩Vplus - (30片獨立包裝/盒) (REGULAR SIZE 標準碼)</div>
+  <div class="id">fa74c2c8-0142-425c-80a5-21ede81be4f8</div>
+</div>
+<div class="card" data-id="025f9ca3-f65e-45a2-999c-8f8db41b755c">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/637f5419de22a2002e27ca3c.jpg" alt="SAVEWO 3DMEOW BLACK 救世立體喵成人版防護口罩 黑色 (30片獨立包裝/盒) (90% 以上成人適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW BLACK 救世立體喵成人版防護口罩 黑色 (30片獨立包裝/盒) (90% 以上成人適用)</div>
+  <div class="id">025f9ca3-f65e-45a2-999c-8f8db41b755c</div>
+</div>
+<div class="card" data-id="09da1878-793d-4202-9ce6-8e0647ef3f98">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/637f541ebf76ee0013d4735f.jpg" alt="SAVEWO 3DMEOW BLACK 救世立體喵頑童防護口罩 黑色 (30片獨立包裝/盒) (大童, 小顏人士適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW BLACK 救世立體喵頑童防護口罩 黑色 (30片獨立包裝/盒) (大童, 小顏人士適用)</div>
+  <div class="id">09da1878-793d-4202-9ce6-8e0647ef3f98</div>
+</div>
+<div class="card" data-id="5487af66-c42f-46b9-b8a6-ebb6f9405819">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/64662d04f524e6002327247d.jpg" alt="SAVEWO 3DMEOW BLUE 救世立體喵兒童防護口罩 粉藍色 (30片獨立包裝/盒) (2-6歲適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW BLUE 救世立體喵兒童防護口罩 粉藍色 (30片獨立包裝/盒) (2-6歲適用)</div>
+  <div class="id">5487af66-c42f-46b9-b8a6-ebb6f9405819</div>
+</div>
+<div class="card" data-id="fda29e23-4108-445a-bd59-85e55837681a">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/64662cab6a7c33002001b6da.jpg" alt="SAVEWO 3DMEOW BLUE 救世立體喵兒童防護口罩 粉藍色 (5片獨立包裝/袋) (2-6歲適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW BLUE 救世立體喵兒童防護口罩 粉藍色 (5片獨立包裝/袋) (2-6歲適用)</div>
+  <div class="id">fda29e23-4108-445a-bd59-85e55837681a</div>
+</div>
+<div class="card" data-id="e3505889-e542-468c-8fae-6655723ceb23">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/64662cffa646626fdffdc17c.jpg" alt="SAVEWO 3DMEOW BLUE 救世立體喵兒童防護口罩 粉藍色 (5片獨立包裝/袋) (7-13歲適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW BLUE 救世立體喵兒童防護口罩 粉藍色 (5片獨立包裝/袋) (7-13歲適用)</div>
+  <div class="id">e3505889-e542-468c-8fae-6655723ceb23</div>
+</div>
+<div class="card" data-id="74f714fc-2ccb-4e31-b369-1fa28dde3000">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/67abfb988b5090000d832dbe.jpg" alt="SAVEWO 3DMEOW BLUE 救世立體喵兒童防護口罩 粉藍色(30片獨立包裝/盒) (7-13歲適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW BLUE 救世立體喵兒童防護口罩 粉藍色(30片獨立包裝/盒) (7-13歲適用)</div>
+  <div class="id">74f714fc-2ccb-4e31-b369-1fa28dde3000</div>
+</div>
+<div class="card" data-id="33a7845f-53bf-4682-bfee-4fff69657d95">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/637f53c611edfe002b828c35.jpg" alt="SAVEWO 3DMEOW BLUE 救世立體喵頑童防護口罩 粉藍色 (30片獨立包裝/盒) (大童, 小顏人士適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW BLUE 救世立體喵頑童防護口罩 粉藍色 (30片獨立包裝/盒) (大童, 小顏人士適用)</div>
+  <div class="id">33a7845f-53bf-4682-bfee-4fff69657d95</div>
+</div>
+<div class="card" data-id="1bccd298-bd8d-4746-93e8-f83e8b01a49c">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/637f53c611edfe002b828c35.jpg" alt="SAVEWO 3DMEOW CADET BLUE 救世立體喵兒童防護口罩 深藍色 (30片獨立包裝/盒) (7-13歲適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW CADET BLUE 救世立體喵兒童防護口罩 深藍色 (30片獨立包裝/盒) (7-13歲適用)</div>
+  <div class="id">1bccd298-bd8d-4746-93e8-f83e8b01a49c</div>
+</div>
+<div class="card" data-id="46b086b0-4f97-4090-90d7-73a82a90f660">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/6350dc5a8bb80500221664e3.jpg" alt="SAVEWO 3DMEOW CADET BLUE 救世立體喵兒童防護口罩 深藍色(30片獨立包裝/盒) (2-6歲適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW CADET BLUE 救世立體喵兒童防護口罩 深藍色(30片獨立包裝/盒) (2-6歲適用)</div>
+  <div class="id">46b086b0-4f97-4090-90d7-73a82a90f660</div>
+</div>
+<div class="card" data-id="e3f94d92-1e10-4d19-927a-4f85db85d2d3">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/6350dc5a8bb80500221664e3.jpg" alt="SAVEWO 3DMEOW DARK GREEN 救世立體喵兒童防護口罩 深綠色 (30片獨立包裝/盒) (2-6歲適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW DARK GREEN 救世立體喵兒童防護口罩 深綠色 (30片獨立包裝/盒) (2-6歲適用)</div>
+  <div class="id">e3f94d92-1e10-4d19-927a-4f85db85d2d3</div>
+</div>
+<div class="card" data-id="3b06ec53-1b3e-4527-a7d7-b0148d0304dd">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/655346019d8327001d61e42c.jpg" alt="SAVEWO 3DMEOW PINK 救世立體喵兒童防護口罩 粉紅色 (30片獨立包裝/盒) (2-6歲適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW PINK 救世立體喵兒童防護口罩 粉紅色 (30片獨立包裝/盒) (2-6歲適用)</div>
+  <div class="id">3b06ec53-1b3e-4527-a7d7-b0148d0304dd</div>
+</div>
+<div class="card" data-id="9ed0d95f-0701-47b6-a749-55d4ccae6fa1">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/637f5384b263c2001f0ab518.jpg" alt="SAVEWO 3DMEOW PINK 救世立體喵兒童防護口罩 粉紅色 (5片獨立包裝/袋) (2-6歲適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW PINK 救世立體喵兒童防護口罩 粉紅色 (5片獨立包裝/袋) (2-6歲適用)</div>
+  <div class="id">9ed0d95f-0701-47b6-a749-55d4ccae6fa1</div>
+</div>
+<div class="card" data-id="c88be2bd-8865-4002-aeeb-10b712c90206">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/64662c5b7660a80014e0f436.jpg" alt="SAVEWO 3DMEOW PINK 救世立體喵兒童防護口罩 粉紅色 (5片獨立包裝/袋) (7-13歲適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW PINK 救世立體喵兒童防護口罩 粉紅色 (5片獨立包裝/袋) (7-13歲適用)</div>
+  <div class="id">c88be2bd-8865-4002-aeeb-10b712c90206</div>
+</div>
+<div class="card" data-id="a48863d3-8155-4948-85c4-86731410e064">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/6350dc5d58f42700285a0eab.jpg" alt="SAVEWO 3DMEOW WHITE 救世立體喵兒童防護口罩 純白色 (30片獨立包裝/盒) (2-6歲適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW WHITE 救世立體喵兒童防護口罩 純白色 (30片獨立包裝/盒) (2-6歲適用)</div>
+  <div class="id">a48863d3-8155-4948-85c4-86731410e064</div>
+</div>
+<div class="card" data-id="4a352e02-43e3-4048-879a-669b3c915e3e">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/67ad5869e2aa2e000b121a15.jpg" alt="SAVEWO 3DMEOW WHITE 救世立體喵兒童防護口罩 純白色 (30片獨立包裝/盒) (7-13歲適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW WHITE 救世立體喵兒童防護口罩 純白色 (30片獨立包裝/盒) (7-13歲適用)</div>
+  <div class="id">4a352e02-43e3-4048-879a-669b3c915e3e</div>
+</div>
+<div class="card" data-id="a465be9b-9d3d-4b2c-a772-0233bca5ff91">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/6350dc5a8bb80500221664e3.jpg" alt="SAVEWO 3DMEOW WHITE 救世立體喵兒童防護口罩 純白色 (5片獨立包裝/袋) (7-13歲適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW WHITE 救世立體喵兒童防護口罩 純白色 (5片獨立包裝/袋) (7-13歲適用)</div>
+  <div class="id">a465be9b-9d3d-4b2c-a772-0233bca5ff91</div>
+</div>
+<div class="card" data-id="fba5c6b5-c826-42d6-9e0f-8e70f4792fcc">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/655337a85408680017694cfc.jpg" alt="SAVEWO 3DMEOW WHITE 救世立體喵成人版防護口罩 純白色 (30片獨立包裝/盒) (90% 以上成人適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW WHITE 救世立體喵成人版防護口罩 純白色 (30片獨立包裝/盒) (90% 以上成人適用)</div>
+  <div class="id">fba5c6b5-c826-42d6-9e0f-8e70f4792fcc</div>
+</div>
+<div class="card" data-id="6d1bcdfc-adc4-4d9b-b29e-da99fc418b53">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/655337a48c90b6633a5029b0.jpg" alt="SAVEWO 3DMEOW WHITE 救世立體喵頑童防護口罩 純白色 (30片獨立包裝/盒) (大童, 小顏人士適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW WHITE 救世立體喵頑童防護口罩 純白色 (30片獨立包裝/盒) (大童, 小顏人士適用)</div>
+  <div class="id">6d1bcdfc-adc4-4d9b-b29e-da99fc418b53</div>
+</div>
+<div class="card" data-id="064ad47d-a236-4bcb-b05b-94bfb7173fc7">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/6674faaa18700200134bd6c1.jpg" alt="SAVEWO 3DMEOW Wisteria 救世立體喵成人版防護口罩 紫藤 (30片獨立包裝/盒) (90% 以上成人適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW Wisteria 救世立體喵成人版防護口罩 紫藤 (30片獨立包裝/盒) (90% 以上成人適用)</div>
+  <div class="id">064ad47d-a236-4bcb-b05b-94bfb7173fc7</div>
+</div>
+<div class="card" data-id="8f9ffcbd-ff72-4027-b385-304ebbcc1ee6">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/6350dc5a8bb80500221664e3.jpg" alt="SAVEWO 3DMEOW 兒童 S2 2-6歲" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW 兒童 S2 2-6歲</div>
+  <div class="id">8f9ffcbd-ff72-4027-b385-304ebbcc1ee6</div>
+</div>
+<div class="card" data-id="421aa3fc-3c2b-40d6-a3bf-3c6fe5e2a5e5">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/6350dc5a8bb80500221664e3.jpg" alt="SAVEWO 3DMEOW 救世立體喵兒童防護口罩 秋冬限定配色 (30片獨立包裝/盒) (2-6歲適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW 救世立體喵兒童防護口罩 秋冬限定配色 (30片獨立包裝/盒) (2-6歲適用)</div>
+  <div class="id">421aa3fc-3c2b-40d6-a3bf-3c6fe5e2a5e5</div>
+</div>
+<div class="card" data-id="18173373-985b-4b46-bff1-edc715d09e96">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/6350dc5a8bb80500221664e3.jpg" alt="SAVEWO 3DMEOW 救世立體喵兒童防護口罩 秋冬限定配色 (30片獨立包裝/盒) (7-13歲適用)" loading="lazy">
+  <div class="name">SAVEWO 3DMEOW 救世立體喵兒童防護口罩 秋冬限定配色 (30片獨立包裝/盒) (7-13歲適用)</div>
+  <div class="id">18173373-985b-4b46-bff1-edc715d09e96</div>
+</div>
+<div class="card" data-id="80fe83d5-5cb5-485a-bc48-3435cf059fe7">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/687e0a889dc7bb000e838e95.jpg" alt="SAVEWO AirFlow 酷冰風扇" loading="lazy">
+  <div class="name">SAVEWO AirFlow 酷冰風扇</div>
+  <div class="id">80fe83d5-5cb5-485a-bc48-3435cf059fe7</div>
+</div>
+<div class="card" data-id="7513a9a2-e4b3-459b-ae15-224846dfc801">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/630227ae38d93d00109d2e79.jpg" alt="SAVEWO ClassicMask 160mm 成人細碼" loading="lazy">
+  <div class="name">SAVEWO ClassicMask 160mm 成人細碼</div>
+  <div class="id">7513a9a2-e4b3-459b-ae15-224846dfc801</div>
+</div>
+<div class="card" data-id="88bf574c-5c1b-471d-80bc-c807bd4560f2">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/630227ae38d93d00109d2e79.jpg" alt="SAVEWO ClassicMask 175mm" loading="lazy">
+  <div class="name">SAVEWO ClassicMask 175mm</div>
+  <div class="id">88bf574c-5c1b-471d-80bc-c807bd4560f2</div>
+</div>
+<div class="card" data-id="7ae5a9aa-73a4-44b4-8ad4-e66d7c6a4420">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/64cb31a5627c24002282f8ca.jpg" alt="SAVEWO ClassicMask Memories 三摺平面口罩 暖陽 (一盒三款共 30 個, 每款 10 個獨立包裝)" loading="lazy">
+  <div class="name">SAVEWO ClassicMask Memories 三摺平面口罩 暖陽 (一盒三款共 30 個, 每款 10 個獨立包裝)</div>
+  <div class="id">7ae5a9aa-73a4-44b4-8ad4-e66d7c6a4420</div>
+</div>
+<div class="card" data-id="2f248421-e9ea-45fe-8a68-d78cebbcd10a">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/64992bb00f88220020c29ae5.jpg" alt="SAVEWO ClassicMask 三摺平面口罩 灰色 (30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO ClassicMask 三摺平面口罩 灰色 (30片獨立包裝/盒)</div>
+  <div class="id">2f248421-e9ea-45fe-8a68-d78cebbcd10a</div>
+</div>
+<div class="card" data-id="780c024b-68d4-480e-85d8-6d4e2026fb94">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/628376fa9b7b1300120a5aaa.jpg" alt="SAVEWO ClassicMask 三摺平面口罩 灰色 (30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO ClassicMask 三摺平面口罩 灰色 (30片獨立包裝/盒)</div>
+  <div class="id">780c024b-68d4-480e-85d8-6d4e2026fb94</div>
+</div>
+<div class="card" data-id="581dceb3-225f-4f2c-b8f9-5e872165ee0e">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/630227ae38d93d00109d2e79.jpg" alt="SAVEWO ClassicMask 三摺平面口罩 白色 (30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO ClassicMask 三摺平面口罩 白色 (30片獨立包裝/盒)</div>
+  <div class="id">581dceb3-225f-4f2c-b8f9-5e872165ee0e</div>
+</div>
+<div class="card" data-id="2aa84a03-4dc6-4e6d-940f-c0f126007fbe">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/628376a81dd86100249a16a5.jpg" alt="SAVEWO ClassicMask 三摺平面口罩 白色 (30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO ClassicMask 三摺平面口罩 白色 (30片獨立包裝/盒)</div>
+  <div class="id">2aa84a03-4dc6-4e6d-940f-c0f126007fbe</div>
+</div>
+<div class="card" data-id="0d7c9b74-6a74-4f51-8972-7fe8091f21cb">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/631041f9e6faf5001c8813c8.jpg" alt="SAVEWO ClassicMask 三摺平面口罩 白色 (30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO ClassicMask 三摺平面口罩 白色 (30片獨立包裝/盒)</div>
+  <div class="id">0d7c9b74-6a74-4f51-8972-7fe8091f21cb</div>
+</div>
+<div class="card" data-id="34819b94-6c12-4c02-864e-b214e8d118ef">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/628375d12bd1a1002ac449d6.jpg" alt="SAVEWO ClassicMask 三摺平面口罩 黑色 (30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO ClassicMask 三摺平面口罩 黑色 (30片獨立包裝/盒)</div>
+  <div class="id">34819b94-6c12-4c02-864e-b214e8d118ef</div>
+</div>
+<div class="card" data-id="cc52b461-1b24-4f7f-8f94-d46374876d1f">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/6307402ea3a9a8001037dade.jpg" alt="SAVEWO ClassicMask 三摺平面口罩 黑色 (30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO ClassicMask 三摺平面口罩 黑色 (30片獨立包裝/盒)</div>
+  <div class="id">cc52b461-1b24-4f7f-8f94-d46374876d1f</div>
+</div>
+<div class="card" data-id="fbf9a0e9-0b3b-49ef-9bab-3ba866141ca8">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/64992ba8641309001a53854e.jpg" alt="SAVEWO ClassicMask 三摺平面口罩 黑色 (30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO ClassicMask 三摺平面口罩 黑色 (30片獨立包裝/盒)</div>
+  <div class="id">fbf9a0e9-0b3b-49ef-9bab-3ba866141ca8</div>
+</div>
+<div class="card" data-id="76451fd3-ce74-47e3-bfdc-f81af6a23664">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/69bbb23e5c17375191535b45.jpeg" alt="SAVEWO MagCell 5000mAh PowerBank" loading="lazy">
+  <div class="name">SAVEWO MagCell 5000mAh PowerBank</div>
+  <div class="id">76451fd3-ce74-47e3-bfdc-f81af6a23664</div>
+</div>
+<div class="card" data-id="e3916cfd-5661-4d1d-9af5-ce0938ea86c2">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/696607454a1e52ebd1b01c72.jpg" alt="SAVEWO PowerCable USB-C 磁吸充電線" loading="lazy">
+  <div class="name">SAVEWO PowerCable USB-C 磁吸充電線</div>
+  <div class="id">e3916cfd-5661-4d1d-9af5-ce0938ea86c2</div>
+</div>
+<div class="card" data-id="633fa035-e7e3-4126-8eff-da865ca6c331">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/6937dedb046119c07866f7c0.jpg" alt="SAVEWO ROYAL MASK 2D FFP2" loading="lazy">
+  <div class="name">SAVEWO ROYAL MASK 2D FFP2</div>
+  <div class="id">633fa035-e7e3-4126-8eff-da865ca6c331</div>
+</div>
+<div class="card" data-id="3d9b216e-a1f4-4d6e-ba19-7b81b8d315cd">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/6937dedb046119c07866f7c0.jpg" alt="SAVEWO ROYAL MASK 救世 2D 對摺型口罩 桂枝 KF94 + KN95 + ASTM LEVEL3 認證 (30片獨立包裝/盒)" loading="lazy">
+  <div class="name">SAVEWO ROYAL MASK 救世 2D 對摺型口罩 桂枝 KF94 + KN95 + ASTM LEVEL3 認證 (30片獨立包裝/盒)</div>
+  <div class="id">3d9b216e-a1f4-4d6e-ba19-7b81b8d315cd</div>
+</div>
+<div class="card" data-id="ecd9360e-84c9-4c8f-98d4-be578313d33a">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/630227ae38d93d00109d2e79.jpg" alt="SAVEWO 救世 ClassicMask 平面口罩 175mm (白色)" loading="lazy">
+  <div class="name">SAVEWO 救世 ClassicMask 平面口罩 175mm (白色)</div>
+  <div class="id">ecd9360e-84c9-4c8f-98d4-be578313d33a</div>
+</div>
+<div class="card" data-id="81f8568d-d76c-40c3-9e8a-6ebccd4b69f9">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/6937aea06eb90e0012cf9b5e.jpg" alt="SAVEWO 救世 Covid-19@新型冠狀病毒抗原檢測試劑" loading="lazy">
+  <div class="name">SAVEWO 救世 Covid-19@新型冠狀病毒抗原檢測試劑</div>
+  <div class="id">81f8568d-d76c-40c3-9e8a-6ebccd4b69f9</div>
+</div>
+<div class="card" data-id="2683f241-4ccb-449a-8310-335e7f54c2da">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/687e0a889dc7bb000e838e95.jpg" alt="Savewo AirFlow Solid Aroma 10Pcs" loading="lazy">
+  <div class="name">Savewo AirFlow Solid Aroma 10Pcs</div>
+  <div class="id">2683f241-4ccb-449a-8310-335e7f54c2da</div>
+</div>
+<div class="card" data-id="71eabf91-06c7-412f-bf54-648043cb19a2">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/6937aea06eb90e0012cf9b5e.jpg" alt="抗原試劑" loading="lazy">
+  <div class="name">抗原試劑</div>
+  <div class="id">71eabf91-06c7-412f-bf54-648043cb19a2</div>
+</div>
+<div class="card" data-id="18ebb6d4-9759-46df-884c-d2dc0816f423">
+  <button class="btn btn-wrong" onclick="toggleWrong(this)">✕</button>
+  <img src="/products/savewo/6244227a3c992f0021b0182e.jpg" alt="救世超立體口罩 SAVEWO 3DMASK Hana R Collection藍雪花 Plumbago（30片獨立包裝/盒）" loading="lazy">
+  <div class="name">救世超立體口罩 SAVEWO 3DMASK Hana R Collection藍雪花 Plumbago（30片獨立包裝/盒）</div>
+  <div class="id">18ebb6d4-9759-46df-884c-d2dc0816f423</div>
+</div>
+</div>
+<script>
+const wrong = new Set();
+function toggleWrong(btn) {
+  const card = btn.closest('.card');
+  const id = card.dataset.id;
+  if (wrong.has(id)) { wrong.delete(id); card.classList.remove('wrong'); btn.className='btn btn-wrong'; btn.textContent='✕'; }
+  else { wrong.add(id); card.classList.add('wrong'); btn.className='btn btn-ok'; btn.textContent='↺'; }
+  document.getElementById('count').textContent = wrong.size + ' marked wrong';
+}
+function generateSQL() {
+  if (wrong.size === 0) { alert('No wrong images marked!'); return; }
+  const ids = [...wrong].map(id => "'" + id + "'").join(',');
+  const sql = "UPDATE products SET image = NULL WHERE id IN (" + ids + ");";
+  const el = document.getElementById('sql');
+  el.style.display = 'block';
+  el.value = sql;
+  el.select();
+  navigator.clipboard.writeText(sql).then(() => alert('SQL copied to clipboard! Paste it into: psql "postgresql://pos_dev:pos_dev_123@localhost:5433/macau_pos_dev" -c "..."'));
+}
+</script>
+</body></html>

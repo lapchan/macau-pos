@@ -34,9 +34,10 @@ type Props = {
   sections: SectionConfig[];
   locale: string;
   tenantId: string;
+  themeId?: string;
 };
 
-const SECTION_MAP: Record<string, React.ComponentType<{ data: Record<string, unknown>; locale: string; tenantId: string }>> = {
+const SECTION_MAP: Record<string, React.ComponentType<{ data: Record<string, unknown>; locale: string; tenantId: string; themeId?: string }>> = {
   hero_banner: HeroBanner,
   product_grid: ProductGrid,
   product_carousel: ProductCarousel,
@@ -62,7 +63,7 @@ const SECTION_MAP: Record<string, React.ComponentType<{ data: Record<string, unk
   product_features: ProductFeatures,
 };
 
-export default function SectionRenderer({ sections, locale, tenantId }: Props) {
+export default function SectionRenderer({ sections, locale, tenantId, themeId }: Props) {
   return (
     <div className="space-y-0">
       {sections
@@ -72,7 +73,7 @@ export default function SectionRenderer({ sections, locale, tenantId }: Props) {
           if (!Component) return null;
           return (
             <section key={section.id} className="animate-fade-in">
-              <Component data={section.data} locale={locale} tenantId={tenantId} />
+              <Component data={section.data} locale={locale} tenantId={tenantId} themeId={themeId} />
             </section>
           );
         })}

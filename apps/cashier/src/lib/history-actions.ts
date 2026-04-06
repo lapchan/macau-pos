@@ -5,20 +5,26 @@ import {
   orders,
   orderItems,
   payments,
+  products,
+  productVariants,
   eq,
   and,
   desc,
   inArray,
   sql,
+  logCashEvent,
 } from "@macau-pos/database";
 import { getAuthSession } from "./auth-actions";
+import { getActiveShift } from "./shift-actions";
 
 export type FilterParams = {
-  dateRange: "all" | "today" | "yesterday" | "last7days" | "thisShift";
+  dateRange: "all" | "today" | "yesterday" | "last7days" | "thisShift" | "custom";
   status: string[];
   paymentMethod: string[];
   search: string;
   shiftId?: string | null;
+  customFrom?: string;
+  customTo?: string;
 };
 
 export type OrderRow = {
@@ -26,10 +32,13 @@ export type OrderRow = {
   orderNumber: string;
   status: string;
   subtotal: string;
+  discountAmount: string;
+  taxAmount: string;
   total: string;
+  notes: string | null;
   itemCount: number;
   currency: string;
-  createdAt: string; // ISO string for serialization
+  createdAt: string;
   paymentMethod: string | null;
 };
 
@@ -39,6 +48,8 @@ export type OrderItemRow = {
   name: string;
   translations: Record<string, string> | null;
   unitPrice: string;
+  discountAmount: string;
+  discountNote: string | null;
   quantity: number;
   lineTotal: string;
 };
@@ -52,8 +63,11 @@ export async function fetchFilteredOrders(
   }
   const tenantId = session.tenantId;
 
-  // Build conditions
+  // Build conditions — only show orders from this terminal
   const conditions: ReturnType<typeof eq>[] = [eq(orders.tenantId, tenantId)];
+  if (session.terminalId) {
+    conditions.push(eq(orders.terminalId, session.terminalId));
+  }
 
   // Shift filter
   if (filters.dateRange === "thisShift" && filters.shiftId) {
@@ -61,14 +75,17 @@ export async function fetchFilteredOrders(
   }
 
   // Date range filter (Macau timezone = Asia/Macau = UTC+8)
-  const tz = "Asia/Macau";
+  // Cast date back to timestamptz in Macau TZ so midnight = 16:00 UTC, not 00:00 UTC
   if (filters.dateRange === "today") {
-    conditions.push(sql`${orders.createdAt} >= (CURRENT_TIMESTAMP AT TIME ZONE ${tz})::date`);
+    conditions.push(sql`${orders.createdAt} >= ((CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Macau')::date)::timestamp AT TIME ZONE 'Asia/Macau'`);
   } else if (filters.dateRange === "yesterday") {
-    conditions.push(sql`${orders.createdAt} >= ((CURRENT_TIMESTAMP AT TIME ZONE ${tz})::date - INTERVAL '1 day')`);
-    conditions.push(sql`${orders.createdAt} < (CURRENT_TIMESTAMP AT TIME ZONE ${tz})::date`);
+    conditions.push(sql`${orders.createdAt} >= (((CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Macau')::date - INTERVAL '1 day'))::timestamp AT TIME ZONE 'Asia/Macau'`);
+    conditions.push(sql`${orders.createdAt} < ((CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Macau')::date)::timestamp AT TIME ZONE 'Asia/Macau'`);
   } else if (filters.dateRange === "last7days") {
-    conditions.push(sql`${orders.createdAt} >= ((CURRENT_TIMESTAMP AT TIME ZONE ${tz})::date - INTERVAL '7 days')`);
+    conditions.push(sql`${orders.createdAt} >= (((CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Macau')::date - INTERVAL '7 days'))::timestamp AT TIME ZONE 'Asia/Macau'`);
+  } else if (filters.dateRange === "custom" && filters.customFrom && filters.customTo) {
+    conditions.push(sql`${orders.createdAt} >= (${filters.customFrom}::date)::timestamp AT TIME ZONE 'Asia/Macau'`);
+    conditions.push(sql`${orders.createdAt} < (${filters.customTo}::date + INTERVAL '1 day')::timestamp AT TIME ZONE 'Asia/Macau'`);
   }
 
   // Status filter
@@ -90,7 +107,10 @@ export async function fetchFilteredOrders(
       orderNumber: orders.orderNumber,
       status: orders.status,
       subtotal: orders.subtotal,
+      discountAmount: orders.discountAmount,
+      taxAmount: orders.taxAmount,
       total: orders.total,
+      notes: orders.notes,
       itemCount: orders.itemCount,
       currency: orders.currency,
       createdAt: orders.createdAt,
@@ -130,7 +150,10 @@ export async function fetchFilteredOrders(
   const serializedOrders: OrderRow[] = rows.map((r) => ({
     ...r,
     subtotal: String(r.subtotal),
+    discountAmount: String(r.discountAmount || "0"),
+    taxAmount: String(r.taxAmount || "0"),
     total: String(r.total),
+    notes: r.notes || null,
     createdAt: r.createdAt ? new Date(r.createdAt).toISOString() : new Date().toISOString(),
   }));
 
@@ -146,6 +169,8 @@ export async function fetchFilteredOrders(
             translations: orderItems.translations,
             unitPrice: orderItems.unitPrice,
             quantity: orderItems.quantity,
+            discountAmount: orderItems.discountAmount,
+            discountNote: orderItems.discountNote,
             lineTotal: orderItems.lineTotal,
           })
           .from(orderItems)
@@ -159,6 +184,8 @@ export async function fetchFilteredOrders(
       ...item,
       translations: item.translations as Record<string, string> | null,
       unitPrice: String(item.unitPrice),
+      discountAmount: String(item.discountAmount || "0"),
+      discountNote: item.discountNote || null,
       lineTotal: String(item.lineTotal),
     };
     if (!items[item.orderId]) items[item.orderId] = [];
@@ -166,4 +193,100 @@ export async function fetchFilteredOrders(
   }
 
   return { orders: serializedOrders, items };
+}
+
+// ─── Void or Refund an Order ─────────────────────────────────
+type VoidRefundResult =
+  | { success: true; refundAmount: number; paymentMethod: string }
+  | { success: false; error: string };
+
+export async function voidOrRefundOrder(
+  orderId: string,
+  action: "void" | "refund"
+): Promise<VoidRefundResult> {
+  try {
+    const session = await getAuthSession();
+    if (!session?.tenantId || !session.userId) {
+      return { success: false, error: "No active session" };
+    }
+
+    // Load order
+    const [order] = await db
+      .select()
+      .from(orders)
+      .where(and(eq(orders.id, orderId), eq(orders.tenantId, session.tenantId)))
+      .limit(1);
+
+    if (!order) return { success: false, error: "Order not found" };
+    if (order.status !== "completed") {
+      return { success: false, error: `Order is already ${order.status}` };
+    }
+
+    // Load items + payment
+    const items = await db.select().from(orderItems).where(eq(orderItems.orderId, orderId));
+    const [payment] = await db.select().from(payments).where(eq(payments.orderId, orderId)).limit(1);
+
+    const newStatus = action === "void" ? "voided" : "refunded";
+
+    await db.transaction(async (tx) => {
+      // Update order status
+      await tx
+        .update(orders)
+        .set({ status: newStatus as "voided" | "refunded" })
+        .where(eq(orders.id, orderId));
+
+      // Reverse stock for each item
+      for (const item of items) {
+        if (item.variantId) {
+          await tx
+            .update(productVariants)
+            .set({ stock: sql`${productVariants.stock} + ${item.quantity}` })
+            .where(
+              and(
+                eq(productVariants.id, item.variantId),
+                sql`${productVariants.stock} IS NOT NULL`
+              )
+            );
+        } else if (item.productId) {
+          await tx
+            .update(products)
+            .set({ stock: sql`${products.stock} + ${item.quantity}` })
+            .where(
+              and(
+                eq(products.id, item.productId),
+                sql`${products.stock} IS NOT NULL`
+              )
+            );
+        }
+      }
+    });
+
+    // Log cash event (outside tx, non-blocking)
+    if (payment?.method === "cash") {
+      const activeShift = await getActiveShift();
+      if (activeShift) {
+        await logCashEvent({
+          tenantId: session.tenantId,
+          locationId: order.locationId,
+          shiftId: activeShift.id,
+          terminalId: session.terminalId || null,
+          eventType: "refund",
+          debitAmount: parseFloat(order.total),
+          orderId: order.id,
+          paymentId: payment.id,
+          recordedBy: session.userId,
+          reason: `${action === "void" ? "Void" : "Refund"} ${order.orderNumber}`,
+        });
+      }
+    }
+
+    return {
+      success: true,
+      refundAmount: parseFloat(order.total),
+      paymentMethod: payment?.method || "unknown",
+    };
+  } catch (error) {
+    console.error("voidOrRefundOrder error:", error);
+    return { success: false, error: "Failed to process" };
+  }
 }

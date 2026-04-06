@@ -21,6 +21,9 @@ export const tenants = pgTable("tenants", {
   accentColor: varchar("accent_color", { length: 20 }).default("#4f6ef7"),
   theme: varchar("theme", { length: 20 }).default("light"),
 
+  // Custom domain for storefront (e.g. "www.mybrand.com")
+  customDomain: varchar("custom_domain", { length: 255 }).unique(),
+
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

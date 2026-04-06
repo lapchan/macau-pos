@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 type Props = { data: Record<string, unknown>; locale: string; tenantId: string };
 
 export default function SplitPromo({ data, locale }: Props) {
@@ -27,7 +29,7 @@ export default function SplitPromo({ data, locale }: Props) {
         {/* Image */}
         <div className="flex-1 w-full">
           {image ? (
-            <img src={image} alt={title} className="w-full rounded-[var(--radius-lg)] object-cover aspect-[4/3]" />
+            <Image src={image} alt={title} width={800} height={600} sizes="(max-width: 768px) 100vw, 50vw" className="w-full rounded-[var(--radius-lg)] object-cover aspect-[4/3]" />
           ) : (
             <div className="w-full aspect-[4/3] rounded-[var(--radius-lg)] bg-sf-surface flex items-center justify-center text-sf-text-muted">
               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>

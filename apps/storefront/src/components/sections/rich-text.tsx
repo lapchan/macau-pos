@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 type ContentBlock = { type: string; text?: string; level?: number; src?: string; alt?: string; caption?: string; items?: { q: string; a: string }[] };
 type Props = { data: Record<string, unknown>; locale: string; tenantId: string };
 
@@ -19,7 +21,9 @@ export default function RichText({ data, locale }: Props) {
             case "image":
               return (
                 <figure key={i} className="my-6">
-                  <img src={block.src} alt={block.alt || ""} className="w-full rounded-[var(--radius-lg)]" />
+                  <div className="relative w-full aspect-[16/9]">
+                    <Image src={block.src!} alt={block.alt || ""} fill sizes="(max-width: 768px) 100vw, 768px" className="rounded-[var(--radius-lg)] object-cover" />
+                  </div>
                   {block.caption && <figcaption className="text-[12px] text-sf-text-muted text-center mt-2">{block.caption}</figcaption>}
                 </figure>
               );

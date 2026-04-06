@@ -13,6 +13,8 @@
  *  - "tiered-images"     : Staggered/tiered image layout
  */
 
+import Image from "next/image";
+
 type FeatureItem = {
   title: string;
   description: string;
@@ -57,7 +59,7 @@ export default function ProductFeatures({ data, locale }: Props) {
             </div>
             <div className={`overflow-hidden rounded-lg ${imageRight ? "" : "lg:order-1"}`}>
               {image ? (
-                <img src={image} alt={title} className="aspect-square w-full rounded-lg bg-gray-100 object-cover" />
+                <Image src={image} alt={title} width={600} height={600} sizes="(max-width: 1024px) 100vw, 50vw" className="aspect-square w-full rounded-lg bg-gray-100 object-cover" />
               ) : (
                 <div className="aspect-square w-full rounded-lg bg-gray-100 flex items-center justify-center text-gray-300">
                   <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5"><rect width="18" height="18" x="3" y="3" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" /></svg>
@@ -82,8 +84,8 @@ export default function ProductFeatures({ data, locale }: Props) {
             {features.map((feat, i) => (
               <div key={i}>
                 {feat.image && (
-                  <div className="aspect-square overflow-hidden rounded-lg bg-gray-100">
-                    <img src={feat.image} alt={feat.title} className="size-full object-cover" />
+                  <div className="relative aspect-square overflow-hidden rounded-lg bg-gray-100">
+                    <Image src={feat.image} alt={feat.title} fill sizes="(max-width: 640px) 100vw, 25vw" className="object-cover" />
                   </div>
                 )}
                 <h3 className="mt-4 text-sm font-medium text-gray-900">{feat.title}</h3>
@@ -109,7 +111,7 @@ export default function ProductFeatures({ data, locale }: Props) {
               <div key={i} className={`flex flex-col gap-8 lg:flex-row lg:items-center ${i % 2 === 1 ? "lg:flex-row-reverse" : ""}`}>
                 <div className="lg:w-1/2">
                   {feat.image ? (
-                    <img src={feat.image} alt={feat.title} className="w-full rounded-xl object-cover" />
+                    <Image src={feat.image} alt={feat.title} width={800} height={450} sizes="(max-width: 1024px) 100vw, 50vw" className="w-full rounded-xl object-cover" />
                   ) : (
                     <div className="aspect-video w-full rounded-xl bg-gray-100" />
                   )}
@@ -140,8 +142,8 @@ export default function ProductFeatures({ data, locale }: Props) {
             {features.map((feat, i) => (
               <div key={i} className="relative">
                 {feat.image && (
-                  <div className={`overflow-hidden rounded-lg bg-gray-100 ${variant === "tiered-images" && i === 0 ? "aspect-[4/3] sm:col-span-2 sm:row-span-2" : "aspect-square"}`}>
-                    <img src={feat.image} alt={feat.title} className="size-full object-cover" />
+                  <div className={`relative overflow-hidden rounded-lg bg-gray-100 ${variant === "tiered-images" && i === 0 ? "aspect-[4/3] sm:col-span-2 sm:row-span-2" : "aspect-square"}`}>
+                    <Image src={feat.image} alt={feat.title} fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover" />
                   </div>
                 )}
                 <h3 className="mt-4 text-base font-semibold text-gray-900">{feat.title}</h3>
@@ -168,7 +170,7 @@ export default function ProductFeatures({ data, locale }: Props) {
         </div>
         {image && (
           <div className="absolute inset-y-0 right-0 w-1/2">
-            <img src={image} alt="" className="size-full object-cover" />
+            <Image src={image} alt="" fill sizes="50vw" className="object-cover" />
             <div className="absolute inset-0 bg-gradient-to-r from-white" />
           </div>
         )}
