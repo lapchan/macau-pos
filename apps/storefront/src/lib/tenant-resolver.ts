@@ -4,14 +4,14 @@ import { DEMO_TENANT_SLUG } from "@macau-pos/database";
 import { headers } from "next/headers";
 
 const PLATFORM_DOMAIN = process.env.PLATFORM_DOMAIN || "hkretailai.com";
-const SHOP_SUBDOMAIN_SUFFIX = `.shop.${PLATFORM_DOMAIN}`;
+const SHOP_SUBDOMAIN_SUFFIX = `.store.${PLATFORM_DOMAIN}`;
 
 /**
  * Resolve the current tenant from the request hostname.
  *
  * Resolution order:
  *   1. Explicit slug parameter (for direct calls)
- *   2. Tenant subdomain: {slug}.shop.hkretailai.com → lookup by slug
+ *   2. Tenant subdomain: {slug}.store.hkretailai.com → lookup by slug
  *   3. Custom domain: www.mybrand.com → lookup by custom_domain
  *   4. Fallback: DEMO_TENANT_SLUG (dev / bare domain)
  */
@@ -26,7 +26,7 @@ export async function resolveTenant(slug?: string) {
   const host = headersList.get("host") || "";
   const hostname = host.split(":")[0]; // strip port
 
-  // Tenant subdomain: mybrand.shop.hkretailai.com
+  // Tenant subdomain: mybrand.store.hkretailai.com
   if (hostname.endsWith(SHOP_SUBDOMAIN_SUFFIX)) {
     const tenantSlug = hostname.replace(SHOP_SUBDOMAIN_SUFFIX, "");
     if (tenantSlug && !tenantSlug.includes(".")) {
