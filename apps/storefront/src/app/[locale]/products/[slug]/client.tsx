@@ -7,14 +7,16 @@ type Props = {
   product: any;
   locale: string;
   relatedProducts?: any[];
+  themeId?: string;
 };
 
-export default function ProductDetailClient({ product, locale, relatedProducts = [] }: Props) {
+export default function ProductDetailClient({ product, locale, relatedProducts = [], themeId }: Props) {
   return (
     <ProductOverviewExpandable
       product={product}
       locale={locale}
       relatedProducts={relatedProducts}
+      themeId={themeId}
       onAddToCart={async (productId, quantity) => {
         const result = await addToCart(productId, quantity);
         return result;

@@ -1,9 +1,10 @@
 import { resolveTenant } from "@/lib/tenant-resolver";
 import { getStorefrontConfig } from "@/lib/storefront-queries";
 import { notFound } from "next/navigation";
-import LoginPageClient from "./client";
+import { redirect } from "next/navigation";
+import RegisterPageClient from "./client";
 
-export default async function LoginPage({
+export default async function RegisterPage({
   params,
 }: {
   params: Promise<{ locale: string }>;
@@ -14,14 +15,16 @@ export default async function LoginPage({
 
   const config = await getStorefrontConfig(tenant.id);
   const branding = config.branding as Record<string, unknown>;
-  const accentColor = (branding?.accentColor as string) || "#4f46e5";
   const themeId = (branding?.themeId as string) || "modern";
 
+  // Default theme: passwordless system — registration is automatic on first login
+  if (themeId !== "humanmade") {
+    redirect(`/${locale}/login`);
+  }
+
   return (
-    <LoginPageClient
+    <RegisterPageClient
       locale={locale}
-      tenantName={tenant.name}
-      accentColor={accentColor}
       themeId={themeId}
     />
   );

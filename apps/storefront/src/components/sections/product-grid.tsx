@@ -1,9 +1,10 @@
+import Image from "next/image";
 import { getDisplayName } from "@macau-pos/database";
 import { getStorefrontProducts } from "@/lib/storefront-queries";
 
-type Props = { data: Record<string, unknown>; locale: string; tenantId: string };
+type Props = { data: Record<string, unknown>; locale: string; tenantId: string; themeId?: string };
 
-export default async function ProductGrid({ data, locale, tenantId }: Props) {
+export default async function ProductGrid({ data, locale, tenantId, themeId }: Props) {
   const title = ((data.titleTranslations as Record<string, string>)?.[locale]) || (data.title as string) || "";
   const subtitle = ((data.subtitleTranslations as Record<string, string>)?.[locale]) || (data.subtitle as string) || "";
   const columns = (data.columns as number) || 4;
@@ -20,6 +21,109 @@ export default async function ProductGrid({ data, locale, tenantId }: Props) {
   });
 
   if (products.length === 0) return null;
+
+  /* ─── HUMAN MADE variant ───
+     From humanmade.jp CSS:
+     - product-tile hover: scale(1.03), 0.5s ease
+     - tile-image-overlay: bg-light, opacity 0→1 on hover
+     - product-tile-name: line-clamp 2 (mobile) / 1 (desktop)
+     - swatch: h-8px w-35px (rectangular color bars)
+     - product-tile-batch: min-height 1.8rem (for NEW label)
+     - fs-xs = 12px, ls-05 = letter-spacing 0.05em
+     - body color: #121212
+     - On homepage (#homepage): color-swatches + price hidden
+  */
+  if (themeId === "humanmade") {
+    return (
+      <div className="bg-white">
+        <div className="w-full py-10 sm:py-14">
+          {/* Title */}
+          {title && (
+            <h2
+              className="mb-8 text-center text-[#121212] font-normal"
+              style={{ fontSize: "32px", letterSpacing: "0.12em" }}
+            >
+              {title}
+            </h2>
+          )}
+
+          {/* Product grid — 2 cols mobile, 4 cols desktop, zero gap like humanmade.jp */}
+          <div className="grid grid-cols-2 sm:grid-cols-4" style={{ gap: "0px" }}>
+            {products.map((product) => {
+              const name = getDisplayName(product.name, product.translations as Record<string, string>, locale);
+              const price = parseFloat(String(product.sellingPrice));
+
+              return (
+                <a
+                  key={product.id}
+                  href={product.slug ? `/${locale}/products/${product.slug}` : "#"}
+                  className="group block text-decoration-none"
+                >
+                  {/* Image — 1:1 square, white bg, object-contain like humanmade.jp */}
+                  <div className="relative w-full overflow-hidden bg-white" style={{ aspectRatio: "1/1" }}>
+                    {product.image ? (
+                      <Image
+                        src={product.image}
+                        alt={name}
+                        fill
+                        sizes="(max-width: 640px) 50vw, 25vw"
+                        className="object-contain object-center transition-transform duration-500 ease-in-out group-hover:scale-[1.03]"
+                      />
+                    ) : (
+                      <div className="size-full flex items-center justify-center bg-[#f7f7f7] text-[#121212]/8">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.3">
+                          <rect width="18" height="18" x="3" y="3" rx="1" />
+                          <circle cx="9" cy="9" r="2" />
+                          <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Product info */}
+                  <div className="px-2 pt-2 pb-6">
+                    {/* NEW badge */}
+                    <div style={{ height: "17px" }}>
+                      <span className="text-[#dc3545]" style={{ fontSize: "10px", letterSpacing: "0.05em" }}>NEW</span>
+                    </div>
+                    {/* Product name — line-clamp-1 on desktop, 2 on mobile */}
+                    <h3
+                      className="text-[#121212] line-clamp-2 sm:line-clamp-1"
+                      style={{ fontSize: "12px", letterSpacing: "0.05em", lineHeight: "1.5" }}
+                    >
+                      {name}
+                    </h3>
+                    {/* Price */}
+                    <p className="mt-0.5 text-[#121212]" style={{ fontSize: "12px", letterSpacing: "0.05em" }}>
+                      MOP${price.toLocaleString("en-US", { minimumFractionDigits: 0 })}
+                    </p>
+                    {/* Color swatches — h-8px w-35px rectangular bars */}
+                    <div className="mt-2 flex gap-px">
+                      <span className="block bg-[#121212]" style={{ height: "8px", width: "35px" }} />
+                      <span className="block bg-[#bbb]" style={{ height: "8px", width: "35px" }} />
+                    </div>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+
+          {/* View all link */}
+          {showViewAll && (
+            <div className="mt-8 text-center">
+              <a
+                href={viewAllLink}
+                className="text-[#121212]/60 hover:text-[#121212] transition-colors"
+                style={{ fontSize: "12px", letterSpacing: "0.05em" }}
+              >
+                {locale === "en" ? "VIEW ALL" : locale === "pt" ? "VER TODOS" : locale === "ja" ? "すべて見る" : "查看全部"} →
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const gridCols = {
     2: "grid-cols-1 sm:grid-cols-2",
@@ -72,10 +176,12 @@ export default async function ProductGrid({ data, locale, tenantId }: Props) {
                 {/* Image */}
                 <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-100 group-hover:opacity-75 transition-opacity">
                   {product.image ? (
-                    <img
+                    <Image
                       src={product.image}
                       alt={name}
-                      className="size-full object-cover object-center"
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      className="object-cover object-center"
                     />
                   ) : (
                     <div className="size-full flex items-center justify-center text-gray-300">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { StarIcon as StarSolidIcon } from "@heroicons/react/24/solid";
 import { StarIcon, HeartIcon, PlusIcon, MinusIcon } from "@heroicons/react/24/outline";
 
@@ -46,6 +47,7 @@ type Props = {
   currency?: string;
   detailSections?: DetailSection[];
   relatedProducts?: RelatedProduct[];
+  themeId?: string;
   onAddToCart?: (productId: string, quantity: number) => Promise<{ error?: string; success?: boolean }>;
 };
 
@@ -95,12 +97,57 @@ function DisclosureSection({ title, items, content, defaultOpen = false }: { tit
   );
 }
 
+// HUMAN MADE disclosure section — clean minimal accordion
+function HMDisclosureSection({ title, items, content, defaultOpen = false }: { title: string; items?: string[]; content?: string; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
+
+  return (
+    <div>
+      <h3>
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="group relative flex w-full items-center justify-between py-4 text-left"
+        >
+          <span
+            className="text-[#121212]"
+            style={{ fontSize: "12px", letterSpacing: "0.05em" }}
+          >
+            {title}
+          </span>
+          <span className="ml-6 flex items-center text-[#121212]/40">
+            {open ? (
+              <MinusIcon className="size-4" aria-hidden="true" />
+            ) : (
+              <PlusIcon className="size-4" aria-hidden="true" />
+            )}
+          </span>
+        </button>
+      </h3>
+      {open && (
+        <div className="pb-4">
+          {content ? (
+            <div className="text-[#121212]/60 whitespace-pre-line" style={{ fontSize: "12px", letterSpacing: "0.04em", lineHeight: "1.8" }}>{content}</div>
+          ) : items ? (
+            <ul role="list" className="space-y-1.5 text-[#121212]/60" style={{ fontSize: "12px", letterSpacing: "0.04em", lineHeight: "1.8" }}>
+              {items.map((item, i) => (
+                <li key={i}>• {item}</li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ProductOverviewExpandable({
   product,
   locale,
   currency = "MOP",
   detailSections,
   relatedProducts = [],
+  themeId,
   onAddToCart,
 }: Props) {
   const images: ProductImage[] = product.images?.length
@@ -161,6 +208,222 @@ export default function ProductOverviewExpandable({
     ? (product.categoryTranslations?.[locale] || product.categoryName)
     : null;
 
+  /* ─── HUMAN MADE variant ───
+     Large image left, minimal product info right, clean accordion,
+     #121212 text, 12px font, no rounded corners, black add-to-cart button
+  */
+  if (themeId === "humanmade") {
+    return (
+      <div className="bg-white">
+        <div className="mx-auto max-w-[1200px] px-4 py-6 sm:px-6 lg:px-8">
+          {/* Breadcrumb — TOP > ALL ITEMS > CATEGORY > PRODUCT */}
+          <nav aria-label="Breadcrumb" className="mb-6">
+            <ol className="flex items-center gap-2 text-[#121212]/60" style={{ fontSize: "11px", letterSpacing: "0.08em" }}>
+              <li><a href={`/${locale}`} className="hover:text-[#121212] transition-colors">TOP</a></li>
+              <li><span>&gt;</span></li>
+              <li><a href={`/${locale}/products`} className="hover:text-[#121212] transition-colors">{t(locale, "全部商品", "ALL ITEMS", "TODOS", "全商品")}</a></li>
+              {catName && product.categorySlug && (
+                <>
+                  <li><span>&gt;</span></li>
+                  <li><a href={`/${locale}/categories/${product.categorySlug}`} className="hover:text-[#121212] transition-colors">{catName.toUpperCase()}</a></li>
+                </>
+              )}
+              <li><span>&gt;</span></li>
+              <li className="text-[#121212] truncate max-w-[200px]">{name}</li>
+            </ol>
+          </nav>
+
+          <div className="lg:grid lg:grid-cols-2 lg:gap-x-10">
+            {/* ── Image gallery ── */}
+            <div>
+              {/* Main image — no rounded corners, object-contain like humanmade.jp */}
+              <div className="relative w-full overflow-hidden bg-[#f5f5f5]" style={{ aspectRatio: "1/1" }}>
+                {images.length > 0 ? (
+                  <Image
+                    src={images[selectedImage]?.url}
+                    alt={images[selectedImage]?.alt || name}
+                    fill
+                    sizes="(max-width: 1024px) 100vw, 50vw"
+                    priority
+                    className="object-contain"
+                  />
+                ) : (
+                  <div className="size-full flex items-center justify-center text-[#121212]/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="0.5">
+                      <rect width="18" height="18" x="3" y="3" rx="2" />
+                      <circle cx="9" cy="9" r="2" />
+                      <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+
+              {/* Thumbnail row */}
+              {images.length > 1 && (
+                <div className="mt-3 grid grid-cols-4 gap-2">
+                  {images.slice(0, 4).map((img, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSelectedImage(i)}
+                      className={`relative aspect-square overflow-hidden bg-[#f5f5f5] ${i === selectedImage ? "ring-1 ring-[#121212]" : "ring-1 ring-transparent hover:ring-[#121212]/30"} transition-all`}
+                    >
+                      <Image src={img.url} alt="" fill sizes="80px" className="object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* ── Product info ── */}
+            <div className="mt-8 lg:mt-0">
+              {/* NEW badge */}
+              <div style={{ minHeight: "1.4rem" }}>
+                <span className="text-[#dc3545]" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>NEW</span>
+              </div>
+
+              {/* Product name */}
+              <h1
+                className="text-[#121212]"
+                style={{ fontSize: "16px", letterSpacing: "0.06rem", lineHeight: "1.6" }}
+              >
+                {name}
+              </h1>
+
+              {/* Price */}
+              <p className="mt-3 text-[#121212]" style={{ fontSize: "14px", letterSpacing: "0.06rem" }}>
+                MOP${price.toLocaleString("en-US", { minimumFractionDigits: 0 })}
+              </p>
+
+              {/* Color swatches */}
+              <div className="mt-4">
+                <p className="text-[#121212]/60" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>COLOR</p>
+                <div className="mt-2 flex gap-0.5">
+                  <span className="block bg-[#121212] ring-1 ring-[#121212]" style={{ height: "8px", width: "35px" }} />
+                  <span className="block bg-[#999]" style={{ height: "8px", width: "35px" }} />
+                </div>
+              </div>
+
+              {/* Size selector placeholder */}
+              <div className="mt-6">
+                <p className="text-[#121212]/60" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>SIZE</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {["S", "M", "L", "XL"].map((size) => (
+                    <button
+                      key={size}
+                      className="flex items-center justify-center border border-[#121212]/20 px-4 py-2 text-[#121212] hover:border-[#121212] transition-colors"
+                      style={{ fontSize: "12px", letterSpacing: "0.05em", minWidth: "48px" }}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Add to cart — full-width black button */}
+              <div className="mt-8">
+                <button
+                  type="button"
+                  disabled={!inStock || adding}
+                  onClick={handleAddToCart}
+                  className="w-full bg-[#121212] py-4 text-white hover:bg-[#121212]/90 transition-colors disabled:bg-[#121212]/30 disabled:cursor-not-allowed"
+                  style={{ fontSize: "13px", letterSpacing: "0.1em" }}
+                >
+                  {adding
+                    ? "..."
+                    : !inStock
+                    ? t(locale, "售罄", "SOLD OUT", "ESGOTADO", "在庫切れ")
+                    : t(locale, "加入購物車", "ADD TO CART", "ADICIONAR", "カートに追加")
+                  }
+                </button>
+              </div>
+
+              {/* Added message */}
+              {addedMessage && (
+                <p className="mt-3 text-[#121212]" style={{ fontSize: "12px", letterSpacing: "0.05em" }}>{addedMessage}</p>
+              )}
+
+              {/* Wishlist */}
+              <button
+                type="button"
+                className="mt-3 flex items-center gap-2 text-[#121212]/60 hover:text-[#121212] transition-colors"
+                style={{ fontSize: "12px", letterSpacing: "0.05em" }}
+              >
+                <HeartIcon className="size-4" />
+                {t(locale, "加入收藏", "ADD TO WISHLIST", "ADICIONAR AOS FAVORITOS", "ウィッシュリストに追加")}
+              </button>
+
+              {/* Expandable sections — clean accordion */}
+              <div className="mt-8 divide-y divide-[#121212]/10 border-t border-[#121212]/10">
+                {sections.map((section, i) => (
+                  <HMDisclosureSection
+                    key={i}
+                    title={section.title}
+                    items={section.items}
+                    content={section.content}
+                    defaultOpen={section.defaultOpen}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* ── Related products ── */}
+          {relatedProducts.length > 0 && (
+            <section className="mt-16 border-t border-[#121212]/8 pt-10">
+              <h2
+                className="text-center text-[#121212]"
+                style={{ fontSize: "16px", letterSpacing: "0.1rem" }}
+              >
+                {t(locale, "你可能也會喜歡", "YOU MAY ALSO LIKE", "VOCÊ TAMBÉM PODE GOSTAR", "おすすめ商品")}
+              </h2>
+
+              <div className="mt-8 grid grid-cols-2 gap-x-2 gap-y-6 sm:grid-cols-4 sm:gap-x-3 sm:gap-y-8">
+                {relatedProducts.map((rp) => (
+                  <a
+                    key={rp.id}
+                    href={rp.slug ? `/${locale}/products/${rp.slug}` : "#"}
+                    className="group block"
+                  >
+                    <div className="relative overflow-hidden bg-[#f5f5f5]" style={{ aspectRatio: "1/1" }}>
+                      {rp.image ? (
+                        <Image
+                          src={rp.image}
+                          alt={rp.name}
+                          fill
+                          sizes="(max-width: 640px) 50vw, 25vw"
+                          className="object-contain transition-transform duration-500 ease-in-out group-hover:scale-[1.03]"
+                        />
+                      ) : (
+                        <div className="size-full flex items-center justify-center text-[#121212]/20">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
+                            <rect width="18" height="18" x="3" y="3" rx="2" ry="2" />
+                            <circle cx="9" cy="9" r="2" />
+                            <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                          </svg>
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-2">
+                      <h3
+                        className="text-[#121212] line-clamp-1"
+                        style={{ fontSize: "12px", letterSpacing: "0.06rem", lineHeight: "1.5" }}
+                      >
+                        {rp.name}
+                      </h3>
+                      <p className="mt-0.5 text-[#121212]" style={{ fontSize: "12px", letterSpacing: "0.06rem" }}>
+                        MOP${rp.price.toLocaleString("en-US", { minimumFractionDigits: 0 })}
+                      </p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white">
       <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24 lg:max-w-7xl lg:px-8">
@@ -198,7 +461,7 @@ export default function ProductOverviewExpandable({
                     >
                       <span className="sr-only">{img.alt || `Image ${i + 1}`}</span>
                       <span className="absolute inset-0 overflow-hidden rounded-md">
-                        <img src={img.url} alt="" className="size-full object-cover" />
+                        <Image src={img.url} alt="" fill sizes="80px" className="object-cover" />
                       </span>
                       {/* Selection ring */}
                       <span
@@ -212,12 +475,15 @@ export default function ProductOverviewExpandable({
             )}
 
             {/* Main image */}
-            <div className="aspect-square w-full overflow-hidden rounded-lg">
+            <div className="relative aspect-square w-full overflow-hidden rounded-lg">
               {images.length > 0 ? (
-                <img
+                <Image
                   src={images[selectedImage]?.url}
                   alt={images[selectedImage]?.alt || name}
-                  className="size-full object-cover sm:rounded-lg"
+                  fill
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  priority
+                  className="object-cover sm:rounded-lg"
                 />
               ) : (
                 <div className="size-full flex items-center justify-center bg-gray-100 text-gray-300 sm:rounded-lg">
@@ -339,7 +605,7 @@ export default function ProductOverviewExpandable({
                     {/* Image */}
                     <div className="relative h-72 w-full overflow-hidden rounded-lg">
                       {rp.image ? (
-                        <img src={rp.image} alt={rp.name} className="size-full object-cover" />
+                        <Image src={rp.image} alt={rp.name} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw" className="object-cover" />
                       ) : (
                         <div className="size-full flex items-center justify-center bg-gray-100 text-gray-300">
                           <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">

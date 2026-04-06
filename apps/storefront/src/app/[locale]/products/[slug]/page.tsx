@@ -1,5 +1,7 @@
+import type { Metadata } from "next";
 import { resolveTenant } from "@/lib/tenant-resolver";
-import { getProductBySlug, getStorefrontProducts } from "@/lib/storefront-queries";
+import { getProductBySlug, getStorefrontProducts, getStorefrontConfig } from "@/lib/storefront-queries";
+import { getDisplayName } from "@macau-pos/database";
 import { notFound } from "next/navigation";
 import ProductDetailClient from "./client";
 
@@ -7,13 +9,45 @@ type Props = {
   params: Promise<{ locale: string; slug: string }>;
 };
 
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { locale, slug } = await params;
+  const tenant = await resolveTenant();
+  if (!tenant) return {};
+
+  const product = await getProductBySlug(tenant.id, slug);
+  if (!product) return {};
+
+  const name = getDisplayName(product.name, product.translations as Record<string, string>, locale);
+  const description = product.description
+    ? getDisplayName(product.description, product.descTranslations as Record<string, string>, locale)
+    : undefined;
+  const price = Number(product.sellingPrice).toFixed(2);
+  const image = product.image || undefined;
+
+  return {
+    title: name,
+    description: description || `${name} — MOP $${price}`,
+    openGraph: {
+      title: name,
+      description: description || `${name} — MOP $${price}`,
+      ...(image ? { images: [{ url: image }] } : {}),
+    },
+  };
+}
+
 export default async function ProductDetailPage({ params }: Props) {
   const { locale, slug } = await params;
   const tenant = await resolveTenant();
   if (!tenant) notFound();
 
-  const product = await getProductBySlug(tenant.id, slug);
+  const [product, config] = await Promise.all([
+    getProductBySlug(tenant.id, slug),
+    getStorefrontConfig(tenant.id),
+  ]);
   if (!product) notFound();
+
+  const branding = config.branding as Record<string, unknown>;
+  const themeId = (branding?.themeId as string) || "modern";
 
   // Parse images from JSONB
   const images = Array.isArray(product.images)
@@ -64,6 +98,7 @@ export default async function ProductDetailPage({ params }: Props) {
       }}
       locale={locale}
       relatedProducts={relatedProducts}
+      themeId={themeId}
     />
   );
 }

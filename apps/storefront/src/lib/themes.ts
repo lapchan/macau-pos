@@ -16,7 +16,7 @@ type SectionConfig = {
 export type ThemeBranding = {
   themeId: string;
   accentColor: string;
-  fontFamily: "inter" | "dm-sans" | "system";
+  fontFamily: "inter" | "dm-sans" | "system" | "avenir";
   headerStyle: "dark" | "light";
   borderRadius: "none" | "sm" | "md" | "lg";
 };
@@ -129,6 +129,23 @@ export const THEME_PRESETS: ThemePreset[] = [
       { id: "products-warm", type: "product_grid", enabled: true, data: { titleTranslations: t("人氣商品", "Popular Items", "Populares", "人気商品"), limit: 8, columns: 4, sortBy: "popular", showViewAll: true } },
       { id: "feature-warm", type: "feature_grid", enabled: true, data: { titleTranslations: t("為什麼選擇我們", "Why Choose Us", "Por que nos escolher", "選ばれる理由"), items: [] } },
       { id: "newsletter-warm", type: "newsletter", enabled: true, data: { titleTranslations: t("訂閱電子報", "Stay in Touch", "Fique por dentro", "ニュースレター"), subtitleTranslations: t("最新優惠和新品資訊", "Latest deals and new arrivals", "Ofertas e novidades", "最新情報をお届け") } },
+    ],
+  },
+
+  // ── 6. HUMAN MADE ─────────────────────────────────────
+  {
+    id: "humanmade",
+    name: "HUMAN MADE",
+    nameTranslations: { tc: "日系潮牌", sc: "日系潮牌", en: "HUMAN MADE", pt: "HUMAN MADE", ja: "ヒューマンメイド" },
+    description: "Japanese streetwear-inspired. Ultra-minimal black & white with bold typography and zero border radius.",
+    descriptionTranslations: { tc: "日系街頭風格。極簡黑白設計，大膽排版，無圓角。", sc: "日系街头风格。极简黑白设计。", en: "Japanese streetwear-inspired. Ultra-minimal black & white.", pt: "Inspirado em streetwear japonês.", ja: "日本のストリートウェアにインスパイア。" },
+    colors: { accent: "#000000", bg: "#ffffff", surface: "#f5f5f5", text: "#000000" },
+    branding: { themeId: "humanmade", accentColor: "#000000", fontFamily: "avenir", headerStyle: "dark", borderRadius: "none" },
+    defaultSections: [
+      { id: "hero-hm", type: "hero_banner", enabled: true, data: { titleTranslations: t("THE FUTURE\nIS IN THE PAST", "THE FUTURE\nIS IN THE PAST", "THE FUTURE\nIS IN THE PAST", "THE FUTURE\nIS IN THE PAST"), subtitleTranslations: t("精選商品 現已上架", "Shop our latest collection", "Compre a coleção mais recente", "最新コレクション"), ctaTextTranslations: t("SHOP NOW", "SHOP NOW", "COMPRAR", "ショップ"), ctaLink: "/tc/products", height: "xl", image: "https://www.humanmade.jp/dw/image/v2/BLSM_PRD/on/demandware.static/-/Sites-HUMANMADE-Library/default/dw970bd235/huchdsauovhaf.jpg?sw=1920&sfrm=jpg" } },
+      { id: "products-hm", type: "product_grid", enabled: true, data: { titleTranslations: t("NEW ARRIVALS", "NEW ARRIVALS", "NOVIDADES", "新着商品"), limit: 8, columns: 4, sortBy: "newest", showViewAll: true } },
+      { id: "collections-hm", type: "collection_grid", enabled: true, data: { titleTranslations: t("COLLECTIONS", "COLLECTIONS", "COLEÇÕES", "コレクション"), items: [ { title: "ESSENTIALS", image: "https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-01-collection-01.jpg", href: "/tc/products" }, { title: "ACCESSORIES", image: "https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-01-collection-02.jpg", href: "/tc/products" }, { title: "LIFESTYLE", image: "https://tailwindcss.com/plus-assets/img/ecommerce-images/home-page-01-collection-03.jpg", href: "/tc/products" } ] } },
+      { id: "incentives-hm", type: "incentive_grid", enabled: true, data: { items: [ { icon: "truck", title: "WORLDWIDE SHIPPING", description: "全球配送" }, { icon: "shield", title: "AUTHENTIC GUARANTEE", description: "正品保證" }, { icon: "refresh", title: "EASY RETURNS", description: "7天退換" }, { icon: "clock", title: "SAME-DAY DISPATCH", description: "即日出貨" } ] } },
     ],
   },
 ];
