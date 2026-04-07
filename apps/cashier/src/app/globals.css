@@ -101,8 +101,8 @@ body {
   from { transform: translateY(0); }
   to { transform: translateY(100%); }
 }
-.animate-sheet-up { animation: sheetUp 0.35s cubic-bezier(0.16, 1, 0.3, 1); }
-.animate-sheet-down { animation: sheetDown 0.3s cubic-bezier(0.4, 0, 1, 1) forwards; }
+.animate-sheet-up { animation: sheetUp 0.4s cubic-bezier(0.16, 1, 0.3, 1); }
+.animate-sheet-down { animation: sheetDown 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
 
 @keyframes fadeSlideUp {
   from { opacity: 0; transform: translateY(12px); }

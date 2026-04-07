@@ -51,7 +51,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
 
   const handleClose = useCallback(() => {
     setClosing(true);
-    setTimeout(() => onClose(), 300);
+    setTimeout(() => onClose(), 350);
   }, [onClose]);
 
   const rawSubtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -208,17 +208,6 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Terminal status */}
-            <div className={cn(
-              "flex items-center gap-1.5 px-2.5 h-7 rounded-[var(--radius-full)] text-[11px] font-medium",
-              isOnline
-                ? cn(surfaceAlt, "text-pos-success")
-                : cn("bg-red-50 text-red-500", darkMode && "bg-red-950/40")
-            )}>
-              {isOnline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
-              <span className="hidden sm:inline">{isOnline ? t(locale, "terminalConnected") : t(locale, "terminalOffline")}</span>
-            </div>
-
             {/* Dark mode toggle */}
             <button
               onClick={() => setDarkMode(!darkMode)}
@@ -455,112 +444,118 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
 
             {/* CASH STATE */}
             {state === "cash" && (
-              <div className="w-full max-w-[380px] animate-scale-in">
-                {/* Amount due */}
-                <div className="text-center mb-6">
-                  <p className={cn("text-[13px] font-medium mb-1", textSec)}>{t(locale, "amountDue")}</p>
-                  <p className="text-[36px] font-bold tabular-nums" style={{ color: "var(--color-pos-accent)" }}>
-                    MOP {total.toFixed(2)}
-                  </p>
-                </div>
+              <div className="w-full max-w-[380px] animate-scale-in flex flex-col h-full">
+                {/* Top: Amount due + Change due */}
+                <div className="flex-1 flex flex-col items-center justify-center">
+                  {/* Amount due */}
+                  <div className="text-center">
+                    <p className={cn("text-[13px] font-medium mb-1", textSec)}>{t(locale, "amountDue")}</p>
+                    <p className="text-[36px] font-bold tabular-nums" style={{ color: "var(--color-pos-accent)" }}>
+                      MOP {total.toFixed(2)}
+                    </p>
+                  </div>
 
-                {/* Cash received display */}
-                <div className={cn("rounded-[var(--radius-md)] border p-4 mb-4", border, surface)}>
-                  <p className={cn("text-[12px] font-medium mb-2", textSec)}>{t(locale, "cashReceived")}</p>
-                  <div className="flex items-baseline gap-2">
-                    <span className={cn("text-[13px]", textMuted)}>MOP</span>
-                    <span className={cn("text-[28px] font-bold tabular-nums", text)}>{cashDisplay}</span>
+                  {/* Change due — always renders to prevent layout shift */}
+                  <div className={cn(
+                    "rounded-[var(--radius-md)] px-8 py-3 mt-4 text-center transition-opacity duration-200",
+                    cashValue > 0 && cashValue >= total
+                      ? cn("opacity-100", darkMode ? "bg-emerald-950/40" : "bg-pos-success-light")
+                      : "opacity-0"
+                  )}>
+                    <p className={cn("text-[12px] font-medium", textSec)}>{t(locale, "changeDue")}</p>
+                    <p className="text-[28px] font-bold tabular-nums text-pos-success">
+                      MOP {changeDue > 0 ? changeDue.toFixed(2) : "0.00"}
+                    </p>
                   </div>
                 </div>
 
-                {/* Number pad */}
-                <div className="grid grid-cols-3 gap-2 mb-4">
-                  {["1","2","3","4","5","6","7","8","9"].map(n => (
+                {/* Bottom: Cash input + Keypad + Presets + Confirm (pinned) */}
+                <div className="shrink-0">
+                  {/* Cash received display */}
+                  <div className={cn("rounded-[var(--radius-md)] border p-4 mb-4", border, surface)}>
+                    <p className={cn("text-[12px] font-medium mb-2", textSec)}>{t(locale, "cashReceived")}</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className={cn("text-[13px]", textMuted)}>MOP</span>
+                      <span className={cn("text-[28px] font-bold tabular-nums", text)}>{cashDisplay}</span>
+                    </div>
+                  </div>
+
+                  {/* Number pad */}
+                  <div className="grid grid-cols-3 gap-2 mb-3">
+                    {["1","2","3","4","5","6","7","8","9"].map(n => (
+                      <button
+                        key={n}
+                        onClick={() => setCashCents(prev => {
+                          if (prev === "0") return n;
+                          if (prev.length >= 8) return prev;
+                          return prev + n;
+                        })}
+                        className={cn("h-12 rounded-[var(--radius-sm)] text-[20px] font-medium transition-all active:scale-[0.97]", surface, text, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
+                      >
+                        {n}
+                      </button>
+                    ))}
                     <button
-                      key={n}
+                      onClick={() => setCashCents("0")}
+                      className={cn("h-12 rounded-[var(--radius-sm)] text-[16px] font-semibold transition-all active:scale-[0.97]", surface, textMuted, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
+                    >
+                      C
+                    </button>
+                    <button
                       onClick={() => setCashCents(prev => {
-                        if (prev === "0") return n;
+                        if (prev === "0") return "0";
                         if (prev.length >= 8) return prev;
-                        return prev + n;
+                        return prev + "0";
                       })}
                       className={cn("h-12 rounded-[var(--radius-sm)] text-[20px] font-medium transition-all active:scale-[0.97]", surface, text, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
                     >
-                      {n}
+                      0
                     </button>
-                  ))}
-                  <button
-                    onClick={() => setCashCents("0")}
-                    className={cn("h-12 rounded-[var(--radius-sm)] text-[16px] font-semibold transition-all active:scale-[0.97]", surface, textMuted, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
-                  >
-                    C
-                  </button>
-                  <button
-                    onClick={() => setCashCents(prev => {
-                      if (prev === "0") return "0";
-                      if (prev.length >= 8) return prev;
-                      return prev + "0";
-                    })}
-                    className={cn("h-12 rounded-[var(--radius-sm)] text-[20px] font-medium transition-all active:scale-[0.97]", surface, text, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
-                  >
-                    0
-                  </button>
-                  <button
-                    onClick={() => setCashCents(prev => {
-                      const next = prev.slice(0, -1);
-                      return next === "" ? "0" : next;
-                    })}
-                    className={cn("h-12 rounded-[var(--radius-sm)] text-[16px] font-medium transition-all active:scale-[0.97]", surface, textSec, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
-                  >
-                    ⌫
-                  </button>
-                </div>
-
-                {/* Preset amounts */}
-                <div className="grid grid-cols-4 gap-2 mb-4">
-                  <button
-                    onClick={() => setCashCents(String(Math.round(total * 100)))}
-                    className={cn("h-11 rounded-[var(--radius-sm)] text-[13px] font-semibold border transition-all active:scale-[0.97]", border, surface, text, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
-                  >
-                    {t(locale, "exactAmount")}
-                  </button>
-                  {CASH_PRESETS.filter((v) => v >= total).slice(0, 3).map((val) => (
                     <button
-                      key={val}
-                      onClick={() => setCashCents(String(val * 100))}
+                      onClick={() => setCashCents(prev => {
+                        const next = prev.slice(0, -1);
+                        return next === "" ? "0" : next;
+                      })}
+                      className={cn("h-12 rounded-[var(--radius-sm)] text-[16px] font-medium transition-all active:scale-[0.97]", surface, textSec, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
+                    >
+                      ⌫
+                    </button>
+                  </div>
+
+                  {/* Preset amounts */}
+                  <div className="grid grid-cols-4 gap-2 mb-4">
+                    <button
+                      onClick={() => setCashCents(String(Math.round(total * 100)))}
                       className={cn("h-11 rounded-[var(--radius-sm)] text-[13px] font-semibold border transition-all active:scale-[0.97]", border, surface, text, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
                     >
-                      ${val}
+                      {t(locale, "exactAmount")}
                     </button>
-                  ))}
-                </div>
+                    {CASH_PRESETS.filter((v) => v >= total).slice(0, 3).map((val) => (
+                      <button
+                        key={val}
+                        onClick={() => setCashCents(String(val * 100))}
+                        className={cn("h-11 rounded-[var(--radius-sm)] text-[13px] font-semibold border transition-all active:scale-[0.97]", border, surface, text, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
+                      >
+                        ${val}
+                      </button>
+                    ))}
+                  </div>
 
-                {/* Change due — always renders to prevent layout shift */}
-                <div className={cn(
-                  "rounded-[var(--radius-md)] p-4 mb-5 text-center transition-opacity duration-200",
-                  cashValue > 0 && cashValue >= total
-                    ? cn("opacity-100", darkMode ? "bg-emerald-950/40" : "bg-pos-success-light")
-                    : "opacity-0"
-                )}>
-                  <p className={cn("text-[12px] font-medium", textSec)}>{t(locale, "changeDue")}</p>
-                  <p className="text-[28px] font-bold tabular-nums text-pos-success">
-                    MOP {changeDue > 0 ? changeDue.toFixed(2) : "0.00"}
-                  </p>
+                  {/* Confirm */}
+                  <button
+                    onClick={handleCashConfirm}
+                    disabled={cashValue < total}
+                    className={cn(
+                      "w-full h-13 rounded-[var(--radius-md)] text-[16px] font-semibold transition-all mb-4",
+                      cashValue >= total
+                        ? "text-white hover:shadow-lg active:scale-[0.98]"
+                        : cn("cursor-not-allowed", darkMode ? "bg-zinc-800 text-zinc-600" : "bg-pos-bg text-pos-text-muted border border-pos-border")
+                    )}
+                    style={cashValue >= total ? { backgroundColor: "var(--color-pos-accent)" } : undefined}
+                  >
+                    {t(locale, "confirmCash")}
+                  </button>
                 </div>
-
-                {/* Confirm */}
-                <button
-                  onClick={handleCashConfirm}
-                  disabled={cashValue < total}
-                  className={cn(
-                    "w-full h-13 rounded-[var(--radius-md)] text-[16px] font-semibold transition-all",
-                    cashValue >= total
-                      ? "text-white hover:shadow-lg active:scale-[0.98]"
-                      : cn("cursor-not-allowed", darkMode ? "bg-zinc-800 text-zinc-600" : "bg-pos-bg text-pos-text-muted border border-pos-border")
-                  )}
-                  style={cashValue >= total ? { backgroundColor: "var(--color-pos-accent)" } : undefined}
-                >
-                  {t(locale, "confirmCash")}
-                </button>
               </div>
             )}
 
@@ -704,6 +699,17 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
               </div>
             )}
           </div>
+        </div>
+
+        {/* Terminal status — bottom right */}
+        <div className={cn(
+          "absolute bottom-3 right-5 flex items-center gap-1.5 px-2.5 h-7 rounded-[var(--radius-full)] text-[11px] font-medium",
+          isOnline
+            ? cn(surfaceAlt, "text-pos-success")
+            : cn("bg-red-50 text-red-500", darkMode && "bg-red-950/40")
+        )}>
+          {isOnline ? <Wifi className="h-3 w-3" /> : <WifiOff className="h-3 w-3" />}
+          <span>{isOnline ? t(locale, "terminalConnected") : t(locale, "terminalOffline")}</span>
         </div>
       </div>
     </div>

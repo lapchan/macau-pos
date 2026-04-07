@@ -75,6 +75,7 @@ type Props = {
   options: VariantOption[];
   variants: VariantItem[];
   onSelect: (variant: VariantItem) => void;
+  onAddDirect?: () => void;
   locale?: Locale;
 };
 
@@ -87,6 +88,7 @@ export default function VariantPicker({
   options,
   variants,
   onSelect,
+  onAddDirect,
   locale = "tc",
 }: Props) {
   const [selected, setSelected] = useState<Record<string, string>>({});
@@ -146,7 +148,8 @@ export default function VariantPicker({
     ? matchingVariant.isActive && (matchingVariant.stock === null || matchingVariant.stock > 0)
     : true;
 
-  const isLoading = options.length === 0;
+  const hasNoVariants = !!onAddDirect;
+  const isLoading = !hasNoVariants && options.length === 0;
 
   // Price range across all variants
   const prices = variants.map((v) => parseFloat(v.sellingPrice));
@@ -219,9 +222,11 @@ export default function VariantPicker({
                 </span>
               )}
             </div>
-            <p className="text-[12px] text-gray-400 mt-1">
-              {t(locale, "variantsAvailable").replace("{count}", String(variants.length))}
-            </p>
+            {!hasNoVariants && (
+              <p className="text-[12px] text-gray-400 mt-1">
+                {t(locale, "variantsAvailable").replace("{count}", String(variants.length))}
+              </p>
+            )}
           </div>
 
           {/* Close button */}
@@ -236,7 +241,9 @@ export default function VariantPicker({
 
         {/* Options — scrollable area */}
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
-          {isLoading ? (
+          {hasNoVariants ? (
+            <div />
+          ) : isLoading ? (
             <div className="flex items-center justify-center py-12">
               <span className="h-6 w-6 border-2 border-pos-accent/30 border-t-pos-accent rounded-full animate-spin" />
             </div>
@@ -365,29 +372,39 @@ export default function VariantPicker({
 
         {/* Footer — sticky CTA */}
         <div className="px-5 pb-5 pt-3 border-t border-gray-100 shrink-0 bg-white">
-          <button
-            onClick={handleConfirm}
-            disabled={!allSelected || !matchingVariant || !inStock}
-            className={cn(
-              "w-full h-14 rounded-2xl text-[16px] font-bold transition-all flex items-center justify-center gap-2.5",
-              allSelected && matchingVariant && inStock
-                ? "bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] shadow-lg shadow-blue-600/20"
-                : "bg-gray-100 text-gray-400 cursor-not-allowed"
-            )}
-          >
-            {isLoading ? (
-              <span className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-            ) : !allSelected ? (
-              t(locale, "selectOptions")
-            ) : !inStock ? (
-              t(locale, "outOfStock")
-            ) : (
-              <>
-                <Check className="h-5 w-5" />
-                {t(locale, "addToCartWith").replace("{price}", displayPrice.toFixed(displayPrice % 1 === 0 ? 0 : 1))}
-              </>
-            )}
-          </button>
+          {hasNoVariants ? (
+            <button
+              onClick={() => { onAddDirect!(); handleClose(); }}
+              className="w-full h-14 rounded-2xl text-[16px] font-bold transition-all flex items-center justify-center gap-2.5 bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] shadow-lg shadow-blue-600/20"
+            >
+              <Check className="h-5 w-5" />
+              {t(locale, "addToCartWith").replace("{price}", basePrice.toFixed(basePrice % 1 === 0 ? 0 : 1))}
+            </button>
+          ) : (
+            <button
+              onClick={handleConfirm}
+              disabled={!allSelected || !matchingVariant || !inStock}
+              className={cn(
+                "w-full h-14 rounded-2xl text-[16px] font-bold transition-all flex items-center justify-center gap-2.5",
+                allSelected && matchingVariant && inStock
+                  ? "bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] shadow-lg shadow-blue-600/20"
+                  : "bg-gray-100 text-gray-400 cursor-not-allowed"
+              )}
+            >
+              {isLoading ? (
+                <span className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              ) : !allSelected ? (
+                t(locale, "selectOptions")
+              ) : !inStock ? (
+                t(locale, "outOfStock")
+              ) : (
+                <>
+                  <Check className="h-5 w-5" />
+                  {t(locale, "addToCartWith").replace("{price}", displayPrice.toFixed(displayPrice % 1 === 0 ? 0 : 1))}
+                </>
+              )}
+            </button>
+          )}
         </div>
       </div>
     </>

@@ -32,7 +32,7 @@ export default function CustomerDetailSheet({ customer, locale, onClose, onRemov
 
   const handleClose = () => {
     setClosing(true);
-    setTimeout(onClose, 300);
+    setTimeout(onClose, 350);
   };
 
   return (
@@ -172,7 +172,7 @@ export default function CustomerDetailSheet({ customer, locale, onClose, onRemov
               onClick={() => {
                 onRemove();
                 setClosing(true);
-                setTimeout(onClose, 300);
+                setTimeout(onClose, 350);
               }}
               className="w-full h-11 flex items-center justify-center gap-2 rounded-[var(--radius-md)] border border-pos-danger/30 text-[14px] font-medium text-pos-danger hover:bg-pos-danger-light transition-colors"
             >

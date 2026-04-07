@@ -84,7 +84,7 @@ export default function ShiftOpenModal({ userName, terminalName, terminalCode, o
         <button
           onClick={handleSubmit}
           disabled={isPending}
-          className="w-full h-[48px] rounded-xl font-medium text-[15px] text-white transition-all active:scale-[0.98] disabled:opacity-50"
+          className="w-full h-[48px] rounded-[var(--radius-md)] font-medium text-[15px] text-white transition-all active:scale-[0.98] disabled:opacity-50"
           style={{ backgroundColor: "var(--color-pos-accent, #0071e3)" }}
         >
           {isPending ? (

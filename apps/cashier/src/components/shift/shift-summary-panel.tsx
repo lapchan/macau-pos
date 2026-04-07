@@ -89,7 +89,7 @@ export default function ShiftSummaryPanel({ shiftId, onClose, onEndShift, locale
           Float MOP {parseFloat(summary.openingFloat).toFixed(2)} + Cash MOP {summary.cashTotal.toFixed(2)}
         </p>
       </div>
-      <button onClick={onEndShift} className="w-full h-[44px] rounded-xl text-[14px] font-medium text-white transition-all active:scale-[0.98]" style={{ backgroundColor: "#ff3b30" }}>
+      <button onClick={onEndShift} className="w-full h-[44px] rounded-[var(--radius-md)] text-[14px] font-medium text-white transition-all active:scale-[0.98]" style={{ backgroundColor: "#ff3b30" }}>
         {t(locale, "shiftEndBtn")}
       </button>
     </div>

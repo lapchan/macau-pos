@@ -163,7 +163,7 @@ export default function CashierLoginPage() {
           {/* Login form */}
           <form action={formAction} className="w-full space-y-3">
             {state?.error && (
-              <div className="text-[12px] text-center text-[#ff3b30] bg-[#ff3b30]/8 px-3 py-2.5 rounded-2xl border border-[#ff3b30]/10 animate-fade-in">
+              <div className="text-[12px] text-center text-[#ff3b30] bg-[#ff3b30]/8 px-3 py-2.5 rounded-[var(--radius-md)] border border-[#ff3b30]/10 animate-fade-in">
                 {state.error}
               </div>
             )}
@@ -177,7 +177,7 @@ export default function CashierLoginPage() {
                 autoComplete="username"
                 defaultValue={lastIdentifier}
                 autoFocus={!lastIdentifier}
-                className={`w-full h-[48px] px-4 text-[14px] border rounded-2xl focus:outline-none focus:ring-2 transition-all ${inputClasses}`}
+                className={`w-full h-[48px] px-4 text-[14px] border rounded-[var(--radius-md)] focus:outline-none focus:ring-2 transition-all ${inputClasses}`}
               />
             </div>
 
@@ -190,7 +190,7 @@ export default function CashierLoginPage() {
                 placeholder="Password"
                 autoComplete="current-password"
                 autoFocus={!!lastIdentifier}
-                className={`w-full h-[48px] px-4 pr-12 text-[14px] border rounded-2xl focus:outline-none focus:ring-2 transition-all ${inputClasses}`}
+                className={`w-full h-[48px] px-4 pr-12 text-[14px] border rounded-[var(--radius-md)] focus:outline-none focus:ring-2 transition-all ${inputClasses}`}
               />
               <button
                 type="button"
@@ -214,7 +214,7 @@ export default function CashierLoginPage() {
             <button
               type="submit"
               disabled={isPending}
-              className="w-full h-[48px] rounded-2xl bg-[#0071e3] text-white font-medium text-[14px] flex items-center justify-center gap-2 hover:bg-[#0077ed] active:scale-[0.98] disabled:opacity-50 transition-all shadow-lg shadow-[#0071e3]/20"
+              className="w-full h-[48px] rounded-[var(--radius-md)] bg-[#0071e3] text-white font-medium text-[14px] flex items-center justify-center gap-2 hover:bg-[#0077ed] active:scale-[0.98] disabled:opacity-50 transition-all shadow-lg shadow-[#0071e3]/20"
             >
               {isPending ? (
                 <span className="h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

@@ -169,16 +169,35 @@ function DrawerLedger({ shiftId, locale }: { shiftId: string; locale: Locale }) 
 }
 
 // Shared product card grid — used by Library and Favorites views
-function ProductGrid({ products, cart, addedId, locale, favoriteIds, onAdd, onToggleFavorite, extractBrand }: {
+function ProductGrid({ products, cart, addedId, locale, favoriteIds, onAdd, onLongPress, onToggleFavorite, extractBrand }: {
   products: Product[];
   cart: CartItem[];
   addedId: string | null;
   locale: Locale;
   favoriteIds: Set<string>;
   onAdd: (p: Product) => void;
+  onLongPress?: (p: Product) => void;
   onToggleFavorite: (id: string) => void;
   extractBrand: (name: string) => { brand: string | null; shortName: string };
 }) {
+  const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const didLongPress = useRef(false);
+
+  function handlePointerDown(product: Product) {
+    didLongPress.current = false;
+    longPressRef.current = setTimeout(() => {
+      didLongPress.current = true;
+      if (product.inStock && onLongPress) onLongPress(product);
+    }, 500);
+  }
+
+  function handlePointerUp() {
+    if (longPressRef.current) {
+      clearTimeout(longPressRef.current);
+      longPressRef.current = null;
+    }
+  }
+
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2">
       {products.map((product) => {
@@ -188,7 +207,11 @@ function ProductGrid({ products, cart, addedId, locale, favoriteIds, onAdd, onTo
         return (
           <div
             key={product.id}
-            onClick={() => product.inStock && onAdd(product)}
+            onClick={() => { if (!didLongPress.current && product.inStock) onAdd(product); }}
+            onPointerDown={() => handlePointerDown(product)}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={handlePointerUp}
+            onContextMenu={(e) => e.preventDefault()}
             role="button"
             tabIndex={0}
             aria-label={`${displayName}, MOP ${product.price}`}
@@ -521,6 +544,31 @@ export default function POSClient({ initialProducts, initialCategories, userName
       }
       return [...prev, { ...product, quantity: 1 }];
     });
+  }, []);
+
+  // Long press — open product in variant picker view (with or without variants)
+  const openProductPreview = useCallback((product: Product) => {
+    if (!product.inStock) return;
+    setVariantProduct(product);
+    setVariantPickerOpen(true);
+    if (product.hasVariants) {
+      setVariantLoading(true);
+      fetchProductVariants(product.id)
+        .then(({ options, variants }) => {
+          setVariantOptions(options);
+          setVariantItems(variants.map(v => ({
+            ...v,
+            optionCombo: v.optionCombo as Record<string, string>,
+          })));
+        })
+        .catch(console.error)
+        .finally(() => setVariantLoading(false));
+    } else {
+      // No variants — show empty options so picker renders product info + add button
+      setVariantOptions([]);
+      setVariantItems([]);
+      setVariantLoading(false);
+    }
   }, []);
 
   // Handle variant selection — add to cart with variant-specific data
@@ -927,6 +975,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
                   locale={locale}
                   favoriteIds={favoriteIds}
                   onAdd={addToCart}
+                  onLongPress={openProductPreview}
                   onToggleFavorite={toggleFavorite}
                   extractBrand={extractBrand}
                 />
@@ -961,6 +1010,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
             locale={locale}
             favoriteIds={favoriteIds}
             onAdd={addToCart}
+            onLongPress={openProductPreview}
             onToggleFavorite={toggleFavorite}
             extractBrand={extractBrand}
           />
@@ -974,32 +1024,6 @@ export default function POSClient({ initialProducts, initialCategories, userName
           )}
         </div>}
       </main>
-      {/* Shift Summary Panel */}
-      {showShiftSummary && shiftId && (
-        <ShiftSummaryPanel
-          shiftId={shiftId}
-          onClose={() => setShowShiftSummary(false)}
-          onEndShift={() => { setShowShiftSummary(false); setShowShiftClose(true); }}
-          locale={locale}
-        />
-      )}
-
-      {/* Shift Close Modal */}
-      {showShiftClose && shiftId && (
-        <ShiftCloseModal
-          shiftId={shiftId}
-          onClose={() => setShowShiftClose(false)}
-          locale={locale}
-          onShiftClosed={() => {
-            setShowShiftClose(false);
-            sessionStorage.removeItem("pos-locked");
-            window.fetch("/api/logout", { method: "POST" }).finally(() => {
-              window.location.href = "/login";
-            });
-          }}
-        />
-      )}
-
       {/* ============ RIGHT: CART + PAYMENT ============ */}
       <aside className="w-[360px] bg-pos-cart-bg border-l border-pos-border flex flex-col shrink-0 shadow-[-1px_0_3px_rgba(0,0,0,0.04)]">
         {/* Cart header — aligned with main pane row 1 */}
@@ -1291,13 +1315,27 @@ export default function POSClient({ initialProducts, initialCategories, userName
 
           {/* Right: order list */}
           <div className="flex-1 overflow-hidden">
-            <HistorySheet
-              open={true}
-              onClose={() => setActiveTab("cashier")}
-              shiftId={shiftId}
-              locale={locale}
-              embedded
-            />
+            {orderChannel === "all" ? (
+              <HistorySheet
+                open={true}
+                onClose={() => setActiveTab("cashier")}
+                shiftId={shiftId}
+                locale={locale}
+                embedded
+              />
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center">
+                {orderChannel === "pos" ? (
+                  <Store className="h-12 w-12 text-pos-text-muted/30 mb-3" strokeWidth={1.25} />
+                ) : (
+                  <Globe className="h-12 w-12 text-pos-text-muted/30 mb-3" strokeWidth={1.25} />
+                )}
+                <p className="text-[15px] font-medium text-pos-text">
+                  {orderChannel === "pos" ? t(locale, "posOrders") : t(locale, "onlineOrders")}
+                </p>
+                <p className="text-[13px] text-pos-text-muted mt-1">{t(locale, "comingSoon")}</p>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1355,6 +1393,34 @@ export default function POSClient({ initialProducts, initialCategories, userName
             )}
           </div>
         </div>
+      )}
+
+      {/* Shift Summary Panel */}
+      {showShiftSummary && shiftId && (
+        <ShiftSummaryPanel
+          shiftId={shiftId}
+          onClose={() => setShowShiftSummary(false)}
+          onEndShift={() => { setShowShiftSummary(false); setShowShiftClose(true); }}
+          locale={locale}
+        />
+      )}
+
+      {/* Shift Close Modal */}
+      {showShiftClose && shiftId && (
+        <ShiftCloseModal
+          shiftId={shiftId}
+          onClose={() => setShowShiftClose(false)}
+          locale={locale}
+          userName={userName}
+          userAvatar={userAvatar}
+          onShiftClosed={() => {
+            setShowShiftClose(false);
+            sessionStorage.removeItem("pos-locked");
+            window.fetch("/api/logout", { method: "POST" }).finally(() => {
+              window.location.href = "/login";
+            });
+          }}
+        />
       )}
 
       {/* ============ BOTTOM BAR (full width) ============ */}
@@ -1636,6 +1702,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
           options={variantLoading ? [] : variantOptions}
           variants={variantLoading ? [] : variantItems}
           onSelect={handleVariantSelect}
+          onAddDirect={!variantProduct.hasVariants ? () => addToCart(variantProduct) : undefined}
           locale={locale}
         />
       )}

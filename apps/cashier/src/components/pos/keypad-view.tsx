@@ -4,7 +4,7 @@ import { useState, useCallback, useMemo } from "react";
 import { cn } from "@/lib/cn";
 import { type Locale, t } from "@/i18n/locales";
 import { type Product } from "@/data/mock";
-import { Delete, StickyNote, Plus } from "lucide-react";
+import { Delete, StickyNote, Plus, X } from "lucide-react";
 
 type Props = {
   locale: Locale;
@@ -123,35 +123,51 @@ export default function KeypadView({ locale, onAddToCart }: Props) {
         </button>
       </div>
 
-      {/* Note input modal */}
+      {/* Note spotlight overlay */}
       {showNote && (
         <>
-          <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setShowNote(false)} />
-          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[90%] max-w-[400px] bg-pos-surface border border-pos-border rounded-[var(--radius-lg)] shadow-xl p-5 animate-scale-in">
-            <p className="text-[15px] font-semibold text-pos-text mb-3">{t(locale, "addNote")}</p>
-            <input
-              type="text"
-              autoFocus
-              value={note}
-              onChange={e => setNote(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") setShowNote(false); }}
-              placeholder={t(locale, "keypadNotePlaceholder")}
-              className="w-full h-11 px-3 text-[14px] text-pos-text bg-pos-bg border border-pos-border rounded-[var(--radius-md)] outline-none focus:border-pos-accent transition-colors"
-            />
-            <div className="flex justify-end gap-2 mt-4">
-              <button
-                onClick={() => { setNote(""); setShowNote(false); }}
-                className="h-9 px-4 text-[13px] text-pos-text-secondary rounded-[var(--radius-md)] hover:bg-pos-surface-hover transition-colors"
-              >
-                {t(locale, "clear")}
-              </button>
+          <div
+            className="fixed inset-0 z-50 bg-black/40 animate-[fadeIn_0.2s_ease-out]"
+            onClick={() => setShowNote(false)}
+          />
+          <div className="fixed inset-x-0 top-0 z-50 flex justify-center pt-[8vh] px-4 animate-[spotlightOpen_0.25s_cubic-bezier(0.16,1,0.3,1)]">
+            <div className="w-full max-w-xl bg-pos-surface rounded-2xl shadow-2xl overflow-hidden relative">
+              {/* Close button */}
               <button
                 onClick={() => setShowNote(false)}
-                className="h-9 px-4 text-[13px] font-medium text-white rounded-[var(--radius-md)] transition-colors"
-                style={{ backgroundColor: "var(--color-pos-accent)" }}
+                aria-label={t(locale, "cancel")}
+                className="absolute top-3 right-3 h-10 w-10 flex items-center justify-center rounded-full bg-black/8 text-pos-text-muted hover:bg-black/15 transition-colors z-10"
               >
-                {t(locale, "confirm")}
+                <X className="h-5 w-5" strokeWidth={2.5} />
               </button>
+
+              <div className="p-5">
+                <p className="text-[15px] font-semibold text-pos-text mb-3">{t(locale, "addNote")}</p>
+                <input
+                  type="text"
+                  autoFocus
+                  value={note}
+                  onChange={e => setNote(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") setShowNote(false); }}
+                  placeholder={t(locale, "keypadNotePlaceholder")}
+                  className="w-full h-11 px-3 text-[14px] text-pos-text bg-pos-bg border border-pos-border rounded-[var(--radius-md)] outline-none focus:border-pos-accent transition-colors"
+                />
+                <div className="flex justify-end gap-2 mt-4">
+                  <button
+                    onClick={() => { setNote(""); setShowNote(false); }}
+                    className="h-10 px-4 text-[13px] text-pos-text-secondary rounded-[var(--radius-md)] hover:bg-pos-surface-hover transition-colors"
+                  >
+                    {t(locale, "clear")}
+                  </button>
+                  <button
+                    onClick={() => setShowNote(false)}
+                    className="h-10 px-4 text-[13px] font-medium text-white rounded-[var(--radius-md)] transition-colors"
+                    style={{ backgroundColor: "var(--color-pos-accent)" }}
+                  >
+                    {t(locale, "confirm")}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </>

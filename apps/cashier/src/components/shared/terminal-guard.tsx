@@ -117,7 +117,7 @@ export default function TerminalGuard({ children }: { children: React.ReactNode 
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="h-10 px-6 rounded-xl bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
+            className="h-10 px-6 rounded-[var(--radius-md)] bg-gray-900 text-white text-sm font-medium hover:bg-gray-800 transition-colors"
           >
             Retry
           </button>
