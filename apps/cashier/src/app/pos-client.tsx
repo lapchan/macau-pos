@@ -190,7 +190,7 @@ function ProductGrid({ products, cart, addedId, locale, currency, favoriteIds, o
     longPressRef.current = setTimeout(() => {
       didLongPress.current = true;
       if (product.inStock && onLongPress) onLongPress(product);
-    }, 500);
+    }, 800);
   }
 
   function handlePointerUp() {
