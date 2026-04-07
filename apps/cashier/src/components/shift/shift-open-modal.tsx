@@ -12,9 +12,10 @@ type Props = {
   terminalCode: string | null;
   onShiftOpened: (shiftId: string) => void;
   locale?: Locale;
+  currency?: string;
 };
 
-export default function ShiftOpenModal({ userName, terminalName, terminalCode, onShiftOpened, locale = "en" }: Props) {
+export default function ShiftOpenModal({ userName, terminalName, terminalCode, onShiftOpened, locale = "en", currency = "MOP" }: Props) {
   const router = useRouter();
   const [floatAmount, setFloatAmount] = useState("0");
   const [error, setError] = useState("");
@@ -62,7 +63,7 @@ export default function ShiftOpenModal({ userName, terminalName, terminalCode, o
         {/* Opening float */}
         <div className="mt-6 mb-6">
           <label className="block text-[13px] font-medium text-[#1d1d1f] mb-2 text-left">
-            {t(locale, "shiftOpeningFloat")}
+            {t(locale, "shiftOpeningFloat").replace("{currency}", currency)}
           </label>
           <div className="relative">
             <span className="absolute left-4 top-1/2 -translate-y-1/2 text-[16px] font-semibold text-[#86868b]">$</span>

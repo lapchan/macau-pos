@@ -9,9 +9,10 @@ import { Delete, StickyNote, Plus, X } from "lucide-react";
 type Props = {
   locale: Locale;
   onAddToCart: (product: Product) => void;
+  currency?: string;
 };
 
-export default function KeypadView({ locale, onAddToCart }: Props) {
+export default function KeypadView({ locale, onAddToCart, currency = "MOP" }: Props) {
   const [value, setValue] = useState("0");
   const [note, setNote] = useState("");
   const [showNote, setShowNote] = useState(false);
@@ -57,7 +58,7 @@ export default function KeypadView({ locale, onAddToCart }: Props) {
       <div className="flex-1 flex flex-col justify-center min-h-0">
         <div className="flex items-center justify-between">
           <p className="text-[64px] font-bold text-pos-text tracking-tight text-left tabular-nums leading-none">
-            <span className="text-[40px] text-pos-text-muted mr-1">MOP</span>
+            <span className="text-[40px] text-pos-text-muted mr-1">{currency}</span>
             {displayPrice}
           </p>
           <button
@@ -83,7 +84,7 @@ export default function KeypadView({ locale, onAddToCart }: Props) {
         {/* Row 1: + Note (full row) */}
         <button
           onClick={() => setShowNote(true)}
-          className="h-[72px] col-span-3 flex items-center justify-center gap-2 text-[16px] font-medium text-pos-text-secondary rounded-[var(--radius-md)] bg-pos-bg hover:bg-pos-surface-hover active:scale-[0.97] transition-all"
+          className="h-[86px] col-span-3 flex items-center justify-center gap-2 text-[19px] font-medium text-pos-text-secondary rounded-[var(--radius-md)] bg-pos-bg hover:bg-pos-surface-hover active:scale-[0.97] transition-all"
         >
           <StickyNote className="h-5 w-5" />
           {t(locale, "addNote")}
@@ -94,7 +95,7 @@ export default function KeypadView({ locale, onAddToCart }: Props) {
           <button
             key={n}
             onClick={() => handlePress(n)}
-            className="h-[72px] flex items-center justify-center text-[28px] font-medium text-pos-text rounded-[var(--radius-md)] bg-pos-bg hover:bg-pos-surface-hover active:scale-[0.97] transition-all"
+            className="h-[86px] flex items-center justify-center text-[34px] font-medium text-pos-text rounded-[var(--radius-md)] bg-pos-bg hover:bg-pos-surface-hover active:scale-[0.97] transition-all"
           >
             {n}
           </button>
@@ -103,20 +104,20 @@ export default function KeypadView({ locale, onAddToCart }: Props) {
         {/* Row 5: C, 0, Add */}
         <button
           onClick={() => handlePress("C")}
-          className="h-[72px] flex items-center justify-center text-[22px] font-semibold text-pos-text-muted rounded-[var(--radius-md)] bg-pos-bg hover:bg-pos-surface-hover active:scale-[0.97] transition-all"
+          className="h-[86px] flex items-center justify-center text-[26px] font-semibold text-pos-text-muted rounded-[var(--radius-md)] bg-pos-bg hover:bg-pos-surface-hover active:scale-[0.97] transition-all"
         >
           C
         </button>
         <button
           onClick={() => handlePress("0")}
-          className="h-[72px] flex items-center justify-center text-[28px] font-medium text-pos-text rounded-[var(--radius-md)] bg-pos-bg hover:bg-pos-surface-hover active:scale-[0.97] transition-all"
+          className="h-[86px] flex items-center justify-center text-[34px] font-medium text-pos-text rounded-[var(--radius-md)] bg-pos-bg hover:bg-pos-surface-hover active:scale-[0.97] transition-all"
         >
           0
         </button>
         <button
           onClick={handleAddToCart}
           disabled={parseInt(value, 10) <= 0}
-          className="h-[72px] flex items-center justify-center text-[28px] font-semibold text-white rounded-[var(--radius-md)] active:scale-[0.97] transition-all disabled:opacity-40"
+          className="h-[86px] flex items-center justify-center text-[34px] font-semibold text-white rounded-[var(--radius-md)] active:scale-[0.97] transition-all disabled:opacity-40"
           style={{ backgroundColor: "var(--color-pos-accent)" }}
         >
           <Plus className="h-7 w-7" />

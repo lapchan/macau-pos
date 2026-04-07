@@ -38,7 +38,7 @@ import {
   LayoutGrid, Coffee, Cookie, Snowflake, Milk, Home, Heart, Flame,
   Search, Plus, Minus, Trash2, ShoppingBag, CreditCard,
   UserPlus, X, Languages, Check, Settings, Calculator, Star, LibraryBig,
-  Palette, LogOut, Lock, Clock, Receipt, Wifi, WifiOff, Loader2, ChevronRight, ClipboardList, Monitor, BarChart3, Wallet, TrendingUp, Store, Globe, Package, ScanLine,
+  Palette, LogOut, Lock, Clock, Receipt, Wifi, WifiOff, Loader2, ChevronRight, ClipboardList, Monitor, BarChart3, Wallet, TrendingUp, Store, Globe, Package, ScanLine, RefreshCw,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
@@ -96,6 +96,7 @@ type Props = {
   terminalCode?: string | null;
   activeShiftId?: string | null;
   taxRate?: number;
+  currency?: string;
 };
 
 // Drawer cash ledger — shows all cash events for the current shift
@@ -169,11 +170,12 @@ function DrawerLedger({ shiftId, locale }: { shiftId: string; locale: Locale }) 
 }
 
 // Shared product card grid — used by Library and Favorites views
-function ProductGrid({ products, cart, addedId, locale, favoriteIds, onAdd, onLongPress, onToggleFavorite, extractBrand }: {
+function ProductGrid({ products, cart, addedId, locale, currency, favoriteIds, onAdd, onLongPress, onToggleFavorite, extractBrand }: {
   products: Product[];
   cart: CartItem[];
   addedId: string | null;
   locale: Locale;
+  currency: string;
   favoriteIds: Set<string>;
   onAdd: (p: Product) => void;
   onLongPress?: (p: Product) => void;
@@ -214,7 +216,7 @@ function ProductGrid({ products, cart, addedId, locale, favoriteIds, onAdd, onLo
             onContextMenu={(e) => e.preventDefault()}
             role="button"
             tabIndex={0}
-            aria-label={`${displayName}, MOP ${product.price}`}
+            aria-label={`${displayName}, ${currency} ${product.price}`}
             className={cn(
               "relative flex flex-col p-2.5 rounded-[var(--radius-md)] border transition-all text-left group",
               !product.inStock
@@ -243,7 +245,7 @@ function ProductGrid({ products, cart, addedId, locale, favoriteIds, onAdd, onLo
             </p>
             <div className="flex items-center justify-between mt-2">
               <span className="text-[16px] font-bold tabular-nums" style={{ color: "var(--color-pos-accent)" }}>
-                ${product.price.toFixed(product.price % 1 === 0 ? 0 : 1)}
+                {currency} {product.price.toFixed(product.price % 1 === 0 ? 0 : 1)}
               </span>
               {inCart && (
                 <span className="text-[11px] font-semibold text-white px-2 py-0.5 rounded-[var(--radius-full)]" style={{ backgroundColor: "var(--color-pos-accent)" }}>
@@ -291,7 +293,7 @@ function ProductGrid({ products, cart, addedId, locale, favoriteIds, onAdd, onLo
   );
 }
 
-export default function POSClient({ initialProducts, initialCategories, userName, userAvatar, userId, terminalName, terminalCode, activeShiftId, taxRate = 0 }: Props) {
+export default function POSClient({ initialProducts, initialCategories, userName, userAvatar, userId, terminalName, terminalCode, activeShiftId, taxRate = 0, currency = "MOP" }: Props) {
   const [locale, setLocale] = useState<Locale>("tc");
   const [activeTab, setActiveTab] = useState<"cashier" | "orders" | "reports">("cashier");
   const [reportView, setReportView] = useState<"drawer" | "sales">("drawer");
@@ -783,6 +785,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
         terminalCode={terminalCode || null}
         onShiftOpened={(id) => setShiftId(id)}
         locale={locale}
+        currency={currency}
       />
     )}
 
@@ -954,7 +957,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
 
         {/* Keypad view */}
         {activeView === "keypad" && (
-          <KeypadView locale={locale} onAddToCart={addCustomToCart} />
+          <KeypadView locale={locale} onAddToCart={addCustomToCart} currency={currency} />
         )}
 
         {/* Favorites view */}
@@ -973,6 +976,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
                   cart={cart}
                   addedId={addedId}
                   locale={locale}
+                  currency={currency}
                   favoriteIds={favoriteIds}
                   onAdd={addToCart}
                   onLongPress={openProductPreview}
@@ -1008,6 +1012,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
             cart={cart}
             addedId={addedId}
             locale={locale}
+            currency={currency}
             favoriteIds={favoriteIds}
             onAdd={addToCart}
             onLongPress={openProductPreview}
@@ -1105,7 +1110,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
         {/* Screen reader announcement for cart changes */}
         <div aria-live="polite" className="sr-only">
           {itemCount > 0
-            ? `${itemCount} ${t(locale, "items")}, ${t(locale, "total")} MOP ${subtotal.toFixed(2)}`
+            ? `${itemCount} ${t(locale, "items")}, ${t(locale, "total")} ${currency} ${subtotal.toFixed(2)}`
             : t(locale, "emptyCart")}
         </div>
 
@@ -1150,7 +1155,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
                       aria-label={`Remove ${item.name}`}
                       className="h-6 w-6 p-2 box-content flex items-center justify-center text-pos-text-muted hover:text-pos-danger hover:bg-pos-danger-light rounded-full transition-all shrink-0"
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </button>
                   </div>
 
@@ -1169,8 +1174,8 @@ export default function POSClient({ initialProducts, initialCategories, userName
                   {item.discount && (
                     <div className="flex items-center gap-1.5 mt-1.5">
                       <span className="text-[11px] font-medium text-pos-danger">
-                        {t(locale, "discount")}: {item.discount.type === "percent" ? `${item.discount.value}%` : `MOP ${item.discount.value}`}
-                        {" "}(-MOP {(item.price * item.quantity - itemLineTotal(item)).toFixed(1)})
+                        {t(locale, "discount")}: {item.discount.type === "percent" ? `${item.discount.value}%` : `${currency} ${item.discount.value}`}
+                        {" "}(-{currency} {(item.price * item.quantity - itemLineTotal(item)).toFixed(1)})
                       </span>
                       <button
                         onClick={(e) => { e.stopPropagation(); applyItemDiscount(item.id, null); }}
@@ -1204,11 +1209,11 @@ export default function POSClient({ initialProducts, initialCategories, userName
                     </div>
                     <div className="text-right">
                       <p className={cn("text-[14px] font-bold tabular-nums", item.discount ? "text-pos-danger" : "text-pos-text")}>
-                        {t(locale, "total")} ${itemLineTotal(item).toFixed(1)}
+                        {t(locale, "total")} {currency} {itemLineTotal(item).toFixed(1)}
                       </p>
                       {(item.quantity > 1 || item.discount) && (
                         <p className="text-[10px] text-pos-text-muted tabular-nums">
-                          MOP {item.price.toFixed(1)} × {item.quantity}
+                          {currency} {item.price.toFixed(1)} × {item.quantity}
                         </p>
                       )}
                     </div>
@@ -1226,7 +1231,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
           {/* Subtotal */}
           <div className="flex items-center justify-between text-[13px]">
             <span className="text-pos-text-secondary">{t(locale, "subtotal")}</span>
-            <span className="font-medium text-pos-text tabular-nums">MOP {subtotal.toFixed(2)}</span>
+            <span className="font-medium text-pos-text tabular-nums">{currency} {subtotal.toFixed(2)}</span>
           </div>
 
           {/* Discount row — fixed height, always occupies space */}
@@ -1235,13 +1240,13 @@ export default function POSClient({ initialProducts, initialCategories, userName
               <div className="flex items-center justify-between w-full text-[13px]">
                 <div className="flex items-center gap-1.5">
                   <span className="text-pos-danger">
-                    {t(locale, "discount")} ({orderDiscount.type === "percent" ? `${orderDiscount.value}%` : `MOP ${orderDiscount.value}`})
+                    {t(locale, "discount")} ({orderDiscount.type === "percent" ? `${orderDiscount.value}%` : `${currency} ${orderDiscount.value}`})
                   </span>
                   <button onClick={() => setOrderDiscount(null)} className="h-5 w-5 flex items-center justify-center rounded-full text-pos-text-muted hover:text-pos-danger transition-colors">
                     <X className="h-3 w-3" />
                   </button>
                 </div>
-                <span className="font-medium text-pos-danger tabular-nums">-MOP {discountAmount.toFixed(2)}</span>
+                <span className="font-medium text-pos-danger tabular-nums">-{currency} {discountAmount.toFixed(2)}</span>
               </div>
             ) : cart.length > 0 ? (
               <button
@@ -1259,7 +1264,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
               {cart.length > 0 ? (
                 <>
                   <span className="text-pos-text-secondary">{t(locale, "tax")} ({taxRate}%)</span>
-                  <span className="font-medium text-pos-text tabular-nums">MOP {taxAmount.toFixed(2)}</span>
+                  <span className="font-medium text-pos-text tabular-nums">{currency} {taxAmount.toFixed(2)}</span>
                 </>
               ) : null}
             </div>
@@ -1278,7 +1283,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
             style={cart.length > 0 ? { backgroundColor: "var(--color-pos-accent)" } : undefined}
           >
             <CreditCard className="h-5 w-5" />
-            {cart.length > 0 ? `MOP ${total.toFixed(2)}` : t(locale, "charge")}
+            {cart.length > 0 ? `${currency} ${total.toFixed(2)}` : t(locale, "charge")}
           </button>
         </div>
       </aside>
@@ -1321,6 +1326,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
                 onClose={() => setActiveTab("cashier")}
                 shiftId={shiftId}
                 locale={locale}
+                currency={currency}
                 embedded
               />
             ) : (
@@ -1402,6 +1408,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
           onClose={() => setShowShiftSummary(false)}
           onEndShift={() => { setShowShiftSummary(false); setShowShiftClose(true); }}
           locale={locale}
+          currency={currency}
         />
       )}
 
@@ -1411,6 +1418,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
           shiftId={shiftId}
           onClose={() => setShowShiftClose(false)}
           locale={locale}
+          currency={currency}
           userName={userName}
           userAvatar={userAvatar}
           onShiftClosed={() => {
@@ -1475,6 +1483,9 @@ export default function POSClient({ initialProducts, initialCategories, userName
                     <div className="ml-auto flex items-center gap-1.5"><Flag code={locale} size={14} /><ChevronRight className="h-3.5 w-3.5 text-pos-text-muted" /></div>
                   </button>
                   <div className="my-1.5 border-t border-pos-border" />
+                  <button onClick={() => { setShowSettingsMenu(false); window.location.reload(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-text-secondary hover:bg-pos-surface-hover transition-colors">
+                    <RefreshCw className="h-4 w-4" /><span>{t(locale, "update")}</span>
+                  </button>
                   <button onClick={() => { setShowSettingsMenu(false); handleLockScreen(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-text-secondary hover:bg-pos-surface-hover transition-colors">
                     <Lock className="h-4 w-4" /><span>{t(locale, "lock")}</span>
                   </button>
@@ -1611,6 +1622,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
       {discountItemId && cart.find(i => i.id === discountItemId) && (
         <DiscountPopover
           locale={locale}
+          currency={currency}
           subtotal={(cart.find(i => i.id === discountItemId)!.price * cart.find(i => i.id === discountItemId)!.quantity)}
           onApply={(d) => applyItemDiscount(discountItemId, d)}
           onClose={() => setDiscountItemId(null)}
@@ -1621,6 +1633,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
       {showDiscountPopover && (
         <DiscountPopover
           locale={locale}
+          currency={currency}
           subtotal={subtotal}
           onApply={setOrderDiscount}
           onClose={() => setShowDiscountPopover(false)}
@@ -1631,6 +1644,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
         <CheckoutModal
           cart={cart}
           locale={locale}
+          currency={currency}
           onClose={() => setShowCheckout(false)}
           onComplete={handleCheckoutComplete}
           customerId={linkedCustomer?.id}
@@ -1699,11 +1713,13 @@ export default function POSClient({ initialProducts, initialCategories, userName
           productName={getProductName(variantProduct, locale)}
           productImage={variantProduct.image}
           basePrice={variantProduct.price}
-          options={variantLoading ? [] : variantOptions}
-          variants={variantLoading ? [] : variantItems}
+          loading={variantLoading}
+          options={variantOptions}
+          variants={variantItems}
           onSelect={handleVariantSelect}
           onAddDirect={!variantProduct.hasVariants ? () => addToCart(variantProduct) : undefined}
           locale={locale}
+          currency={currency}
         />
       )}
 
@@ -1713,6 +1729,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
         onClose={() => setShowHistory(false)}
         shiftId={shiftId}
         locale={locale}
+        currency={currency}
       />
     </div>
     </>

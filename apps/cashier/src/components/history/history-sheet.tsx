@@ -28,11 +28,12 @@ type Props = {
   shiftId?: string | null;
   locale: Locale;
   embedded?: boolean;
+  currency?: string;
 };
 
-function formatCurrency(value: string | number) {
+function formatCurrency(value: string | number, currency = "MOP") {
   const num = typeof value === "string" ? parseFloat(value) : value;
-  return `MOP ${num.toFixed(2)}`;
+  return `${currency} ${num.toFixed(2)}`;
 }
 
 function formatDate(date: string, locale: Locale) {
@@ -52,7 +53,8 @@ const DEFAULT_FILTERS: FilterState = {
   search: "",
 };
 
-export default function HistorySheet({ open, onClose, shiftId, locale, embedded = false }: Props) {
+export default function HistorySheet({ open, onClose, shiftId, locale, embedded = false, currency = "MOP" }: Props) {
+  const fmt = (value: string | number) => formatCurrency(value, currency);
   const [closing, setClosing] = useState(false);
   const [orders, setOrders] = useState<OrderRow[]>([]);
   const [items, setItems] = useState<Record<string, OrderItemRow[]>>({});
@@ -187,7 +189,7 @@ export default function HistorySheet({ open, onClose, shiftId, locale, embedded 
                   </div>
                   <div className="flex items-center gap-2.5 shrink-0">
                     <div className="text-right">
-                      <div className="text-[14px] font-semibold text-pos-text">{formatCurrency(order.total)}</div>
+                      <div className="text-[14px] font-semibold text-pos-text">{fmt(order.total)}</div>
                       <div className="flex items-center justify-end gap-1 mt-0.5">
                         <PayIcon className="h-3 w-3 text-pos-text-muted" />
                         <span className="text-[11px] text-pos-text-muted">{payLabel}</span>
@@ -212,11 +214,11 @@ export default function HistorySheet({ open, onClose, shiftId, locale, embedded 
                                 <div className="flex items-center justify-between text-[13px]">
                                   <div className="flex-1 min-w-0">
                                     <span className="text-pos-text font-medium truncate block">{getProductName({ name: item.name, translations: item.translations }, locale)}</span>
-                                    <span className="text-[11px] text-pos-text-muted">{item.quantity} x {formatCurrency(item.unitPrice)}</span>
+                                    <span className="text-[11px] text-pos-text-muted">{item.quantity} x {fmt(item.unitPrice)}</span>
                                   </div>
-                                  <span className={cn("font-medium tabular-nums shrink-0 ml-3", iDisc > 0 ? "text-pos-danger" : "text-pos-text-secondary")}>{formatCurrency(item.lineTotal)}</span>
+                                  <span className={cn("font-medium tabular-nums shrink-0 ml-3", iDisc > 0 ? "text-pos-danger" : "text-pos-text-secondary")}>{fmt(item.lineTotal)}</span>
                                 </div>
-                                {iDisc > 0 && <p className="text-[10px] text-pos-danger">{item.discountNote || t(locale, "receiptDiscount")} (-{formatCurrency(item.discountAmount)})</p>}
+                                {iDisc > 0 && <p className="text-[10px] text-pos-danger">{item.discountNote || t(locale, "receiptDiscount")} (-{fmt(item.discountAmount)})</p>}
                               </div>
                             );
                           })}
@@ -225,18 +227,18 @@ export default function HistorySheet({ open, onClose, shiftId, locale, embedded 
                       <div className="space-y-2">
                         <div className="flex items-center justify-between text-[13px]">
                           <span className="text-pos-text-muted">{t(locale, "subtotal")}</span>
-                          <span className="text-pos-text-secondary font-medium">{formatCurrency(order.subtotal)}</span>
+                          <span className="text-pos-text-secondary font-medium">{fmt(order.subtotal)}</span>
                         </div>
                         {parseFloat(order.discountAmount) > 0 && (
                           <div className="flex items-center justify-between text-[13px]">
                             <span className="text-pos-danger">{order.notes || t(locale, "discount")}</span>
-                            <span className="text-pos-danger font-medium">-{formatCurrency(order.discountAmount)}</span>
+                            <span className="text-pos-danger font-medium">-{fmt(order.discountAmount)}</span>
                           </div>
                         )}
                         {parseFloat(order.taxAmount) > 0 && (
                           <div className="flex items-center justify-between text-[13px]">
                             <span className="text-pos-text-muted">{t(locale, "tax")}</span>
-                            <span className="text-pos-text-secondary font-medium">{formatCurrency(order.taxAmount)}</span>
+                            <span className="text-pos-text-secondary font-medium">{fmt(order.taxAmount)}</span>
                           </div>
                         )}
                         <div className="flex items-center justify-between text-[13px]">
@@ -245,7 +247,7 @@ export default function HistorySheet({ open, onClose, shiftId, locale, embedded 
                         </div>
                         <div className="border-t border-dashed border-pos-border/60 pt-2 mt-2 flex items-center justify-between text-[14px]">
                           <span className="font-semibold text-pos-text-secondary">{t(locale, "total")}</span>
-                          <span className="font-bold text-pos-text">{formatCurrency(order.total)}</span>
+                          <span className="font-bold text-pos-text">{fmt(order.total)}</span>
                         </div>
                       </div>
                       <div className="mt-3 flex items-center justify-between">
@@ -324,11 +326,11 @@ export default function HistorySheet({ open, onClose, shiftId, locale, embedded 
               </div>
               <div className="bg-pos-surface rounded-[var(--radius-md)] border border-pos-border px-3 py-2.5">
                 <p className="text-[10px] text-pos-text-muted uppercase tracking-wider">{t(locale, "totalSales")}</p>
-                <p className="text-[18px] font-bold tabular-nums mt-0.5" style={{ color: "var(--color-pos-accent)" }}>MOP {totalSales.toFixed(0)}</p>
+                <p className="text-[18px] font-bold tabular-nums mt-0.5" style={{ color: "var(--color-pos-accent)" }}>{currency} {totalSales.toFixed(0)}</p>
               </div>
               <div className="bg-pos-surface rounded-[var(--radius-md)] border border-pos-border px-3 py-2.5">
                 <p className="text-[10px] text-pos-text-muted uppercase tracking-wider">{t(locale, "avgOrder")}</p>
-                <p className="text-[18px] font-bold text-pos-text tabular-nums mt-0.5">MOP {avgOrder.toFixed(0)}</p>
+                <p className="text-[18px] font-bold text-pos-text tabular-nums mt-0.5">{currency} {avgOrder.toFixed(0)}</p>
               </div>
               <div className="bg-pos-surface rounded-[var(--radius-md)] border border-pos-border px-3 py-2.5">
                 <p className="text-[10px] text-pos-text-muted uppercase tracking-wider">{t(locale, "refunds")}</p>
@@ -409,13 +411,13 @@ export default function HistorySheet({ open, onClose, shiftId, locale, embedded 
                           <div className="flex items-center justify-between">
                             <div className="flex-1 min-w-0">
                               <p className="text-[14px] font-medium text-pos-text">{getProductName({ name: item.name, translations: item.translations }, locale)}</p>
-                              <p className="text-[12px] text-pos-text-muted">{item.quantity} x {formatCurrency(item.unitPrice)}</p>
+                              <p className="text-[12px] text-pos-text-muted">{item.quantity} x {fmt(item.unitPrice)}</p>
                             </div>
-                            <span className={cn("text-[14px] font-semibold tabular-nums shrink-0 ml-3", itemDiscount > 0 ? "text-pos-danger" : "text-pos-text")}>{formatCurrency(item.lineTotal)}</span>
+                            <span className={cn("text-[14px] font-semibold tabular-nums shrink-0 ml-3", itemDiscount > 0 ? "text-pos-danger" : "text-pos-text")}>{fmt(item.lineTotal)}</span>
                           </div>
                           {itemDiscount > 0 && (
                             <p className="text-[11px] text-pos-danger mt-0.5">
-                              {item.discountNote || t(locale, "discount")} (-{formatCurrency(item.discountAmount)})
+                              {item.discountNote || t(locale, "discount")} (-{fmt(item.discountAmount)})
                             </p>
                           )}
                         </div>
@@ -427,23 +429,23 @@ export default function HistorySheet({ open, onClose, shiftId, locale, embedded 
                   <div className="border-t border-pos-border pt-4 space-y-2">
                     <div className="flex items-center justify-between text-[14px]">
                       <span className="text-pos-text-muted">{t(locale, "subtotal")}</span>
-                      <span className="text-pos-text font-medium tabular-nums">{formatCurrency(order.subtotal)}</span>
+                      <span className="text-pos-text font-medium tabular-nums">{fmt(order.subtotal)}</span>
                     </div>
                     {parseFloat(order.discountAmount) > 0 && (
                       <div className="flex items-center justify-between text-[14px]">
                         <span className="text-pos-danger">{order.notes || t(locale, "discount")}</span>
-                        <span className="text-pos-danger font-medium tabular-nums">-{formatCurrency(order.discountAmount)}</span>
+                        <span className="text-pos-danger font-medium tabular-nums">-{fmt(order.discountAmount)}</span>
                       </div>
                     )}
                     {parseFloat(order.taxAmount) > 0 && (
                       <div className="flex items-center justify-between text-[14px]">
                         <span className="text-pos-text-muted">{t(locale, "tax")}</span>
-                        <span className="text-pos-text font-medium tabular-nums">{formatCurrency(order.taxAmount)}</span>
+                        <span className="text-pos-text font-medium tabular-nums">{fmt(order.taxAmount)}</span>
                       </div>
                     )}
                     <div className="border-t border-dashed border-pos-border pt-3 flex items-center justify-between">
                       <span className="text-[16px] font-semibold text-pos-text">{t(locale, "total")}</span>
-                      <span className="text-[22px] font-bold tabular-nums" style={{ color: "var(--color-pos-accent)" }}>{formatCurrency(order.total)}</span>
+                      <span className="text-[22px] font-bold tabular-nums" style={{ color: "var(--color-pos-accent)" }}>{fmt(order.total)}</span>
                     </div>
                   </div>
 

@@ -17,9 +17,10 @@ type Props = {
   locale?: Locale;
   userName?: string | null;
   userAvatar?: string | null;
+  currency?: string;
 };
 
-export default function ShiftCloseModal({ shiftId, onClose, onShiftClosed, locale = "en", userName, userAvatar }: Props) {
+export default function ShiftCloseModal({ shiftId, onClose, onShiftClosed, locale = "en", userName, userAvatar, currency = "MOP" }: Props) {
   const router = useRouter();
   const [cashCents, setCashCents] = useState("0");
   const [notes, setNotes] = useState("");
@@ -85,7 +86,7 @@ export default function ShiftCloseModal({ shiftId, onClose, onShiftClosed, local
           </div>
           <h2 className="text-[18px] font-semibold text-[#1d1d1f]">{t(locale, "shiftClosed")}</h2>
           <p className="text-[13px] text-[#86868b] mt-1">
-            {t(locale, "shiftVariance")}: MOP {variance >= 0 ? "+" : ""}{variance.toFixed(2)}
+            {t(locale, "shiftVariance")}: {currency} {variance >= 0 ? "+" : ""}{variance.toFixed(2)}
             {expectedCash > 0 && ` (${((variance / expectedCash) * 100).toFixed(1)}%)`}
           </p>
         </div>
@@ -171,7 +172,7 @@ export default function ShiftCloseModal({ shiftId, onClose, onShiftClosed, local
                         <DollarSign className="h-3.5 w-3.5 text-gray-400" />
                         <p className="text-[11px] text-gray-500 uppercase tracking-wider">{t(locale, "shiftSales")}</p>
                       </div>
-                      <p className="text-[20px] font-semibold text-[#1d1d1f] tabular-nums">MOP {summary.liveSales.toFixed(2)}</p>
+                      <p className="text-[20px] font-semibold text-[#1d1d1f] tabular-nums">{currency} {summary.liveSales.toFixed(2)}</p>
                     </div>
                   </div>
 
@@ -186,7 +187,7 @@ export default function ShiftCloseModal({ shiftId, onClose, onShiftClosed, local
                         {Object.entries(summary.paymentBreakdown).map(([method, total]) => (
                           <div key={method} className="flex items-center justify-between py-2 px-4 bg-gray-50 rounded-xl">
                             <span className="text-[13px] text-gray-700">{PAYMENT_METHOD_KEYS[method] ? t(locale, PAYMENT_METHOD_KEYS[method] as any) : method}</span>
-                            <span className="text-[13px] font-semibold text-[#1d1d1f] tabular-nums">MOP {(total as number).toFixed(2)}</span>
+                            <span className="text-[13px] font-semibold text-[#1d1d1f] tabular-nums">{currency} {(total as number).toFixed(2)}</span>
                           </div>
                         ))}
                       </div>
@@ -196,9 +197,9 @@ export default function ShiftCloseModal({ shiftId, onClose, onShiftClosed, local
                   {/* Expected cash highlight */}
                   <div className="py-3 px-4 bg-blue-50 rounded-xl">
                     <p className="text-[11px] text-blue-600 uppercase tracking-wider mb-1">{t(locale, "shiftExpectedCash")}</p>
-                    <p className="text-[18px] font-bold text-blue-700 tabular-nums">MOP {summary.expectedCash.toFixed(2)}</p>
+                    <p className="text-[18px] font-bold text-blue-700 tabular-nums">{currency} {summary.expectedCash.toFixed(2)}</p>
                     <p className="text-[11px] text-blue-500 mt-0.5">
-                      Float MOP {parseFloat(summary.openingFloat).toFixed(2)} + Cash MOP {summary.cashTotal.toFixed(2)}
+                      {`Float ${currency} `}{parseFloat(summary.openingFloat).toFixed(2)}{` + Cash ${currency} `}{summary.cashTotal.toFixed(2)}
                     </p>
                   </div>
 
@@ -227,11 +228,11 @@ export default function ShiftCloseModal({ shiftId, onClose, onShiftClosed, local
                 )}
                 <div className="flex-1">
                   <p className={cn("text-[13px] font-medium", withinTolerance ? "text-emerald-700" : "text-amber-700")}>
-                    {t(locale, "shiftVariance")}: MOP {variance >= 0 ? "+" : ""}{variance.toFixed(2)}
+                    {t(locale, "shiftVariance")}: {currency} {variance >= 0 ? "+" : ""}{variance.toFixed(2)}
                     {expectedCash > 0 && <span className="ml-1">({((variance / expectedCash) * 100).toFixed(1)}%)</span>}
                   </p>
                   <p className={cn("text-[11px]", withinTolerance ? "text-emerald-600" : "text-amber-600")}>
-                    {withinTolerance ? t(locale, "shiftWithinTolerance") : t(locale, "shiftOverTolerance")}
+                    {withinTolerance ? t(locale, "shiftWithinTolerance").replace("{currency}", currency) : t(locale, "shiftOverTolerance")}
                   </p>
                 </div>
               </div>
@@ -240,7 +241,7 @@ export default function ShiftCloseModal({ shiftId, onClose, onShiftClosed, local
               <div>
                 <label className="block text-[13px] font-medium text-pos-text mb-1.5">{t(locale, "shiftActualCash")}</label>
                 <div className="flex items-baseline gap-2 px-4 py-3 bg-white border border-pos-border rounded-xl">
-                  <span className="text-[14px] text-pos-text-muted">MOP</span>
+                  <span className="text-[14px] text-pos-text-muted">{currency}</span>
                   <span className="text-[28px] font-bold tabular-nums text-pos-text">{cashDisplay}</span>
                 </div>
               </div>
@@ -251,20 +252,20 @@ export default function ShiftCloseModal({ shiftId, onClose, onShiftClosed, local
                   <button
                     key={n}
                     onClick={() => handleDigit(n)}
-                    className="h-12 rounded-[var(--radius-md)] bg-pos-bg text-[20px] font-medium text-pos-text transition-all active:scale-[0.97] hover:bg-pos-surface-hover"
+                    className="h-14 rounded-[var(--radius-md)] bg-pos-bg text-[24px] font-medium text-pos-text transition-all active:scale-[0.97] hover:bg-pos-surface-hover"
                   >
                     {n}
                   </button>
                 ))}
                 <button
                   onClick={() => setCashCents("0")}
-                  className="h-12 rounded-[var(--radius-md)] bg-pos-bg text-[16px] font-semibold text-pos-text-muted transition-all active:scale-[0.97] hover:bg-pos-surface-hover"
+                  className="h-14 rounded-[var(--radius-md)] bg-pos-bg text-[19px] font-semibold text-pos-text-muted transition-all active:scale-[0.97] hover:bg-pos-surface-hover"
                 >
                   C
                 </button>
                 <button
                   onClick={() => handleDigit("0")}
-                  className="h-12 rounded-[var(--radius-md)] bg-pos-bg text-[20px] font-medium text-pos-text transition-all active:scale-[0.97] hover:bg-pos-surface-hover"
+                  className="h-14 rounded-[var(--radius-md)] bg-pos-bg text-[24px] font-medium text-pos-text transition-all active:scale-[0.97] hover:bg-pos-surface-hover"
                 >
                   0
                 </button>
@@ -273,7 +274,7 @@ export default function ShiftCloseModal({ shiftId, onClose, onShiftClosed, local
                     const next = prev.slice(0, -1);
                     return next === "" ? "0" : next;
                   })}
-                  className="h-12 rounded-[var(--radius-md)] bg-pos-bg text-pos-text-muted transition-all active:scale-[0.97] hover:bg-pos-surface-hover flex items-center justify-center"
+                  className="h-14 rounded-[var(--radius-md)] bg-pos-bg text-pos-text-muted transition-all active:scale-[0.97] hover:bg-pos-surface-hover flex items-center justify-center"
                 >
                   <Delete className="h-5 w-5" />
                 </button>

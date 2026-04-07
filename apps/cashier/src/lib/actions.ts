@@ -108,10 +108,10 @@ export async function createOrder(
           taxAmount: (input.taxAmount ?? 0).toFixed(2),
           total: input.total.toFixed(2),
           notes: input.discountMeta
-            ? `Discount: ${input.discountMeta.type === "percent" ? `${input.discountMeta.value}%` : `MOP ${input.discountMeta.value}`}`
+            ? `Discount: ${input.discountMeta.type === "percent" ? `${input.discountMeta.value}%` : `${session.tenantCurrency || "MOP"} ${input.discountMeta.value}`}`
             : null,
           itemCount,
-          currency: "MOP",
+          currency: session.tenantCurrency || "MOP",
           cashierId: session.userId,
           terminalId: session.terminalId || null,
           shiftId: activeShift?.id || null,

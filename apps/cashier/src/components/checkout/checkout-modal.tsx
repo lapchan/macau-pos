@@ -38,11 +38,12 @@ type Props = {
   total?: number;
   orderDiscount?: OrderDiscount;
   isOnline?: boolean;
+  currency?: string;
 };
 
 const CASH_PRESETS = [10, 20, 50, 100, 200, 500];
 
-export default function CheckoutModal({ cart, locale, onClose, onComplete, customerId, subtotal: subtotalProp, discountAmount = 0, taxAmount = 0, taxRate = 0, total: totalProp, orderDiscount, isOnline = true }: Props) {
+export default function CheckoutModal({ cart, locale, onClose, onComplete, customerId, subtotal: subtotalProp, discountAmount = 0, taxAmount = 0, taxRate = 0, total: totalProp, orderDiscount, isOnline = true, currency = "MOP" }: Props) {
   const [state, setState] = useState<CheckoutState>("review");
   const [closing, setClosing] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
@@ -74,7 +75,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
           : Math.min(item.discount.value, rawTotal)
         : 0;
       const itemDiscountNote = item.discount
-        ? item.discount.type === "percent" ? `${item.discount.value}%` : `MOP ${item.discount.value}`
+        ? item.discount.type === "percent" ? `${item.discount.value}%` : `${currency} ${item.discount.value}`
         : undefined;
       return {
         productId,
@@ -97,7 +98,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
     changeGiven: method === "cash" && cashValue > total ? cashValue - total : undefined,
     customerId,
     discountMeta: orderDiscount,
-  }), [cart, subtotal, discountAmount, taxAmount, total, cashValue, customerId, orderDiscount]);
+  }), [cart, subtotal, discountAmount, taxAmount, total, cashValue, customerId, orderDiscount, currency]);
 
   const processPayment = useCallback(async (method: "tap" | "insert" | "qr" | "cash") => {
     setState("processing");
@@ -260,11 +261,11 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
                           {getProductName(item, locale)}
                         </p>
                         <p className={cn("text-[12px]", textMuted)}>
-                          MOP {item.price.toFixed(1)} × {item.quantity}
+                          {currency} {item.price.toFixed(1)} × {item.quantity}
                         </p>
                         {hasItemDiscount && (
                           <p className="text-[11px] text-red-500">
-                            {item.discount!.type === "percent" ? `${item.discount!.value}%` : `MOP ${item.discount!.value}`} {t(locale, "discount")} (-MOP {itemDiscountAmt.toFixed(1)})
+                            {item.discount!.type === "percent" ? `${item.discount!.value}%` : `${currency} ${item.discount!.value}`} {t(locale, "discount")} (-{currency} {itemDiscountAmt.toFixed(1)})
                           </p>
                         )}
                       </div>
@@ -280,27 +281,27 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
               <div className={cn("px-5 py-4 border-t space-y-2", border)}>
                 <div className="flex justify-between text-[13px]">
                   <span className={textSec}>{t(locale, "subtotal")}</span>
-                  <span className={cn("tabular-nums", text)}>MOP {subtotal.toFixed(2)}</span>
+                  <span className={cn("tabular-nums", text)}>{currency} {subtotal.toFixed(2)}</span>
                 </div>
                 {discountAmount > 0 && (
                   <div className="flex justify-between text-[13px]">
                     <span className="text-red-500">
                       {t(locale, "discount")} {orderDiscount?.type === "percent" ? `(${orderDiscount.value}%)` : ""}
                     </span>
-                    <span className="text-red-500 tabular-nums">-MOP {discountAmount.toFixed(2)}</span>
+                    <span className="text-red-500 tabular-nums">-{currency} {discountAmount.toFixed(2)}</span>
                   </div>
                 )}
                 {taxAmount > 0 && (
                   <div className="flex justify-between text-[13px]">
                     <span className={textSec}>{t(locale, "tax")} ({taxRate}%)</span>
-                    <span className={cn("tabular-nums", text)}>MOP {taxAmount.toFixed(2)}</span>
+                    <span className={cn("tabular-nums", text)}>{currency} {taxAmount.toFixed(2)}</span>
                   </div>
                 )}
                 <div className={cn("h-px", darkMode ? "bg-zinc-800" : "bg-pos-border")} />
                 <div className="flex justify-between items-baseline">
                   <span className={cn("text-[15px] font-semibold", text)}>{t(locale, "total")}</span>
                   <span className={cn("text-[28px] font-bold tabular-nums")} style={{ color: "var(--color-pos-accent)" }}>
-                    MOP {total.toFixed(2)}
+                    {currency} {total.toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -373,7 +374,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
                   />
                 </div>
                 <p className={cn("text-[28px] font-bold tabular-nums mb-2")} style={{ color: "var(--color-pos-accent)" }}>
-                  MOP {total.toFixed(2)}
+                  {currency} {total.toFixed(2)}
                 </p>
                 <p className={cn("text-[18px] font-semibold mb-1", text)}>{t(locale, "readyToTap")}</p>
                 <p className={cn("text-[14px]", textSec)}>{t(locale, "presentCard")}</p>
@@ -399,7 +400,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
                   </div>
                 </div>
                 <p className={cn("text-[28px] font-bold tabular-nums mb-2")} style={{ color: "var(--color-pos-accent)" }}>
-                  MOP {total.toFixed(2)}
+                  {currency} {total.toFixed(2)}
                 </p>
                 <p className={cn("text-[18px] font-semibold mb-1", text)}>{t(locale, "insertCard")}</p>
                 <p className={cn("text-[14px]", textSec)}>{t(locale, "waitingForCard")}</p>
@@ -428,7 +429,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
                   </div>
                 </div>
                 <p className={cn("text-[28px] font-bold tabular-nums mb-2")} style={{ color: "var(--color-pos-accent)" }}>
-                  MOP {total.toFixed(2)}
+                  {currency} {total.toFixed(2)}
                 </p>
                 <p className={cn("text-[15px] font-medium mb-1", text)}>{t(locale, "scanToPay")}</p>
                 <p className={cn("text-[13px]", textSec)}>{t(locale, "waitingForPayment")}</p>
@@ -451,7 +452,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
                   <div className="text-center">
                     <p className={cn("text-[13px] font-medium mb-1", textSec)}>{t(locale, "amountDue")}</p>
                     <p className="text-[36px] font-bold tabular-nums" style={{ color: "var(--color-pos-accent)" }}>
-                      MOP {total.toFixed(2)}
+                      {currency} {total.toFixed(2)}
                     </p>
                   </div>
 
@@ -464,7 +465,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
                   )}>
                     <p className={cn("text-[12px] font-medium", textSec)}>{t(locale, "changeDue")}</p>
                     <p className="text-[28px] font-bold tabular-nums text-pos-success">
-                      MOP {changeDue > 0 ? changeDue.toFixed(2) : "0.00"}
+                      {currency} {changeDue > 0 ? changeDue.toFixed(2) : "0.00"}
                     </p>
                   </div>
                 </div>
@@ -475,7 +476,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
                   <div className={cn("rounded-[var(--radius-md)] border p-4 mb-4", border, surface)}>
                     <p className={cn("text-[12px] font-medium mb-2", textSec)}>{t(locale, "cashReceived")}</p>
                     <div className="flex items-baseline gap-2">
-                      <span className={cn("text-[13px]", textMuted)}>MOP</span>
+                      <span className={cn("text-[13px]", textMuted)}>{currency}</span>
                       <span className={cn("text-[28px] font-bold tabular-nums", text)}>{cashDisplay}</span>
                     </div>
                   </div>
@@ -490,14 +491,14 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
                           if (prev.length >= 8) return prev;
                           return prev + n;
                         })}
-                        className={cn("h-12 rounded-[var(--radius-sm)] text-[20px] font-medium transition-all active:scale-[0.97]", surface, text, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
+                        className={cn("h-14 rounded-[var(--radius-sm)] text-[24px] font-medium transition-all active:scale-[0.97]", surface, text, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
                       >
                         {n}
                       </button>
                     ))}
                     <button
                       onClick={() => setCashCents("0")}
-                      className={cn("h-12 rounded-[var(--radius-sm)] text-[16px] font-semibold transition-all active:scale-[0.97]", surface, textMuted, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
+                      className={cn("h-14 rounded-[var(--radius-sm)] text-[19px] font-semibold transition-all active:scale-[0.97]", surface, textMuted, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
                     >
                       C
                     </button>
@@ -507,7 +508,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
                         if (prev.length >= 8) return prev;
                         return prev + "0";
                       })}
-                      className={cn("h-12 rounded-[var(--radius-sm)] text-[20px] font-medium transition-all active:scale-[0.97]", surface, text, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
+                      className={cn("h-14 rounded-[var(--radius-sm)] text-[24px] font-medium transition-all active:scale-[0.97]", surface, text, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
                     >
                       0
                     </button>
@@ -516,7 +517,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
                         const next = prev.slice(0, -1);
                         return next === "" ? "0" : next;
                       })}
-                      className={cn("h-12 rounded-[var(--radius-sm)] text-[16px] font-medium transition-all active:scale-[0.97]", surface, textSec, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
+                      className={cn("h-14 rounded-[var(--radius-sm)] text-[19px] font-medium transition-all active:scale-[0.97]", surface, textSec, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
                     >
                       ⌫
                     </button>
@@ -569,7 +570,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
                 />
                 <p className={cn("text-[20px] font-semibold mb-1", text)}>{t(locale, "processing")}</p>
                 <p className={cn("text-[32px] font-bold tabular-nums mt-2")} style={{ color: "var(--color-pos-accent)" }}>
-                  MOP {total.toFixed(2)}
+                  {currency} {total.toFixed(2)}
                 </p>
               </div>
             )}
@@ -586,7 +587,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
                 <p className={cn("text-[24px] font-bold mb-1", text)}>{t(locale, "paymentSuccess")}</p>
                 <p className={cn("text-[14px] mb-1", textSec)}>{t(locale, "orderNumber")} {orderNum}</p>
                 <p className={cn("text-[32px] font-bold tabular-nums my-3")} style={{ color: "var(--color-pos-accent)" }}>
-                  MOP {total.toFixed(2)}
+                  {currency} {total.toFixed(2)}
                 </p>
                 <p className={cn("text-[16px]", textSec)}>{t(locale, "thankYou")}</p>
 
@@ -658,7 +659,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
                 <p className={cn("text-[24px] font-bold mb-1", text)}>{t(locale, "orderSavedOffline")}</p>
                 <p className={cn("text-[14px] mb-1", textSec)}>{orderNum}</p>
                 <p className={cn("text-[32px] font-bold tabular-nums my-3 text-amber-500")}>
-                  MOP {total.toFixed(2)}
+                  {currency} {total.toFixed(2)}
                 </p>
                 <p className={cn("text-[14px]", textSec)}>{t(locale, "orderSavedOfflineHint")}</p>
 

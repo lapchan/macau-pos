@@ -11,9 +11,10 @@ type Props = {
   subtotal: number;
   onApply: (discount: OrderDiscount) => void;
   onClose: () => void;
+  currency?: string;
 };
 
-export default function DiscountPopover({ locale, subtotal, onApply, onClose }: Props) {
+export default function DiscountPopover({ locale, subtotal, onApply, onClose, currency = "MOP" }: Props) {
   const [mode, setMode] = useState<"percent" | "fixed">("percent");
   const [value, setValue] = useState("0");
   const [closing, setClosing] = useState(false);
@@ -33,7 +34,7 @@ export default function DiscountPopover({ locale, subtotal, onApply, onClose }: 
 
   const displayValue = mode === "percent"
     ? (parseInt(value, 10) || 0) + "%"
-    : "MOP " + (parseInt(value, 10) / 100).toFixed(2);
+    : `${currency} ` + (parseInt(value, 10) / 100).toFixed(2);
 
   const handleApply = () => {
     if (!isValid) return;
@@ -94,13 +95,13 @@ export default function DiscountPopover({ locale, subtotal, onApply, onClose }: 
               )}
             >
               <DollarSign className="h-4 w-4" />
-              MOP
+              {currency}
             </button>
           </div>
 
           {/* Display — same height for both modes */}
           <div className="flex items-center justify-between px-4 h-14 bg-pos-bg border border-pos-border rounded-[var(--radius-md)]">
-            <span className="text-[13px] text-pos-text-muted">{mode === "percent" ? "%" : "MOP"}</span>
+            <span className="text-[13px] text-pos-text-muted">{mode === "percent" ? "%" : currency}</span>
             <div className="flex items-center gap-2">
               <span className="text-[24px] font-bold text-pos-text tabular-nums">
                 {mode === "percent" ? (parseInt(value, 10) || 0) : (parseInt(value, 10) / 100).toFixed(2)}
@@ -164,9 +165,9 @@ export default function DiscountPopover({ locale, subtotal, onApply, onClose }: 
             numValue > 0 ? "opacity-100" : "opacity-0"
           )}>
             <span className="text-pos-text-muted">
-              {mode === "percent" ? `${numValue}% of MOP ${subtotal.toFixed(2)}` : "Fixed discount"}
+              {mode === "percent" ? `${numValue}% of ${currency} ${subtotal.toFixed(2)}` : "Fixed discount"}
             </span>
-            <span className="font-semibold text-pos-danger">-MOP {preview.toFixed(2)}</span>
+            <span className="font-semibold text-pos-danger">-{currency} {preview.toFixed(2)}</span>
           </div>
 
           {/* Apply */}

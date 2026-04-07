@@ -76,7 +76,9 @@ type Props = {
   variants: VariantItem[];
   onSelect: (variant: VariantItem) => void;
   onAddDirect?: () => void;
+  loading?: boolean;
   locale?: Locale;
+  currency?: string;
 };
 
 export default function VariantPicker({
@@ -89,7 +91,9 @@ export default function VariantPicker({
   variants,
   onSelect,
   onAddDirect,
+  loading: loadingProp = false,
   locale = "tc",
+  currency = "MOP",
 }: Props) {
   const [selected, setSelected] = useState<Record<string, string>>({});
   const [closing, setClosing] = useState(false);
@@ -149,7 +153,7 @@ export default function VariantPicker({
     : true;
 
   const hasNoVariants = !!onAddDirect;
-  const isLoading = !hasNoVariants && options.length === 0;
+  const isLoading = loadingProp;
 
   // Price range across all variants
   const prices = variants.map((v) => parseFloat(v.sellingPrice));
@@ -200,15 +204,15 @@ export default function VariantPicker({
             <div className="flex items-baseline gap-2 mt-1.5">
               {allSelected && matchingVariant ? (
                 <span className="text-[20px] font-bold text-blue-600 tabular-nums">
-                  MOP {displayPrice.toFixed(displayPrice % 1 === 0 ? 0 : 1)}
+                  {currency} {displayPrice.toFixed(displayPrice % 1 === 0 ? 0 : 1)}
                 </span>
               ) : hasPriceRange ? (
                 <span className="text-[17px] font-semibold text-gray-600 tabular-nums">
-                  MOP {minPrice.toFixed(0)} – {maxPrice.toFixed(0)}
+                  {currency} {minPrice.toFixed(0)} – {maxPrice.toFixed(0)}
                 </span>
               ) : (
                 <span className="text-[20px] font-bold text-blue-600 tabular-nums">
-                  MOP {basePrice.toFixed(basePrice % 1 === 0 ? 0 : 1)}
+                  {currency} {basePrice.toFixed(basePrice % 1 === 0 ? 0 : 1)}
                 </span>
               )}
               {matchingVariant && matchingVariant.stock !== null && (
@@ -327,7 +331,7 @@ export default function VariantPicker({
                         })()}</span>
                         {valPrice !== null && valPrice !== basePrice && (
                           <span className="block text-[11px] text-gray-400 font-normal mt-0.5">
-                            MOP {valPrice.toFixed(0)}
+                            {currency} {valPrice.toFixed(0)}
                           </span>
                         )}
                       </button>
@@ -354,7 +358,7 @@ export default function VariantPicker({
                     {Object.values(matchingVariant.optionCombo).join(" · ")}
                   </p>
                   <p className="text-[12px] text-gray-500 mt-0.5">
-                    MOP {parseFloat(matchingVariant.sellingPrice).toFixed(1)}
+                    {currency} {parseFloat(matchingVariant.sellingPrice).toFixed(1)}
                     {matchingVariant.stock !== null && ` · ${t(locale, "inStock").replace("{count}", String(matchingVariant.stock))}`}
                     {matchingVariant.stock === null && ` · ${t(locale, "unlimitedStock")}`}
                   </p>
@@ -378,7 +382,7 @@ export default function VariantPicker({
               className="w-full h-14 rounded-2xl text-[16px] font-bold transition-all flex items-center justify-center gap-2.5 bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] shadow-lg shadow-blue-600/20"
             >
               <Check className="h-5 w-5" />
-              {t(locale, "addToCartWith").replace("{price}", basePrice.toFixed(basePrice % 1 === 0 ? 0 : 1))}
+              {t(locale, "addToCartWith").replace("{currency}", currency).replace("{price}", basePrice.toFixed(basePrice % 1 === 0 ? 0 : 1))}
             </button>
           ) : (
             <button
@@ -400,7 +404,7 @@ export default function VariantPicker({
               ) : (
                 <>
                   <Check className="h-5 w-5" />
-                  {t(locale, "addToCartWith").replace("{price}", displayPrice.toFixed(displayPrice % 1 === 0 ? 0 : 1))}
+                  {t(locale, "addToCartWith").replace("{currency}", currency).replace("{price}", displayPrice.toFixed(displayPrice % 1 === 0 ? 0 : 1))}
                 </>
               )}
             </button>

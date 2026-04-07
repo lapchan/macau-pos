@@ -14,10 +14,11 @@ type Props = {
   paymentMethod: string | null;
   isProcessing: boolean;
   locale: Locale;
+  currency?: string;
 };
 
 export default function VoidRefundDialog({
-  open, onClose, onConfirm, action, orderNumber, total, paymentMethod, isProcessing, locale,
+  open, onClose, onConfirm, action, orderNumber, total, paymentMethod, isProcessing, locale, currency = "MOP",
 }: Props) {
   if (!open) return null;
 
@@ -51,7 +52,7 @@ export default function VoidRefundDialog({
             {isVoid ? t(locale, "voidConfirmBody") : t(locale, "refundConfirmBody")}
           </p>
           <p className="text-[28px] font-bold tabular-nums text-pos-danger">
-            MOP {parseFloat(total).toFixed(2)}
+            {currency} {parseFloat(total).toFixed(2)}
           </p>
           {isCash && (
             <div className="flex items-center justify-center gap-1.5 mt-2 text-[13px] font-medium text-pos-danger">

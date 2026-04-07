@@ -12,9 +12,10 @@ type Props = {
   onEndShift: () => void;
   locale?: Locale;
   embedded?: boolean;
+  currency?: string;
 };
 
-export default function ShiftSummaryPanel({ shiftId, onClose, onEndShift, locale = "en", embedded = false }: Props) {
+export default function ShiftSummaryPanel({ shiftId, onClose, onEndShift, locale = "en", embedded = false, currency = "MOP" }: Props) {
   const [summary, setSummary] = useState<Awaited<ReturnType<typeof getShiftSummary>>>(null);
 
   useEffect(() => {
@@ -63,7 +64,7 @@ export default function ShiftSummaryPanel({ shiftId, onClose, onEndShift, locale
             <DollarSign className="h-3.5 w-3.5 text-gray-400" />
             <p className="text-[11px] text-gray-500 uppercase tracking-wider">{t(locale, "shiftSales")}</p>
           </div>
-          <p className="text-[20px] font-semibold text-[#1d1d1f] tabular-nums">MOP {summary.liveSales.toFixed(2)}</p>
+          <p className="text-[20px] font-semibold text-[#1d1d1f] tabular-nums">{currency} {summary.liveSales.toFixed(2)}</p>
         </div>
       </div>
       {Object.keys(summary.paymentBreakdown).length > 0 && (
@@ -76,7 +77,7 @@ export default function ShiftSummaryPanel({ shiftId, onClose, onEndShift, locale
             {Object.entries(summary.paymentBreakdown).map(([method, total]) => (
               <div key={method} className="flex items-center justify-between py-2 px-4 bg-gray-50 rounded-xl">
                 <span className="text-[13px] text-gray-700">{PAYMENT_METHOD_KEYS[method] ? t(locale, PAYMENT_METHOD_KEYS[method] as any) : method}</span>
-                <span className="text-[13px] font-semibold text-[#1d1d1f] tabular-nums">MOP {(total as number).toFixed(2)}</span>
+                <span className="text-[13px] font-semibold text-[#1d1d1f] tabular-nums">{currency} {(total as number).toFixed(2)}</span>
               </div>
             ))}
           </div>
@@ -84,9 +85,9 @@ export default function ShiftSummaryPanel({ shiftId, onClose, onEndShift, locale
       )}
       <div className="py-3 px-4 bg-blue-50 rounded-xl">
         <p className="text-[11px] text-blue-600 uppercase tracking-wider mb-1">{t(locale, "shiftExpectedCash")}</p>
-        <p className="text-[18px] font-bold text-blue-700 tabular-nums">MOP {summary.expectedCash.toFixed(2)}</p>
+        <p className="text-[18px] font-bold text-blue-700 tabular-nums">{currency} {summary.expectedCash.toFixed(2)}</p>
         <p className="text-[11px] text-blue-500 mt-0.5">
-          Float MOP {parseFloat(summary.openingFloat).toFixed(2)} + Cash MOP {summary.cashTotal.toFixed(2)}
+          {`Float ${currency} `}{parseFloat(summary.openingFloat).toFixed(2)}{` + Cash ${currency} `}{summary.cashTotal.toFixed(2)}
         </p>
       </div>
       <button onClick={onEndShift} className="w-full h-[44px] rounded-[var(--radius-md)] text-[14px] font-medium text-white transition-all active:scale-[0.98]" style={{ backgroundColor: "#ff3b30" }}>

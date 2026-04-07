@@ -104,6 +104,7 @@ export async function getSession(token: string) {
       tenantId: users.tenantId,
       tenantName: tenants.name,
       tenantSlug: tenants.slug,
+      tenantCurrency: tenants.currency,
       terminalId: sessions.terminalId,
       terminalName: terminals.name,
       terminalCode: terminals.code,
