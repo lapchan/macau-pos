@@ -46,7 +46,12 @@ const CASH_PRESETS = [10, 20, 50, 100, 200, 500];
 export default function CheckoutModal({ cart, locale, onClose, onComplete, customerId, subtotal: subtotalProp, discountAmount = 0, taxAmount = 0, taxRate = 0, total: totalProp, orderDiscount, isOnline = true, currency = "MOP" }: Props) {
   const [state, setState] = useState<CheckoutState>("review");
   const [closing, setClosing] = useState(false);
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("pos-checkout-dark") === "true";
+    }
+    return false;
+  });
   const [cashCents, setCashCents] = useState("0");
   const [orderNum, setOrderNum] = useState("");
 
@@ -211,7 +216,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
           <div className="flex items-center gap-2">
             {/* Dark mode toggle */}
             <button
-              onClick={() => setDarkMode(!darkMode)}
+              onClick={() => { const next = !darkMode; setDarkMode(next); localStorage.setItem("pos-checkout-dark", String(next)); }}
               className={cn("h-8 w-8 flex items-center justify-center rounded-[var(--radius-sm)] transition-colors", textSec, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
               aria-label={t(locale, "terminalMode")}
             >
@@ -447,7 +452,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
             {state === "cash" && (
               <div className="w-full max-w-[380px] animate-scale-in flex flex-col h-full">
                 {/* Top: Amount due + Change due */}
-                <div className="flex-1 flex flex-col items-center justify-center">
+                <div className="flex flex-col items-center justify-center py-6">
                   {/* Amount due */}
                   <div className="text-center">
                     <p className={cn("text-[13px] font-medium mb-1", textSec)}>{t(locale, "amountDue")}</p>
