@@ -124,9 +124,9 @@ export default function ShiftCloseModal({ shiftId, onClose, onShiftClosed, local
         </header>
 
         {/* Two-column (landscape) / stacked (portrait) content */}
-        <div className="flex-1 flex overflow-hidden shift-close-layout">
+        <div className="flex-1 flex overflow-hidden">
           {/* Left — Shift Summary */}
-          <div className="flex-1 flex items-center justify-center overflow-y-auto shift-close-left">
+          <div className="flex-1 flex items-center justify-center overflow-y-auto border-r border-pos-border">
             <div className="w-full max-w-[460px] mx-auto px-6 py-6 space-y-4">
               {!summary ? (
                 <div className="flex items-center justify-center py-12">

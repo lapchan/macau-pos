@@ -15,24 +15,6 @@ input, textarea {
   user-select: text;
 }
 
-/* Shift close modal: stack vertically in portrait, side-by-side in landscape */
-.shift-close-layout {
-  flex-direction: column;
-}
-.shift-close-left {
-  border-right: none;
-  border-bottom: 1px solid var(--color-pos-border);
-}
-@media (orientation: landscape) {
-  .shift-close-layout {
-    flex-direction: row;
-  }
-  .shift-close-left {
-    border-bottom: none;
-    border-right: 1px solid var(--color-pos-border);
-  }
-}
-
 @theme {
   /* Light theme — Apple-inspired neutral */
   --color-pos-bg: #f5f5f7;
