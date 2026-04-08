@@ -53,6 +53,7 @@ export default async function POSPage() {
         inStock: p.status !== "sold_out" && (p.stock === null || p.stock > 0),
         popular: p.isPopular,
         hasVariants: p.hasVariants,
+        brand: p.brandName || undefined,
       };
     });
 

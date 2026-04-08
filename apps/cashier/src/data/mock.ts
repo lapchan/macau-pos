@@ -18,6 +18,8 @@ export type Product = {
   inStock: boolean;
   popular?: boolean;
   hasVariants?: boolean;
+  brand?: string;
+  stock?: number | null;
 };
 
 export type ItemDiscount = { type: "percent" | "fixed"; value: number } | null;

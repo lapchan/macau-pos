@@ -5,6 +5,7 @@ export * from "./user-locations";
 export * from "./users";
 export * from "./sessions";
 export * from "./categories";
+export * from "./brands";
 export * from "./products";
 export * from "./option-groups";
 export * from "./option-values";

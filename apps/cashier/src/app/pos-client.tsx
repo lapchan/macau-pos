@@ -170,7 +170,7 @@ function DrawerLedger({ shiftId, locale }: { shiftId: string; locale: Locale }) 
 }
 
 // Shared product card grid — used by Library and Favorites views
-function ProductGrid({ products, cart, addedId, locale, currency, favoriteIds, onAdd, onLongPress, onToggleFavorite, extractBrand }: {
+function ProductGrid({ products, cart, addedId, locale, currency, favoriteIds, onAdd, onLongPress, onToggleFavorite }: {
   products: Product[];
   cart: CartItem[];
   addedId: string | null;
@@ -180,7 +180,6 @@ function ProductGrid({ products, cart, addedId, locale, currency, favoriteIds, o
   onAdd: (p: Product) => void;
   onLongPress?: (p: Product) => void;
   onToggleFavorite: (id: string) => void;
-  extractBrand: (name: string) => { brand: string | null; shortName: string };
 }) {
   const longPressRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const didLongPress = useRef(false);
@@ -228,7 +227,7 @@ function ProductGrid({ products, cart, addedId, locale, currency, favoriteIds, o
             )}
           >
             <p className="text-[10px] font-semibold text-pos-text-muted uppercase tracking-wide h-[14px] truncate">
-              {extractBrand(displayName).brand || "\u00A0"}
+              {product.brand || "\u00A0"}
             </p>
             <div className="relative w-full aspect-square rounded-[var(--radius-sm)] bg-pos-bg my-1.5 flex items-center justify-center overflow-hidden">
               {product.image ? (
@@ -241,7 +240,7 @@ function ProductGrid({ products, cart, addedId, locale, currency, favoriteIds, o
               )}
             </div>
             <p className="text-[12px] font-medium text-pos-text leading-tight line-clamp-2" title={displayName}>
-              {extractBrand(displayName).shortName || displayName}
+              {displayName}
             </p>
             <div className="flex items-center justify-between mt-2">
               <span className="text-[16px] font-bold tabular-nums" style={{ color: "var(--color-pos-accent)" }}>
@@ -434,17 +433,6 @@ export default function POSClient({ initialProducts, initialCategories, userName
     });
   }, []);
 
-  // Extract brand from product name (common prefixes)
-  const KNOWN_BRANDS = ["SAVEWO", "Savewo", "HEALTHCHAIR", "Chiikawa", "QMSV", "EVANGELION"];
-  function extractBrand(name: string): { brand: string | null; shortName: string } {
-    for (const brand of KNOWN_BRANDS) {
-      if (name.startsWith(brand)) {
-        const rest = name.slice(brand.length).replace(/^\s+/, "").replace(/^[-·]\s*/, "");
-        return { brand, shortName: rest || name };
-      }
-    }
-    return { brand: null, shortName: name };
-  }
 
   // Find the active parent category and its children
   const activeParent = useMemo(() => {
@@ -981,7 +969,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
                   onAdd={addToCart}
                   onLongPress={openProductPreview}
                   onToggleFavorite={toggleFavorite}
-                  extractBrand={extractBrand}
+
                 />
               </div>
             </>
@@ -1017,7 +1005,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
             onAdd={addToCart}
             onLongPress={openProductPreview}
             onToggleFavorite={toggleFavorite}
-            extractBrand={extractBrand}
+
           />
 
           {filtered.length === 0 && (
@@ -1128,7 +1116,8 @@ export default function POSClient({ initialProducts, initialCategories, userName
             <div className="p-3 space-y-2">
               {cart.map((item) => {
                 const cartName = getProductName(item, locale);
-                const { brand, shortName } = extractBrand(cartName);
+                const brand = item.brand || null;
+                const shortName = cartName;
                 const isNew = !knownCartIdsRef.current.has(item.id);
                 if (isNew) knownCartIdsRef.current.add(item.id);
                 return (
@@ -1699,7 +1688,6 @@ export default function POSClient({ initialProducts, initialCategories, userName
           input={spotlightInput}
           setInput={setSpotlightInput}
           filtered={filtered}
-          extractBrand={extractBrand}
           addToCart={addToCart}
           onClose={() => { setSpotlightInput(""); setSearchOpen(false); }}
         />

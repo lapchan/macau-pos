@@ -12,13 +12,12 @@ type Props = {
   input: string;
   setInput: (value: string) => void;
   filtered: Product[];
-  extractBrand: (name: string) => { brand: string | null; shortName: string };
   addToCart: (product: Product) => void;
   onClose: () => void;
 };
 
 export default function ProductSearchSpotlight({
-  locale, searchTags, setSearchTags, input, setInput, filtered, extractBrand, addToCart, onClose,
+  locale, searchTags, setSearchTags, input, setInput, filtered, addToCart, onClose,
 }: Props) {
 
   const handleClose = () => {
@@ -104,7 +103,8 @@ export default function ProductSearchSpotlight({
                 <div className="p-2">
                   {filtered.slice(0, 8).map((product) => {
                     const displayName = getProductName(product, locale);
-                    const { brand, shortName } = extractBrand(displayName);
+                    const brand = product.brand || null;
+                    const shortName = displayName;
                     return (
                       <button
                         key={product.id}

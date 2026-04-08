@@ -2,6 +2,7 @@ import "server-only";
 import {
   db,
   products,
+  brands,
   categories,
   orders,
   orderItems,
@@ -65,9 +66,11 @@ export async function getActiveProducts() {
         categoryTranslations: categories.translations,
         categoryIcon: categories.icon,
         hasVariants: products.hasVariants,
+        brandName: brands.name,
       })
       .from(products)
       .leftJoin(categories, eq(products.categoryId, categories.id))
+      .leftJoin(brands, eq(products.brandId, brands.id))
       .where(
         and(
           eq(products.tenantId, tenantId),
@@ -93,9 +96,11 @@ export async function getActiveProducts() {
       categoryTranslations: categories.translations,
       categoryIcon: categories.icon,
       hasVariants: products.hasVariants,
+      brandName: brands.name,
     })
     .from(products)
     .leftJoin(categories, eq(products.categoryId, categories.id))
+    .leftJoin(brands, eq(products.brandId, brands.id))
     .leftJoin(
       pricingStrategyItems,
       and(

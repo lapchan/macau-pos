@@ -13,6 +13,7 @@ import {
 import { sql } from "drizzle-orm";
 import { tenants } from "./tenants";
 import { categories } from "./categories";
+import { brands } from "./brands";
 import { productStatusEnum } from "./enums";
 
 export const products = pgTable(
@@ -23,6 +24,9 @@ export const products = pgTable(
       .notNull()
       .references(() => tenants.id, { onDelete: "cascade" }),
     categoryId: uuid("category_id").references(() => categories.id, {
+      onDelete: "set null",
+    }),
+    brandId: uuid("brand_id").references(() => brands.id, {
       onDelete: "set null",
     }),
 
