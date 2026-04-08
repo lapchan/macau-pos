@@ -8,12 +8,15 @@
 }
 html {
   touch-action: manipulation;
+  /* Enable :active pseudo-class on iOS Safari */
+  -webkit-tap-highlight-color: transparent;
 }
 
 input, textarea {
   -webkit-user-select: text;
   user-select: text;
 }
+
 
 @theme {
   /* Light theme — Apple-inspired neutral */

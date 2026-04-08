@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { getShiftSummary } from "@/lib/shift-actions";
-import { Clock, ShoppingBag, DollarSign, CreditCard, X } from "lucide-react";
+import { Clock, ShoppingBag, DollarSign, CreditCard } from "lucide-react";
+import CloseButton from "@/components/shared/close-button";
 import { type Locale, t } from "@/i18n/locales";
 import { PAYMENT_METHOD_KEYS } from "@/lib/constants";
 
@@ -104,9 +105,7 @@ export default function ShiftSummaryPanel({ shiftId, onClose, onEndShift, locale
         {/* Header */}
         <div className="sticky top-0 bg-pos-bg px-5 pt-5 pb-3 border-b border-gray-100 flex items-center justify-between z-10">
           <h2 className="text-[17px] font-semibold text-[#1d1d1f]">{t(locale, "shiftSummary")}</h2>
-          <button onClick={onClose} className="h-10 w-10 rounded-full bg-black/8 flex items-center justify-center text-pos-text-muted hover:bg-black/15 transition-colors">
-            <X className="h-4.5 w-4.5" />
-          </button>
+          <CloseButton onClick={onClose} />
         </div>
 
         <div className="px-5 py-4">

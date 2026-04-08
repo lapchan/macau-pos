@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Search, X, Clock, CheckCircle2, AlertCircle, RotateCcw, Ban, Banknote, CreditCard, QrCode, Calendar, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import CloseButton from "@/components/shared/close-button";
 import { cn } from "@/lib/cn";
 import { type Locale, t } from "@/i18n/locales";
 
@@ -92,12 +93,7 @@ export default function HistoryFilters({ filters, onChange, locale, hasShift }: 
           />
           <div className="fixed inset-x-0 top-0 z-50 flex justify-center pt-[8vh] px-4 animate-[spotlightOpen_0.25s_cubic-bezier(0.16,1,0.3,1)]">
             <div className="w-full max-w-xl bg-pos-surface rounded-2xl shadow-2xl overflow-hidden relative">
-              <button
-                onClick={() => setShowSearch(false)}
-                className="absolute top-3 right-3 h-10 w-10 flex items-center justify-center rounded-full bg-black/8 text-pos-text-muted hover:bg-black/15 transition-colors z-10"
-              >
-                <X className="h-5 w-5" strokeWidth={2.5} />
-              </button>
+              <CloseButton onClick={() => setShowSearch(false)} className="absolute top-3 right-3 z-10" />
               <div className="flex items-center px-4">
                 <Search className="h-5 w-5 text-pos-text-muted shrink-0 ml-1" />
                 <input
@@ -183,12 +179,7 @@ export default function HistoryFilters({ filters, onChange, locale, hasShift }: 
                     <Calendar className="h-5 w-5 inline mr-2 text-pos-text-muted" />
                     {calStart && calEnd ? `${formatDisplay(calStart)} — ${formatDisplay(calEnd)}` : calStart ? formatDisplay(calStart) : t(locale, "filterAll")}
                   </h3>
-                  <button
-                    onClick={() => setShowDateMenu(false)}
-                    className="h-10 w-10 flex items-center justify-center rounded-full bg-black/8 text-pos-text-muted hover:bg-black/15 transition-colors"
-                  >
-                    <X className="h-4.5 w-4.5" />
-                  </button>
+                  <CloseButton onClick={() => setShowDateMenu(false)} />
                 </div>
 
                 {/* Quick presets */}

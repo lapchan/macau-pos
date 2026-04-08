@@ -46,6 +46,7 @@ const iconMap: Record<string, LucideIcon> = {
   LayoutGrid, Coffee, Cookie, Snowflake, Milk, Home, Heart, Flame,
 };
 
+import CloseButton from "@/components/shared/close-button";
 import ShiftOpenModal from "@/components/shift/shift-open-modal";
 import ShiftCloseModal from "@/components/shift/shift-close-modal";
 import ShiftSummaryPanel from "@/components/shift/shift-summary-panel";
@@ -909,16 +910,14 @@ export default function POSClient({ initialProducts, initialCategories, userName
             >
               <div className="h-[48px] flex items-center gap-1.5 px-5 bg-pos-surface overflow-x-auto hide-scrollbar">
                 {/* Close button — collapse back to parent level */}
-                <button
+                <CloseButton
                   onClick={() => {
                     setActiveSubCategory(null);
                     setSubRowExpanded(false);
                   }}
-                  className="h-10 w-10 flex items-center justify-center rounded-full bg-black/8 text-pos-text-muted hover:bg-black/15 transition-colors shrink-0"
-                  aria-label={t(locale, "cancel")}
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
+                  className="shrink-0"
+                  label={t(locale, "cancel")}
+                />
                 {activeChildren.map((sub) => {
                   const isActive = activeSubCategory === sub.id;
                   return (

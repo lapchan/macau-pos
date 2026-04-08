@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { cn } from "@/lib/cn";
 import { type Locale, t } from "@/i18n/locales";
-import { Smartphone, X, QrCode } from "lucide-react";
+import { Smartphone, QrCode } from "lucide-react";
+import CloseButton from "@/components/shared/close-button";
 import { searchCustomersByPhone, type CustomerSearchResult } from "@/lib/actions";
 import type { LinkedCustomer } from "./customer-detail-sheet";
 
@@ -17,27 +18,29 @@ export default function CustomerSearchSpotlight({ locale, onClose, onSelect }: P
   const [input, setInput] = useState("");
   const [results, setResults] = useState<CustomerSearchResult[]>([]);
   const [searching, setSearching] = useState(false);
+  const [closing, setClosing] = useState(false);
+
+  const handleClose = useCallback(() => {
+    if (closing) return;
+    setClosing(true);
+    setTimeout(onClose, 200);
+  }, [closing, onClose]);
 
   const handleSelect = (c: CustomerSearchResult) => {
     onSelect({ id: c.id, name: c.name, avatar: c.avatar, phone: c.phone || undefined, email: c.email || undefined });
-    onClose();
+    handleClose();
   };
 
   return (
     <>
       <div
-        className="fixed inset-0 z-50 bg-black/40 animate-[fadeIn_0.2s_ease-out]"
-        onClick={onClose}
+        className={cn("fixed inset-0 z-50 bg-black/40 transition-opacity duration-200", closing ? "opacity-0" : "animate-[fadeIn_0.2s_ease-out]")}
+        onClick={handleClose}
       />
-      <div className="fixed inset-x-0 top-0 z-50 flex justify-center pt-[8vh] px-4 animate-[spotlightOpen_0.25s_cubic-bezier(0.16,1,0.3,1)]">
+      <div className={cn("fixed inset-x-0 top-0 z-50 flex justify-center pt-[8vh] px-4 transition-all duration-200", closing ? "opacity-0 -translate-y-4" : "animate-[spotlightOpen_0.25s_cubic-bezier(0.16,1,0.3,1)]")}>
         <div className="w-full max-w-md bg-pos-surface rounded-2xl shadow-2xl overflow-hidden relative">
           {/* Close */}
-          <button
-            onClick={onClose}
-            className="absolute top-3 right-3 h-10 w-10 flex items-center justify-center rounded-full bg-black/8 text-pos-text-muted hover:bg-black/15 transition-colors z-10"
-          >
-            <X className="h-5 w-5" strokeWidth={2.5} />
-          </button>
+          <CloseButton onClick={handleClose} className="absolute top-2 right-3 z-10" />
 
           {/* Phone input */}
           <div className="flex items-center px-4">

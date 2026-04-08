@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { type Locale, t } from "@/i18n/locales";
-import { X, Star, Phone, Mail, Calendar, Clock, StickyNote, UserX } from "lucide-react";
+import { Star, Phone, Mail, Calendar, Clock, StickyNote, UserX } from "lucide-react";
+import CloseButton from "@/components/shared/close-button";
 
 export type LinkedCustomer = {
   id: string;
@@ -53,12 +54,7 @@ export default function CustomerDetailSheet({ customer, locale, onClose, onRemov
         {/* Header */}
         <div className="flex items-center justify-between px-5 h-14 border-b border-pos-border shrink-0">
           <h2 className="text-[16px] font-semibold text-pos-text">{t(locale, "customerProfile")}</h2>
-          <button
-            onClick={handleClose}
-            className="h-10 w-10 rounded-full bg-black/8 flex items-center justify-center text-pos-text-muted hover:bg-black/15 transition-colors"
-          >
-            <X className="h-4.5 w-4.5" />
-          </button>
+          <CloseButton onClick={handleClose} />
         </div>
 
         {/* Content */}

@@ -5,10 +5,11 @@ import { cn } from "@/lib/cn";
 import { type CartItem } from "@/data/mock";
 import { type Locale, t, getProductName } from "@/i18n/locales";
 import {
-  X, Wifi, WifiOff, CreditCard, Banknote, QrCode, Smartphone,
+  Wifi, WifiOff, CreditCard, Banknote, QrCode, Smartphone,
   Check, AlertCircle, Loader2, Printer, Mail, XCircle, Clock,
   ChevronLeft, Minus, Plus, Sun, Moon, Receipt,
 } from "lucide-react";
+import CloseButton from "@/components/shared/close-button";
 import { createOrder, type OrderDiscount } from "@/lib/actions";
 import { enqueueOrder } from "@/lib/offline-queue";
 import PrintReceipt from "@/components/receipt/print-receipt";
@@ -225,13 +226,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
 
             {/* Close */}
             {!["processing", "success", "saved-offline"].includes(state) && (
-              <button
-                onClick={handleClose}
-                className={cn("h-10 w-10 rounded-full flex items-center justify-center transition-colors", darkMode ? "bg-white/10 text-zinc-400 hover:bg-white/20" : "bg-black/8 text-pos-text-muted hover:bg-black/15")}
-                aria-label={t(locale, "cancel")}
-              >
-                <X className="h-4.5 w-4.5" />
-              </button>
+              <CloseButton onClick={handleClose} dark={darkMode} label={t(locale, "cancel")} />
             )}
           </div>
         </header>

@@ -1,9 +1,11 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { cn } from "@/lib/cn";
 import { type Locale, t, getProductName } from "@/i18n/locales";
 import { type Product } from "@/data/mock";
 import { Search, X, ShoppingBag } from "lucide-react";
+import CloseButton from "@/components/shared/close-button";
 
 type Props = {
   locale: Locale;
@@ -20,30 +22,28 @@ export default function ProductSearchSpotlight({
   locale, searchTags, setSearchTags, input, setInput, filtered, addToCart, onClose,
 }: Props) {
 
-  const handleClose = () => {
+  const [closing, setClosing] = useState(false);
+
+  const handleClose = useCallback(() => {
+    if (closing) return;
+    setClosing(true);
     if (input.trim()) setSearchTags(prev => [...prev, input.trim()]);
     setInput("");
-    onClose();
-  };
+    setTimeout(onClose, 200);
+  }, [closing, input, setSearchTags, setInput, onClose]);
 
   return (
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 z-50 bg-black/40 animate-[fadeIn_0.2s_ease-out]"
+        className={cn("fixed inset-0 z-50 bg-black/40 transition-opacity duration-200", closing ? "opacity-0" : "animate-[fadeIn_0.2s_ease-out]")}
         onClick={handleClose}
       />
       {/* Search panel */}
-      <div className="fixed inset-x-0 top-0 z-50 flex justify-center pt-[8vh] px-4 animate-[spotlightOpen_0.25s_cubic-bezier(0.16,1,0.3,1)]">
+      <div className={cn("fixed inset-x-0 top-0 z-50 flex justify-center pt-[8vh] px-4 transition-all duration-200", closing ? "opacity-0 -translate-y-4" : "animate-[spotlightOpen_0.25s_cubic-bezier(0.16,1,0.3,1)]")}>
         <div className="w-full max-w-xl bg-pos-surface rounded-2xl shadow-2xl overflow-hidden relative">
           {/* Close button */}
-          <button
-            onClick={handleClose}
-            aria-label={t(locale, "cancel")}
-            className="absolute top-3 right-3 h-10 w-10 flex items-center justify-center rounded-full bg-black/8 text-pos-text-muted hover:bg-black/15 transition-colors z-10"
-          >
-            <X className="h-5 w-5" strokeWidth={2.5} />
-          </button>
+          <CloseButton onClick={handleClose} className="absolute top-2 right-3 z-10" label={t(locale, "cancel")} />
 
           {/* Active tags */}
           {searchTags.length > 0 && (

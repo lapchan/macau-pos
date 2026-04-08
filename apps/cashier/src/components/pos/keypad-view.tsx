@@ -4,7 +4,8 @@ import { useState, useCallback, useMemo } from "react";
 import { cn } from "@/lib/cn";
 import { type Locale, t } from "@/i18n/locales";
 import { type Product } from "@/data/mock";
-import { Delete, StickyNote, Plus, X } from "lucide-react";
+import { Delete, StickyNote, Plus } from "lucide-react";
+import CloseButton from "@/components/shared/close-button";
 
 type Props = {
   locale: Locale;
@@ -134,13 +135,7 @@ export default function KeypadView({ locale, onAddToCart, currency = "MOP" }: Pr
           <div className="fixed inset-x-0 top-0 z-50 flex justify-center pt-[8vh] px-4 animate-[spotlightOpen_0.25s_cubic-bezier(0.16,1,0.3,1)]">
             <div className="w-full max-w-xl bg-pos-surface rounded-2xl shadow-2xl overflow-hidden relative">
               {/* Close button */}
-              <button
-                onClick={() => setShowNote(false)}
-                aria-label={t(locale, "cancel")}
-                className="absolute top-3 right-3 h-10 w-10 flex items-center justify-center rounded-full bg-black/8 text-pos-text-muted hover:bg-black/15 transition-colors z-10"
-              >
-                <X className="h-5 w-5" strokeWidth={2.5} />
-              </button>
+              <CloseButton onClick={() => setShowNote(false)} className="absolute top-3 right-3 z-10" label={t(locale, "cancel")} />
 
               <div className="p-5">
                 <p className="text-[15px] font-semibold text-pos-text mb-3">{t(locale, "addNote")}</p>

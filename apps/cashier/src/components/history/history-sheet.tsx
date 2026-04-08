@@ -9,7 +9,6 @@ import PrintReceipt from "@/components/receipt/print-receipt";
 import VoidRefundDialog from "./void-refund-dialog";
 import { PAYMENT_METHOD_KEYS, PAYMENT_METHOD_ICONS, STATUS_COLORS } from "@/lib/constants";
 import {
-  X,
   Receipt,
   CreditCard,
   ChevronDown,
@@ -21,6 +20,7 @@ import {
   Ban,
   RotateCcw,
 } from "lucide-react";
+import CloseButton from "@/components/shared/close-button";
 
 type Props = {
   open: boolean;
@@ -395,9 +395,7 @@ export default function HistorySheet({ open, onClose, shiftId, locale, embedded 
                       <span>{payLabel}</span>
                     </div>
                   </div>
-                  <button onClick={handleCloseDetail} className="h-10 w-10 rounded-full bg-black/8 flex items-center justify-center text-pos-text-muted hover:bg-black/15 transition-colors">
-                    <X className="h-4.5 w-4.5" />
-                  </button>
+                  <CloseButton onClick={handleCloseDetail} />
                 </div>
 
                 {/* Content */}
@@ -540,12 +538,7 @@ export default function HistorySheet({ open, onClose, shiftId, locale, embedded 
               {loading ? t(locale, "loadingOrders") : `${orders.length} ${t(locale, "historyOrders")}`}
             </p>
           </div>
-          <button
-            onClick={handleClose}
-            className="h-10 w-10 rounded-full bg-black/8 flex items-center justify-center text-pos-text-muted hover:bg-black/15 transition-colors"
-          >
-            <X className="h-4.5 w-4.5" />
-          </button>
+          <CloseButton onClick={handleClose} />
         </div>
 
         {/* Filters */}

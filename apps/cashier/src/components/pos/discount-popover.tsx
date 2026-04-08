@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { type Locale, t } from "@/i18n/locales";
-import { Percent, DollarSign, X, Delete } from "lucide-react";
+import { Percent, DollarSign, Delete } from "lucide-react";
+import CloseButton from "@/components/shared/close-button";
 import type { OrderDiscount } from "@/lib/actions";
 
 type Props = {
@@ -69,9 +70,7 @@ export default function DiscountPopover({ locale, subtotal, onApply, onClose, cu
         {/* Header */}
         <div className="flex items-center justify-between px-4 h-12 border-b border-pos-border">
           <span className="text-[15px] font-semibold text-pos-text">{t(locale, "discount")}</span>
-          <button onClick={handleClose} className="h-10 w-10 rounded-full bg-black/8 flex items-center justify-center text-pos-text-muted hover:bg-black/15 transition-colors">
-            <X className="h-4.5 w-4.5" />
-          </button>
+          <CloseButton onClick={handleClose} />
         </div>
 
         <div className="p-4 space-y-3">
