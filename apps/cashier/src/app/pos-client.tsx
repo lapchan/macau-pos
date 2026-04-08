@@ -1486,7 +1486,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
             )}
 
             {showSettingsMenu && menuLevel === "theme" && (
-              <div className="absolute left-full bottom-0 ml-1 z-20 bg-pos-surface border border-pos-border rounded-[var(--radius-md)] shadow-lg py-1.5 min-w-[180px] animate-fade-in">
+              <div className="flyout-menu absolute left-full bottom-0 ml-1 z-20 bg-pos-surface border border-pos-border rounded-[var(--radius-md)] shadow-lg py-1.5 min-w-[180px] animate-fade-in">
                 {Object.entries(merchantThemes).map(([key, theme]) => (
                   <button key={key} onClick={() => { setCurrentTheme(key); setMenuLevel("main"); }} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors", currentTheme === key ? "bg-pos-surface-active text-pos-text" : "text-pos-text-secondary hover:bg-pos-surface-hover")}>
                     <div className="h-4 w-4 rounded-full border border-pos-border" style={{ backgroundColor: theme.accent }} /><span>{theme.name}</span>
@@ -1497,7 +1497,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
             )}
 
             {showSettingsMenu && menuLevel === "language" && (
-              <div className="absolute left-full bottom-0 ml-1 z-20 bg-pos-surface border border-pos-border rounded-[var(--radius-md)] shadow-lg py-1.5 min-w-[180px] animate-fade-in">
+              <div className="flyout-menu absolute left-full bottom-0 ml-1 z-20 bg-pos-surface border border-pos-border rounded-[var(--radius-md)] shadow-lg py-1.5 min-w-[180px] animate-fade-in">
                 {(Object.keys(localeNames) as Locale[]).map((l) => (
                   <button key={l} onClick={() => { setLocale(l); setMenuLevel("main"); }} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors", locale === l ? "bg-pos-surface-active text-pos-text" : "text-pos-text-secondary hover:bg-pos-surface-hover")}>
                     <Flag code={l} size={18} /><span>{localeNames[l]}</span>

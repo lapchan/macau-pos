@@ -9,6 +9,17 @@
 html {
   touch-action: manipulation;
 }
+
+/* Portrait mode: flyout menus position above instead of to the right */
+@media (orientation: portrait) {
+  .flyout-menu {
+    left: auto !important;
+    right: 0 !important;
+    bottom: 100% !important;
+    margin-left: 0 !important;
+    margin-bottom: 4px !important;
+  }
+}
 input, textarea {
   -webkit-user-select: text;
   user-select: text;
