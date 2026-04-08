@@ -450,7 +450,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
 
             {/* CASH STATE */}
             {state === "cash" && (
-              <div className="w-full max-w-[380px] animate-scale-in flex flex-col h-full">
+              <div className="w-full max-w-[380px] animate-scale-in flex flex-col h-full justify-center">
                 {/* Top: Amount due + Change due */}
                 <div className="flex flex-col items-center justify-center py-6">
                   {/* Amount due */}
