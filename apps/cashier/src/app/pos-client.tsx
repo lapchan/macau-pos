@@ -1463,14 +1463,38 @@ export default function POSClient({ initialProducts, initialCategories, userName
                       <div className="my-1.5 border-t border-pos-border" />
                     </>
                   )}
-                  <button onClick={() => setMenuLevel(menuLevel === "theme" ? "main" : "theme")} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors", menuLevel === "theme" ? "bg-pos-surface-active text-pos-text" : "text-pos-text-secondary hover:bg-pos-surface-hover")}>
-                    <Palette className="h-4 w-4" /><span>{t(locale, "theme")}</span>
-                    <div className="ml-auto flex items-center gap-1.5"><div className="h-3.5 w-3.5 rounded-full border border-pos-border" style={{ backgroundColor: merchantThemes[currentTheme]?.accent }} /><ChevronRight className="h-3.5 w-3.5 text-pos-text-muted" /></div>
-                  </button>
-                  <button onClick={() => setMenuLevel(menuLevel === "language" ? "main" : "language")} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors", menuLevel === "language" ? "bg-pos-surface-active text-pos-text" : "text-pos-text-secondary hover:bg-pos-surface-hover")}>
-                    <Languages className="h-4 w-4" /><span>{t(locale, "language")}</span>
-                    <div className="ml-auto flex items-center gap-1.5"><Flag code={locale} size={14} /><ChevronRight className="h-3.5 w-3.5 text-pos-text-muted" /></div>
-                  </button>
+                  <div className="relative">
+                    <button onClick={() => setMenuLevel(menuLevel === "theme" ? "main" : "theme")} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors", menuLevel === "theme" ? "bg-pos-surface-active text-pos-text" : "text-pos-text-secondary hover:bg-pos-surface-hover")}>
+                      <Palette className="h-4 w-4" /><span>{t(locale, "theme")}</span>
+                      <div className="ml-auto flex items-center gap-1.5"><div className="h-3.5 w-3.5 rounded-full border border-pos-border" style={{ backgroundColor: merchantThemes[currentTheme]?.accent }} /><ChevronRight className="h-3.5 w-3.5 text-pos-text-muted" /></div>
+                    </button>
+                    {menuLevel === "theme" && (
+                      <div className="absolute left-full top-0 ml-1 z-20 bg-pos-surface border border-pos-border rounded-[var(--radius-md)] shadow-lg py-1.5 min-w-[180px] animate-fade-in">
+                        {Object.entries(merchantThemes).map(([key, theme]) => (
+                          <button key={key} onClick={() => { setCurrentTheme(key); setMenuLevel("main"); }} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors", currentTheme === key ? "bg-pos-surface-active text-pos-text" : "text-pos-text-secondary hover:bg-pos-surface-hover")}>
+                            <div className="h-4 w-4 rounded-full border border-pos-border" style={{ backgroundColor: theme.accent }} /><span>{theme.name}</span>
+                            {currentTheme === key && <Check className="h-3.5 w-3.5 ml-auto text-pos-accent" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <button onClick={() => setMenuLevel(menuLevel === "language" ? "main" : "language")} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors", menuLevel === "language" ? "bg-pos-surface-active text-pos-text" : "text-pos-text-secondary hover:bg-pos-surface-hover")}>
+                      <Languages className="h-4 w-4" /><span>{t(locale, "language")}</span>
+                      <div className="ml-auto flex items-center gap-1.5"><Flag code={locale} size={14} /><ChevronRight className="h-3.5 w-3.5 text-pos-text-muted" /></div>
+                    </button>
+                    {menuLevel === "language" && (
+                      <div className="absolute left-full top-0 ml-1 z-20 bg-pos-surface border border-pos-border rounded-[var(--radius-md)] shadow-lg py-1.5 min-w-[180px] animate-fade-in">
+                        {(Object.keys(localeNames) as Locale[]).map((l) => (
+                          <button key={l} onClick={() => { setLocale(l); setMenuLevel("main"); }} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors", locale === l ? "bg-pos-surface-active text-pos-text" : "text-pos-text-secondary hover:bg-pos-surface-hover")}>
+                            <Flag code={l} size={18} /><span>{localeNames[l]}</span>
+                            {locale === l && <Check className="h-3.5 w-3.5 ml-auto text-pos-accent" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
                   <div className="my-1.5 border-t border-pos-border" />
                   <button onClick={() => { setShowSettingsMenu(false); window.location.reload(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-text-secondary hover:bg-pos-surface-hover transition-colors">
                     <RefreshCw className="h-4 w-4" /><span>{t(locale, "update")}</span>
@@ -1485,27 +1509,6 @@ export default function POSClient({ initialProducts, initialCategories, userName
               </>
             )}
 
-            {showSettingsMenu && menuLevel === "theme" && (
-              <div className="flyout-menu absolute left-full bottom-0 ml-1 z-20 bg-pos-surface border border-pos-border rounded-[var(--radius-md)] shadow-lg py-1.5 min-w-[180px] animate-fade-in">
-                {Object.entries(merchantThemes).map(([key, theme]) => (
-                  <button key={key} onClick={() => { setCurrentTheme(key); setMenuLevel("main"); }} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors", currentTheme === key ? "bg-pos-surface-active text-pos-text" : "text-pos-text-secondary hover:bg-pos-surface-hover")}>
-                    <div className="h-4 w-4 rounded-full border border-pos-border" style={{ backgroundColor: theme.accent }} /><span>{theme.name}</span>
-                    {currentTheme === key && <Check className="h-3.5 w-3.5 ml-auto text-pos-accent" />}
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {showSettingsMenu && menuLevel === "language" && (
-              <div className="flyout-menu absolute left-full bottom-0 ml-1 z-20 bg-pos-surface border border-pos-border rounded-[var(--radius-md)] shadow-lg py-1.5 min-w-[180px] animate-fade-in">
-                {(Object.keys(localeNames) as Locale[]).map((l) => (
-                  <button key={l} onClick={() => { setLocale(l); setMenuLevel("main"); }} className={cn("w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left transition-colors", locale === l ? "bg-pos-surface-active text-pos-text" : "text-pos-text-secondary hover:bg-pos-surface-hover")}>
-                    <Flag code={l} size={18} /><span>{localeNames[l]}</span>
-                    {locale === l && <Check className="h-3.5 w-3.5 ml-auto text-pos-accent" />}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
