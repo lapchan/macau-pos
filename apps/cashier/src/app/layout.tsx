@@ -54,14 +54,8 @@ function ServiceWorkerRegistration() {
       dangerouslySetInnerHTML={{
         __html: `
           if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
-              // Unregister old SWs first, then register fresh
-              navigator.serviceWorker.getRegistrations().then(function(regs) {
-                var promises = regs.map(function(r) { return r.unregister(); });
-                return Promise.all(promises);
-              }).then(function() {
-                return navigator.serviceWorker.register('/sw.js?v=4', { updateViaCache: 'none' });
-              }).catch(function() {});
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              regs.forEach(function(r) { r.unregister(); });
             });
           }
         `,
