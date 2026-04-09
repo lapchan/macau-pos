@@ -2,11 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { type Locale, t } from "@/i18n/locales";
+import bcrypt from "bcryptjs";
+import Avatar from "./avatar";
+import ConfirmDialog from "./confirm-dialog";
 
 type Props = {
   userName: string;
   userAvatar?: string | null;
   userId: string;
+  pinHash?: string | null;
   terminalName: string | null;
   terminalCode: string | null;
   locale?: Locale;
@@ -15,7 +19,7 @@ type Props = {
 };
 
 export default function LockScreen({
-  userName, userAvatar, userId, terminalName, terminalCode, locale = "tc", onUnlock, onForceLogout,
+  userName, userAvatar, userId, pinHash, terminalName, terminalCode, locale = "tc", onUnlock, onForceLogout,
 }: Props) {
   const [pin, setPin] = useState("");
   const [error, setError] = useState("");
@@ -23,6 +27,10 @@ export default function LockScreen({
   const [attempts, setAttempts] = useState(0);
   const [verifying, setVerifying] = useState(false);
   const [time, setTime] = useState(new Date());
+  const [online, setOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
+  const [connectionError, setConnectionError] = useState(false);
+  const [showReloadConfirm, setShowReloadConfirm] = useState(false);
+  const [reloading, setReloading] = useState(false);
 
   const MAX_ATTEMPTS = 5;
 
@@ -32,27 +40,71 @@ export default function LockScreen({
     return () => clearInterval(interval);
   }, []);
 
-  // Auto-submit when 4 digits entered
+  // Online/offline listener
+  useEffect(() => {
+    const goOnline = () => { setOnline(true); setConnectionError(false); };
+    const goOffline = () => setOnline(false);
+    window.addEventListener("online", goOnline);
+    window.addEventListener("offline", goOffline);
+    return () => { window.removeEventListener("online", goOnline); window.removeEventListener("offline", goOffline); };
+  }, []);
+
+  // Auto-submit when 4 digits entered (delay to let the 4th dot render)
   useEffect(() => {
     if (pin.length === 4 && !verifying) {
-      handleSubmit();
+      const timer = setTimeout(handleSubmit, 150);
+      return () => clearTimeout(timer);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pin]);
+
+  async function verifyLocally(enteredPin: string): Promise<boolean> {
+    if (!pinHash) return false;
+    return bcrypt.compare(enteredPin, pinHash);
+  }
 
   async function handleSubmit() {
     setVerifying(true);
     setError("");
 
     try {
-      const res = await fetch("/api/verify-pin", {
-        method: "POST",
-        body: JSON.stringify({ pin, userId }),
-        headers: { "Content-Type": "application/json" },
-      });
-      const data = await res.json();
+      let success = false;
 
-      if (data.success) {
+      if (navigator.onLine) {
+        // Online: verify via API
+        try {
+          const res = await fetch("/api/verify-pin", {
+            method: "POST",
+            body: JSON.stringify({ pin, userId }),
+            headers: { "Content-Type": "application/json" },
+          });
+          const data = await res.json();
+          success = data.success;
+        } catch {
+          // API failed — fall back to local verification
+          success = await verifyLocally(pin);
+          if (!success && !pinHash) {
+            // No local hash available and API unreachable
+            setConnectionError(true);
+            setError(t(locale, "lockConnectionError"));
+            setPin("");
+            setVerifying(false);
+            return;
+          }
+        }
+      } else {
+        // Offline: verify locally
+        success = await verifyLocally(pin);
+        if (!pinHash) {
+          setConnectionError(true);
+          setError(t(locale, "lockConnectionError"));
+          setPin("");
+          setVerifying(false);
+          return;
+        }
+      }
+
+      if (success) {
         onUnlock();
       } else {
         const newAttempts = attempts + 1;
@@ -67,9 +119,6 @@ export default function LockScreen({
           setError(t(locale, "lockInvalidPin").replace("{remaining}", String(MAX_ATTEMPTS - newAttempts)));
         }
       }
-    } catch {
-      setError(t(locale, "lockConnectionError"));
-      setPin("");
     } finally {
       setVerifying(false);
     }
@@ -90,8 +139,6 @@ export default function LockScreen({
     month: "long",
     day: "numeric",
   });
-  const initial = userName.charAt(0).toUpperCase();
-
   const letterMap: Record<string, string> = {
     "2": "ABC", "3": "DEF", "4": "GHI", "5": "JKL",
     "6": "MNO", "7": "PQRS", "8": "TUV", "9": "WXYZ",
@@ -109,13 +156,7 @@ export default function LockScreen({
 
       {/* Avatar + name */}
       <div className="flex flex-col items-center mb-6">
-        {userAvatar ? (
-          <img src={userAvatar} alt={userName} className="h-[64px] w-[64px] rounded-full object-cover mb-3 shadow-lg bg-[#f5f5f7]" />
-        ) : (
-          <div className="h-[64px] w-[64px] rounded-full flex items-center justify-center mb-3 shadow-lg" style={{ backgroundColor: "var(--color-pos-accent, #0071e3)" }}>
-            <span className="text-white text-[24px] font-semibold">{initial}</span>
-          </div>
-        )}
+        <Avatar src={userAvatar} name={userName} size={64} className="mb-3 shadow-lg" />
         <p className="text-[#1d1d1f] text-[15px] font-medium">{userName}</p>
         {terminalName && (
           <p className="text-[#86868b] text-[12px] mt-1">
@@ -179,6 +220,60 @@ export default function LockScreen({
           </svg>
         </button>
       </div>
+
+      {/* Connection indicator (bottom-right) */}
+      <div className="absolute bottom-6 right-6">
+        <button
+          type="button"
+          onClick={() => setShowReloadConfirm(true)}
+          className={`h-7 w-7 flex items-center justify-center rounded-full border transition-colors ${
+            !online || connectionError
+              ? "text-[#ff3b30] border-[#ff3b30]/20 bg-[#ff3b30]/5"
+              : "text-[#34c759] border-[#34c759]/20 bg-[#34c759]/5"
+          }`}
+        >
+          {!online || connectionError ? (
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h.01" /><path d="M8.5 16.429a5 5 0 0 1 7 0" /><path d="M5 12.859a10 10 0 0 1 5.17-2.69" /><path d="M13.83 10.17A10 10 0 0 1 19 12.859" /><path d="M2 8.82a15 15 0 0 1 4.17-2.65" /><path d="M10.66 5c4.01-.36 8.14.9 11.34 3.76" /><path d="m2 2 20 20" /></svg>
+          ) : (
+            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h.01" /><path d="M8.5 16.429a5 5 0 0 1 7 0" /><path d="M5 12.859a10 10 0 0 1 14 0" /><path d="M2 8.82a15 15 0 0 1 20 0" /></svg>
+          )}
+        </button>
+      </div>
+
+      <ConfirmDialog
+        open={showReloadConfirm}
+        onClose={() => { if (!reloading) setShowReloadConfirm(false); }}
+        onConfirm={async () => {
+          setReloading(true);
+          try {
+            const res = await fetch("/api/ping", { cache: "no-store", signal: AbortSignal.timeout(5000) });
+            if (res.ok) {
+              window.location.reload();
+              return;
+            }
+          } catch { /* no connection */ }
+          setReloading(false);
+          setShowReloadConfirm(false);
+          setError(t(locale, "lockConnectionError"));
+        }}
+        icon={
+          reloading ? (
+            <svg className="h-10 w-10 text-[#007aff] mx-auto animate-spin" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M20.015 4.356v4.992" />
+            </svg>
+          ) : (
+            <svg className="h-10 w-10 text-[#007aff] mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182M20.015 4.356v4.992" />
+            </svg>
+          )
+        }
+        title={t(locale, "lockReloadTitle")}
+        message={reloading ? t(locale, "lockReloadChecking") : t(locale, "lockReloadMessage")}
+        cancelLabel={t(locale, "lockReloadCancel")}
+        confirmLabel={t(locale, "lockReloadConfirm")}
+        variant="primary"
+        zIndex={60}
+      />
     </div>
   );
 }

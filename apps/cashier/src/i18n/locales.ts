@@ -92,6 +92,14 @@ type TranslationKeys = {
   lockTooManyAttempts: string;
   lockInvalidPin: string;
   lockConnectionError: string;
+  lockOffline: string;
+  lockOnline: string;
+  lockRefresh: string;
+  lockReloadTitle: string;
+  lockReloadMessage: string;
+  lockReloadChecking: string;
+  lockReloadCancel: string;
+  lockReloadConfirm: string;
 
   // Misc
   receiptDiscount: string;
@@ -339,6 +347,14 @@ const translations: Record<Locale, TranslationKeys> = {
     lockTooManyAttempts: "嘗試次數過多，正在登出...",
     lockInvalidPin: "PIN碼錯誤（剩餘{remaining}次）",
     lockConnectionError: "連接錯誤，請重試。",
+    lockOffline: "離線中",
+    lockOnline: "已連線",
+    lockRefresh: "重新整理",
+    lockReloadTitle: "重新載入應用程式",
+    lockReloadMessage: "確定要重新載入嗎？",
+    lockReloadChecking: "正在檢查連線...",
+    lockReloadCancel: "取消",
+    lockReloadConfirm: "重新載入",
     receiptDiscount: "折扣",
     startShiftToSeeDrawer: "開始班次以查看錢櫃",
     comingSoon: "即將推出",
@@ -560,6 +576,14 @@ const translations: Record<Locale, TranslationKeys> = {
     lockTooManyAttempts: "尝试次数过多，正在登出...",
     lockInvalidPin: "PIN码错误（剩余{remaining}次）",
     lockConnectionError: "连接错误，请重试。",
+    lockOffline: "离线中",
+    lockOnline: "已连线",
+    lockRefresh: "重新加载",
+    lockReloadTitle: "重新加载应用",
+    lockReloadMessage: "确定要重新加载吗？",
+    lockReloadChecking: "正在检查连线...",
+    lockReloadCancel: "取消",
+    lockReloadConfirm: "重新加载",
     receiptDiscount: "折扣",
     startShiftToSeeDrawer: "开始班次以查看钱柜",
     comingSoon: "即将推出",
@@ -781,6 +805,14 @@ const translations: Record<Locale, TranslationKeys> = {
     lockTooManyAttempts: "Too many attempts. Logging out...",
     lockInvalidPin: "Invalid PIN ({remaining} left)",
     lockConnectionError: "Connection error. Try again.",
+    lockOffline: "Offline",
+    lockOnline: "Online",
+    lockRefresh: "Refresh",
+    lockReloadTitle: "Reload App",
+    lockReloadMessage: "Are you sure you want to reload?",
+    lockReloadChecking: "Checking connection...",
+    lockReloadCancel: "Cancel",
+    lockReloadConfirm: "Reload",
     receiptDiscount: "Discount",
     startShiftToSeeDrawer: "Start a shift to see drawer",
     comingSoon: "Coming soon",
@@ -1002,6 +1034,14 @@ const translations: Record<Locale, TranslationKeys> = {
     lockTooManyAttempts: "Demasiadas tentativas. A terminar sessão...",
     lockInvalidPin: "PIN inválido ({remaining} restantes)",
     lockConnectionError: "Erro de conexão. Tente novamente.",
+    lockOffline: "Offline",
+    lockOnline: "Online",
+    lockRefresh: "Atualizar",
+    lockReloadTitle: "Recarregar App",
+    lockReloadMessage: "Tem a certeza que pretende recarregar?",
+    lockReloadChecking: "A verificar ligação...",
+    lockReloadCancel: "Cancelar",
+    lockReloadConfirm: "Recarregar",
     receiptDiscount: "Desconto",
     startShiftToSeeDrawer: "Iniciar turno para ver caixa",
     comingSoon: "Em breve",
@@ -1223,6 +1263,14 @@ const translations: Record<Locale, TranslationKeys> = {
     lockTooManyAttempts: "試行回数を超えました。ログアウトします...",
     lockInvalidPin: "PINが無効です（残り{remaining}回）",
     lockConnectionError: "接続エラー。再試行してください。",
+    lockOffline: "オフライン",
+    lockOnline: "オンライン",
+    lockRefresh: "更新",
+    lockReloadTitle: "アプリを再読み込み",
+    lockReloadMessage: "再読み込みしますか？",
+    lockReloadChecking: "接続を確認中...",
+    lockReloadCancel: "キャンセル",
+    lockReloadConfirm: "再読み込み",
     receiptDiscount: "割引",
     startShiftToSeeDrawer: "シフトを開始してドロワーを表示",
     comingSoon: "近日公開",

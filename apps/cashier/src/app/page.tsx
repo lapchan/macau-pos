@@ -1,7 +1,7 @@
 import { getActiveProducts, getActiveCategories, getTaxRate } from "@/lib/queries";
 import { getAuthSession } from "@/lib/auth-actions";
 import { getActiveShift } from "@/lib/shift-actions";
-import { getDisplayName } from "@macau-pos/database";
+import { getDisplayName, db, users, eq } from "@macau-pos/database";
 import POSClient, { type CategoryData } from "./pos-client";
 import { categories as mockCategories, products as mockProducts } from "@/data/mock";
 import type { Product } from "@/data/mock";
@@ -15,6 +15,7 @@ export default async function POSPage() {
   let terminalName: string | null = null;
   let terminalCode: string | null = null;
   let activeShiftId: string | null = null;
+  let userPinHash: string | null = null;
   let taxRate = 0;
   let currency = "MOP";
 
@@ -30,6 +31,12 @@ export default async function POSPage() {
     // Check for active shift
     const activeShift = await getActiveShift();
     activeShiftId = activeShift?.id || null;
+
+    // Fetch PIN hash for offline lock screen verification
+    if (userId) {
+      const [u] = await db.select({ pin: users.pin }).from(users).where(eq(users.id, userId)).limit(1);
+      userPinHash = u?.pin || null;
+    }
 
     const [dbProducts, dbCategories, dbTaxRate] = await Promise.all([
       getActiveProducts(),
@@ -93,5 +100,5 @@ export default async function POSPage() {
     console.error("Failed to fetch from DB, using mock data:", error);
   }
 
-  return <POSClient initialProducts={productList} initialCategories={categoryList} userName={userName} userAvatar={userAvatar} userId={userId} terminalName={terminalName} terminalCode={terminalCode} activeShiftId={activeShiftId} taxRate={taxRate} currency={currency} />;
+  return <POSClient initialProducts={productList} initialCategories={categoryList} userName={userName} userAvatar={userAvatar} userId={userId} userPinHash={userPinHash} terminalName={terminalName} terminalCode={terminalCode} activeShiftId={activeShiftId} taxRate={taxRate} currency={currency} />;
 }

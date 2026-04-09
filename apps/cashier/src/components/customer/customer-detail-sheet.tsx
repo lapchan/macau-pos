@@ -4,6 +4,7 @@ import { useState } from "react";
 import { cn } from "@/lib/cn";
 import { type Locale, t } from "@/i18n/locales";
 import { Star, Phone, Mail, Calendar, Clock, StickyNote, UserX } from "lucide-react";
+import Avatar from "@/components/shared/avatar";
 import CloseButton from "@/components/shared/close-button";
 
 export type LinkedCustomer = {
@@ -61,20 +62,7 @@ export default function CustomerDetailSheet({ customer, locale, onClose, onRemov
         <div className="flex-1 overflow-y-auto">
           {/* Avatar + name hero */}
           <div className="flex flex-col items-center pt-8 pb-6">
-            {customer.avatar ? (
-              <img
-                src={customer.avatar}
-                alt={customer.name}
-                className="h-20 w-20 rounded-full object-cover mb-4 bg-pos-bg"
-              />
-            ) : (
-              <div
-                className="h-20 w-20 rounded-full flex items-center justify-center text-[28px] font-bold text-white mb-4"
-                style={{ backgroundColor: "var(--color-pos-accent)" }}
-              >
-                {customer.name.charAt(0).toUpperCase()}
-              </div>
-            )}
+            <Avatar src={customer.avatar} name={customer.name} size={80} className="mb-4" />
             <h3 className="text-[20px] font-semibold text-pos-text">{customer.name}</h3>
             {customer.tier && (
               <div className="flex items-center gap-1.5 mt-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200">

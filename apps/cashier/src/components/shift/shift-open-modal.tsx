@@ -24,11 +24,15 @@ export default function ShiftOpenModal({ userName, terminalName, terminalCode, o
   function handleSubmit() {
     setError("");
     startTransition(async () => {
-      const result = await openShift(parseFloat(floatAmount) || 0);
-      if (result.success && result.data) {
-        onShiftOpened(result.data.id);
-      } else {
-        setError(result.error || "Failed to open shift");
+      try {
+        const result = await openShift(parseFloat(floatAmount) || 0);
+        if (result.success && result.data) {
+          onShiftOpened(result.data.id);
+        } else {
+          setError(result.error || "Failed to open shift");
+        }
+      } catch {
+        setError("Connection error");
       }
     });
   }

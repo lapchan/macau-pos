@@ -4,6 +4,7 @@ import { useState, useTransition, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { closeShift, getShiftSummary } from "@/lib/shift-actions";
 import { AlertTriangle, Check, Clock, CreditCard, Delete, DollarSign, ShoppingBag, StickyNote } from "lucide-react";
+import Avatar from "@/components/shared/avatar";
 import CloseButton from "@/components/shared/close-button";
 import { type Locale, t } from "@/i18n/locales";
 import { PAYMENT_METHOD_KEYS } from "@/lib/constants";
@@ -40,7 +41,7 @@ export default function ShiftCloseModal({ shiftId, onClose, onShiftClosed, local
   const hasAmount = cashCents !== "0";
 
   useEffect(() => {
-    getShiftSummary(shiftId).then(setSummary);
+    getShiftSummary(shiftId).then(setSummary).catch(() => { /* offline */ });
   }, [shiftId]);
 
   // Shift duration
@@ -65,15 +66,19 @@ export default function ShiftCloseModal({ shiftId, onClose, onShiftClosed, local
   function handleSubmit() {
     setError("");
     startTransition(async () => {
-      const result = await closeShift(shiftId, actualNum, notes || undefined);
-      if (result.success) {
-        setSuccess(true);
-        setTimeout(() => {
-          onShiftClosed();
-          router.refresh();
-        }, 1500);
-      } else {
-        setError(result.error || "Failed to close shift");
+      try {
+        const result = await closeShift(shiftId, actualNum, notes || undefined);
+        if (result.success) {
+          setSuccess(true);
+          setTimeout(() => {
+            onShiftClosed();
+            router.refresh();
+          }, 1500);
+        } else {
+          setError(result.error || "Failed to close shift");
+        }
+      } catch {
+        setError("Connection error");
       }
     });
   }
@@ -133,13 +138,7 @@ export default function ShiftCloseModal({ shiftId, onClose, onShiftClosed, local
                   {/* User profile — lock screen style */}
                   {userName && (
                     <div className="flex flex-col items-center py-2">
-                      {userAvatar ? (
-                        <img src={userAvatar} alt={userName} className="h-[64px] w-[64px] rounded-full object-cover shadow-lg bg-[#f5f5f7]" />
-                      ) : (
-                        <div className="h-[64px] w-[64px] rounded-full flex items-center justify-center shadow-lg" style={{ backgroundColor: "var(--color-pos-accent, #0071e3)" }}>
-                          <span className="text-white text-[24px] font-semibold">{userName.charAt(0).toUpperCase()}</span>
-                        </div>
-                      )}
+                      <Avatar src={userAvatar} name={userName} size={64} className="shadow-lg" />
                       <p className="text-[15px] font-medium text-[#1d1d1f] mt-3">{userName}</p>
                       <p className="text-[12px] text-[#86868b] mt-0.5">{t(locale, "shiftSummary")}</p>
                     </div>

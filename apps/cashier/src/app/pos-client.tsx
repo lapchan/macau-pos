@@ -47,6 +47,8 @@ const iconMap: Record<string, LucideIcon> = {
 };
 
 import CloseButton from "@/components/shared/close-button";
+import Avatar from "@/components/shared/avatar";
+import ConfirmDialog from "@/components/shared/confirm-dialog";
 import ShiftOpenModal from "@/components/shift/shift-open-modal";
 import ShiftCloseModal from "@/components/shift/shift-close-modal";
 import ShiftSummaryPanel from "@/components/shift/shift-summary-panel";
@@ -73,7 +75,7 @@ function ShiftTimer({ shiftId }: { shiftId: string }) {
           tick();
           iv = setInterval(tick, 30000);
         }
-      })
+      }).catch(() => { /* offline */ })
     );
 
     return () => { if (iv) clearInterval(iv); };
@@ -93,6 +95,7 @@ type Props = {
   userName?: string | null;
   userAvatar?: string | null;
   userId?: string | null;
+  userPinHash?: string | null;
   terminalName?: string | null;
   terminalCode?: string | null;
   activeShiftId?: string | null;
@@ -110,7 +113,7 @@ function DrawerLedger({ shiftId, locale }: { shiftId: string; locale: Locale }) 
       fetchCashLog(shiftId).then((data) => {
         setEntries(data);
         setLoading(false);
-      })
+      }).catch(() => { setLoading(false); })
     );
   }, [shiftId]);
 
@@ -232,7 +235,7 @@ function ProductGrid({ products, cart, addedId, locale, currency, favoriteIds, o
             </p>
             <div className="relative w-full aspect-square rounded-[var(--radius-sm)] bg-pos-bg my-1.5 flex items-center justify-center overflow-hidden">
               {product.image ? (
-                <img src={product.image} alt="" className="h-full w-full object-contain" loading="lazy" />
+                <img src={product.image} alt="" className="h-full w-full object-contain pointer-events-none select-none" draggable={false} loading="lazy" />
               ) : (
                 <ShoppingBag className="h-7 w-7 text-pos-text-muted/40" strokeWidth={1.25} />
               )}
@@ -293,7 +296,7 @@ function ProductGrid({ products, cart, addedId, locale, currency, favoriteIds, o
   );
 }
 
-export default function POSClient({ initialProducts, initialCategories, userName, userAvatar, userId, terminalName, terminalCode, activeShiftId, taxRate = 0, currency = "MOP" }: Props) {
+export default function POSClient({ initialProducts, initialCategories, userName, userAvatar, userId, userPinHash, terminalName, terminalCode, activeShiftId, taxRate = 0, currency = "MOP" }: Props) {
   const [locale, setLocale] = useState<Locale>("tc");
   const [activeTab, setActiveTab] = useState<"cashier" | "orders" | "reports">("cashier");
   const [reportView, setReportView] = useState<"drawer" | "sales">("drawer");
@@ -323,6 +326,8 @@ export default function POSClient({ initialProducts, initialCategories, userName
   const isOnline = useOnlineStatus();
   const [pendingCount, setPendingCount] = useState(0);
   const [checkingConnection, setCheckingConnection] = useState(false);
+  const [showReloadConfirm, setShowReloadConfirm] = useState(false);
+  const [reloading, setReloading] = useState(false);
   const [locking, setLocking] = useState(false);
   const [shiftId, setShiftId] = useState<string | null>(activeShiftId || null);
   const [showShiftSummary, setShowShiftSummary] = useState(false);
@@ -376,7 +381,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
     if (isOnline && mounted && getPendingCount() > 0) {
       syncPendingOrders().then(() => {
         setPendingCount(getPendingCount());
-      });
+      }).catch(() => { /* offline */ });
     }
   }, [isOnline, mounted]);
 
@@ -649,7 +654,8 @@ export default function POSClient({ initialProducts, initialCategories, userName
 
   // ─── Barcode scanner ───────────────────────────────────────
   const handleBarcodeScan = useCallback(async (barcode: string) => {
-    const result = await lookupBarcode(barcode);
+    let result;
+    try { result = await lookupBarcode(barcode); } catch { return; }
     if (!result.found) return;
 
     // Customer membership card
@@ -784,6 +790,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
         userName={userName || ""}
         userAvatar={userAvatar || null}
         userId={userId || ""}
+        pinHash={userPinHash || null}
         terminalName={terminalName || null}
         terminalCode={terminalCode || null}
         onUnlock={handleUnlock}
@@ -1051,16 +1058,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
                 onClick={() => setShowCustomerDetail(true)}
                 className="flex items-center gap-3 flex-1 min-w-0 text-left hover:opacity-80 transition-opacity"
               >
-                {linkedCustomer.avatar ? (
-                  <img src={linkedCustomer.avatar} alt="" className="h-10 w-10 rounded-full object-cover bg-pos-bg shrink-0" />
-                ) : (
-                  <div
-                    className="h-10 w-10 rounded-full flex items-center justify-center text-[14px] font-semibold text-white shrink-0"
-                    style={{ backgroundColor: "var(--color-pos-accent)" }}
-                  >
-                    {linkedCustomer.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
+                <Avatar src={linkedCustomer.avatar} name={linkedCustomer.name} size={40} />
                 <div className="flex-1 min-w-0">
                   <p className="text-[14px] font-medium text-pos-text">{linkedCustomer.name}</p>
                   {linkedCustomer.tier && (
@@ -1434,13 +1432,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
               )}
             >
               <div className="relative">
-                {userAvatar ? (
-                  <img src={userAvatar} alt="" className="h-6 w-6 rounded-full object-cover bg-pos-bg" />
-                ) : (
-                  <div className="h-6 w-6 rounded-full flex items-center justify-center text-[10px] font-semibold text-white" style={{ backgroundColor: "var(--color-pos-accent)" }}>
-                    {userName.charAt(0).toUpperCase()}
-                  </div>
-                )}
+                <Avatar src={userAvatar} name={userName} size={24} />
                 {shiftId && <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-pos-surface" />}
               </div>
               <span className="hidden lg:inline max-w-[100px] truncate">{userName}</span>
@@ -1495,7 +1487,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
                     )}
                   </div>
                   <div className="my-1.5 border-t border-pos-border" />
-                  <button onClick={() => { setShowSettingsMenu(false); window.location.reload(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-text-secondary hover:bg-pos-surface-hover transition-colors">
+                  <button onClick={() => { setShowSettingsMenu(false); setShowReloadConfirm(true); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-text-secondary hover:bg-pos-surface-hover transition-colors">
                     <RefreshCw className="h-4 w-4" /><span>{t(locale, "update")}</span>
                   </button>
                   <button onClick={() => { setShowSettingsMenu(false); handleLockScreen(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-text-secondary hover:bg-pos-surface-hover transition-colors">
@@ -1580,34 +1572,43 @@ export default function POSClient({ initialProducts, initialCategories, userName
 
       {/* Checkout Modal */}
       {/* Confirm unfavorite */}
-      {confirmUnfavorite && (
-        <>
-          <div className="fixed inset-0 z-50 bg-black/40" onClick={() => setConfirmUnfavorite(null)} />
-          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[280px] bg-pos-surface border border-pos-border rounded-[var(--radius-lg)] shadow-xl p-5 animate-scale-in text-center">
-            <Star className="h-10 w-10 text-amber-500 fill-amber-500 mx-auto mb-3" />
-            <p className="text-[14px] font-medium text-pos-text mb-1">
-              {t(locale, "removeFavoriteTitle")}
-            </p>
-            <p className="text-[13px] text-pos-text-muted mb-4">
-              {t(locale, "removeFavoriteHint")}
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setConfirmUnfavorite(null)}
-                className="flex-1 h-10 rounded-[var(--radius-md)] text-[13px] font-medium text-pos-text-secondary border border-pos-border hover:bg-pos-surface-hover transition-colors"
-              >
-                {t(locale, "cancel")}
-              </button>
-              <button
-                onClick={confirmRemoveFavorite}
-                className="flex-1 h-10 rounded-[var(--radius-md)] text-[13px] font-medium text-white bg-pos-danger hover:bg-pos-danger/90 transition-colors"
-              >
-                {t(locale, "confirm")}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
+      <ConfirmDialog
+        open={!!confirmUnfavorite}
+        onClose={() => setConfirmUnfavorite(null)}
+        onConfirm={confirmRemoveFavorite}
+        icon={<Star className="h-10 w-10 text-amber-500 fill-amber-500 mx-auto" />}
+        title={t(locale, "removeFavoriteTitle")}
+        message={t(locale, "removeFavoriteHint")}
+        cancelLabel={t(locale, "cancel")}
+        confirmLabel={t(locale, "confirm")}
+      />
+
+      <ConfirmDialog
+        open={showReloadConfirm}
+        onClose={() => { if (!reloading) setShowReloadConfirm(false); }}
+        onConfirm={async () => {
+          setReloading(true);
+          try {
+            const res = await fetch("/api/ping", { cache: "no-store", signal: AbortSignal.timeout(5000) });
+            if (res.ok) {
+              window.location.reload();
+              return;
+            }
+          } catch { /* no connection */ }
+          setReloading(false);
+          setShowReloadConfirm(false);
+        }}
+        icon={
+          reloading
+            ? <Loader2 className="h-10 w-10 text-[#007aff] mx-auto animate-spin" />
+            : <RefreshCw className="h-10 w-10 text-[#007aff] mx-auto" />
+        }
+        title={t(locale, "lockReloadTitle")}
+        message={reloading ? t(locale, "lockReloadChecking") : t(locale, "lockReloadMessage")}
+        cancelLabel={t(locale, "lockReloadCancel")}
+        confirmLabel={t(locale, "lockReloadConfirm")}
+        variant="primary"
+      />
 
       {/* Per-item discount popover */}
       {discountItemId && cart.find(i => i.id === discountItemId) && (

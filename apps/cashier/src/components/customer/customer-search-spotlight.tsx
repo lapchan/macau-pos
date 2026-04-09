@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Avatar from "@/components/shared/avatar";
 import { cn } from "@/lib/cn";
 import { type Locale, t } from "@/i18n/locales";
 import { Smartphone, QrCode } from "lucide-react";
@@ -91,16 +92,7 @@ export default function CustomerSearchSpotlight({ locale, onClose, onSelect }: P
                 onClick={() => handleSelect(c)}
                 className="w-full flex items-center gap-3 px-3 py-2.5 rounded-[var(--radius-md)] hover:bg-pos-surface-hover transition-colors"
               >
-                {c.avatar ? (
-                  <img src={c.avatar} alt="" className="h-9 w-9 rounded-full object-cover bg-pos-bg shrink-0" />
-                ) : (
-                  <div
-                    className="h-9 w-9 rounded-full flex items-center justify-center text-[13px] font-semibold text-white shrink-0"
-                    style={{ backgroundColor: "var(--color-pos-accent)" }}
-                  >
-                    {c.name.charAt(0)}
-                  </div>
-                )}
+                <Avatar src={c.avatar} name={c.name} size={36} />
                 <div className="flex-1 min-w-0 text-left">
                   <p className="text-[14px] font-medium text-pos-text">{c.name}</p>
                   <p className="text-[12px] text-pos-text-muted">
