@@ -380,39 +380,16 @@ export default function POSClient({ initialProducts, initialCategories, userName
     setMounted(true);
 
     // Preload product images via fetch (goes through SW cache)
-    const imageUrls = initialProducts.map(p => p.image).filter(Boolean) as string[];
-    if (imageUrls.length === 0) {
+    // Set total for preload progress (actual loading done by hidden <img> tags in preload screen)
+    const imageCount = initialProducts.filter(p => p.image).length;
+    if (imageCount === 0) {
       setPreloading(false);
       return;
     }
-    setPreloadProgress({ loaded: 0, total: imageUrls.length });
-    let loaded = 0;
-    let cancelled = false;
-    const BATCH = 10;
-
-    async function preloadAll() {
-      for (let i = 0; i < imageUrls.length; i += BATCH) {
-        if (cancelled) return;
-        const batch = imageUrls.slice(i, i + BATCH);
-        await Promise.allSettled(
-          batch.map(url => fetch(url).catch(() => {}))
-        );
-        loaded += batch.length;
-        if (!cancelled) setPreloadProgress({ loaded, total: imageUrls.length });
-      }
-      if (!cancelled) {
-        sessionStorage.setItem("pos-images-cached", "1");
-        setPreloading(false);
-      }
-    }
-
-    preloadAll();
-    // Timeout fallback — don't block forever
-    const timeout = setTimeout(() => {
-      sessionStorage.setItem("pos-images-cached", "1");
-      setPreloading(false);
-    }, 30000);
-    return () => { cancelled = true; clearTimeout(timeout); };
+    setPreloadProgress({ loaded: 0, total: imageCount });
+    // Timeout fallback
+    const timeout = setTimeout(() => setPreloading(false), 30000);
+    return () => clearTimeout(timeout);
   }, []);
 
   // Auto-sync pending orders when coming back online
@@ -829,11 +806,31 @@ export default function POSClient({ initialProducts, initialCategories, userName
           />
         </div>
         <button
-          onClick={() => { sessionStorage.setItem("pos-images-cached", "1"); setPreloading(false); }}
+          onClick={() => setPreloading(false)}
           className="text-[12px] text-pos-text-muted hover:text-pos-text transition-colors mt-2"
         >
           {t(locale, "preloadSkip")}
         </button>
+        {/* Hidden img tags to populate browser image cache */}
+        <div className="hidden">
+          {initialProducts.map(p => p.image ? (
+            <img
+              key={p.id}
+              src={p.image}
+              alt=""
+              onLoad={() => setPreloadProgress(prev => {
+                const next = { ...prev, loaded: prev.loaded + 1 };
+                if (next.loaded >= next.total) setTimeout(() => setPreloading(false), 300);
+                return next;
+              })}
+              onError={() => setPreloadProgress(prev => {
+                const next = { ...prev, loaded: prev.loaded + 1 };
+                if (next.loaded >= next.total) setTimeout(() => setPreloading(false), 300);
+                return next;
+              })}
+            />
+          ) : null)}
+        </div>
       </div>
     );
   }
