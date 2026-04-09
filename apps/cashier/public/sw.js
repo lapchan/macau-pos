@@ -1,4 +1,4 @@
-const CACHE_NAME = "pos-v1";
+const CACHE_NAME = "pos-v2";
 
 // App shell files to cache on install
 const APP_SHELL = [
@@ -38,17 +38,25 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(request.url);
   if (url.pathname.startsWith("/api/")) return;
 
+  // Navigation requests (page loads) — always network, no cache
+  // This ensures middleware auth checks always run
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request).catch(() => {
+        return caches.match("/") || new Response("Offline", { status: 503 });
+      })
+    );
+    return;
+  }
+
+  // Static assets & images — network first, cache fallback
   event.respondWith(
     fetch(request)
       .then((response) => {
-        // Cache successful responses for Next.js pages and static assets
         if (response.ok) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then((cache) => {
-            // Cache pages and static assets
             if (
-              url.pathname === "/" ||
-              url.pathname === "/login" ||
               url.pathname.startsWith("/_next/static/") ||
               url.pathname.startsWith("/icons/") ||
               url.pathname.startsWith("/products/")
@@ -60,13 +68,8 @@ self.addEventListener("fetch", (event) => {
         return response;
       })
       .catch(() => {
-        // Network failed — serve from cache
         return caches.match(request).then((cached) => {
           if (cached) return cached;
-          // For navigation requests, serve cached root page
-          if (request.mode === "navigate") {
-            return caches.match("/");
-          }
           return new Response("Offline", { status: 503 });
         });
       })

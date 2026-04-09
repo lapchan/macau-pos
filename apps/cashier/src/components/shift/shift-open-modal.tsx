@@ -29,7 +29,12 @@ export default function ShiftOpenModal({ userName, terminalName, terminalCode, o
         if (result.success && result.data) {
           onShiftOpened(result.data.id);
         } else {
-          setError(result.error || "Failed to open shift");
+          const err = result.error || "Failed to open shift";
+          if (err.toLowerCase().includes("no active session") || err.toLowerCase().includes("session")) {
+            window.location.href = "/login";
+            return;
+          }
+          setError(err);
         }
       } catch {
         setError("Connection error");
