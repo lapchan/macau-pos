@@ -352,8 +352,10 @@ export default function POSClient({ initialProducts, initialCategories, userName
   const searchBtnRef = useRef<HTMLElement>(null);
 
   // Image preload state
-  const [preloading, setPreloading] = useState(true);
-  const [preloadProgress, setPreloadProgress] = useState({ loaded: 0, total: 0 });
+  const imageCount = initialProducts.filter(p => p.image).length;
+  const [preloading, setPreloading] = useState(imageCount > 0);
+  const [preloadMode, setPreloadMode] = useState<"loading" | "removing">("loading");
+  const [preloadProgress, setPreloadProgress] = useState({ loaded: 0, total: imageCount });
 
   // Variant picker state
   const [variantPickerOpen, setVariantPickerOpen] = useState(false);
@@ -381,15 +383,8 @@ export default function POSClient({ initialProducts, initialCategories, userName
     } catch { /* ignore */ }
     setMounted(true);
 
-    // Preload product images via fetch (goes through SW cache)
-    // Set total for preload progress (actual loading done by hidden <img> tags in preload screen)
-    const imageCount = initialProducts.filter(p => p.image).length;
-    if (imageCount === 0) {
-      setPreloading(false);
-      return;
-    }
-    setPreloadProgress({ loaded: 0, total: imageCount });
-    // Timeout fallback
+    // Timeout fallback for image preload
+    if (!preloading) return;
     const timeout = setTimeout(() => setPreloading(false), 30000);
     return () => clearTimeout(timeout);
   }, []);
@@ -792,11 +787,13 @@ export default function POSClient({ initialProducts, initialCategories, userName
     const pct = preloadProgress.total > 0 ? Math.round((preloadProgress.loaded / preloadProgress.total) * 100) : 0;
     return (
       <div className="h-screen flex flex-col items-center justify-center bg-pos-bg gap-5">
-        <div className="h-12 w-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: "var(--color-pos-accent, #0071e3)" }}>
-          <ShoppingBag className="h-6 w-6 text-white" />
+        <div className={`h-12 w-12 rounded-2xl flex items-center justify-center ${preloadMode === "removing" ? "bg-pos-danger" : ""}`} style={preloadMode === "loading" ? { backgroundColor: "var(--color-pos-accent, #0071e3)" } : {}}>
+          {preloadMode === "removing" ? <Trash2 className="h-6 w-6 text-white" /> : <ShoppingBag className="h-6 w-6 text-white" />}
         </div>
         <div className="text-center">
-          <p className="text-[15px] font-medium text-pos-text">{t(locale, "preloadTitle")}</p>
+          <p className="text-[15px] font-medium text-pos-text">
+            {preloadMode === "removing" ? "[Testing] Removing Images" : t(locale, "preloadTitle")}
+          </p>
           <p className="text-[12px] text-pos-text-muted mt-1">
             {preloadProgress.loaded} / {preloadProgress.total} {t(locale, "preloadImages")}
           </p>
@@ -1563,16 +1560,35 @@ export default function POSClient({ initialProducts, initialCategories, userName
                     <LogOut className="h-4 w-4" /><span>{t(locale, "logout")}</span>
                   </button>
                   <div className="my-1.5 border-t border-pos-border" />
-                  <button onClick={async () => {
+                  <button onClick={() => {
                     setShowSettingsMenu(false);
-                    // Clear SW cache for product images
-                    const cache = await caches.open("pos-v2");
-                    const keys = await cache.keys();
-                    await Promise.all(keys.filter(k => new URL(k.url).pathname.startsWith("/products/")).map(k => cache.delete(k)));
-                    // Clear avatar cache
+                    const total = products.filter(p => p.image).length;
+                    setPreloadMode("removing");
+                    setPreloadProgress({ loaded: 0, total });
+                    setPreloading(true);
+                    // Clear caches
                     localStorage.removeItem("pos_avatar_cache");
-                    // Strip images from state
-                    setProducts(prev => prev.map(p => ({ ...p, image: undefined })));
+                    try {
+                      caches.keys().then(names => Promise.all(names.map(n => caches.delete(n)))).catch(() => {});
+                      navigator.serviceWorker?.getRegistrations().then(regs => regs.forEach(r => r.unregister())).catch(() => {});
+                    } catch { /* no cache API */ }
+                    // Animate progress then strip images
+                    let removed = 0;
+                    const iv = setInterval(() => {
+                      removed += Math.ceil(total / 10);
+                      if (removed >= total) {
+                        removed = total;
+                        clearInterval(iv);
+                        setPreloadProgress({ loaded: removed, total });
+                        setTimeout(() => {
+                          setProducts(prev => prev.map(p => ({ ...p, image: undefined })));
+                          setPreloading(false);
+                          setPreloadMode("loading");
+                        }, 500);
+                        return;
+                      }
+                      setPreloadProgress({ loaded: removed, total });
+                    }, 100);
                   }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] text-left text-pos-text-muted hover:bg-pos-surface-hover transition-colors">
                     <Trash2 className="h-3.5 w-3.5" /><span>[Testing] Remove All Images</span>
                   </button>
