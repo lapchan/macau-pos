@@ -297,6 +297,8 @@ function ProductGrid({ products, cart, addedId, locale, currency, favoriteIds, o
 }
 
 export default function POSClient({ initialProducts, initialCategories, userName, userAvatar, userId, userPinHash, terminalName, terminalCode, activeShiftId, taxRate = 0, currency = "MOP" }: Props) {
+  // [TESTING] Allow clearing products for reload testing
+  const [products, setProducts] = useState(initialProducts);
   const [locale, setLocale] = useState<Locale>("tc");
   const [activeTab, setActiveTab] = useState<"cashier" | "orders" | "reports">("cashier");
   const [reportView, setReportView] = useState<"drawer" | "sales">("drawer");
@@ -463,7 +465,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
   const activeChildren = activeParent?.children || [];
 
   const filtered = useMemo(() => {
-    let list = initialProducts;
+    let list = products;
     if (activeCategory === "popular") {
       list = list.filter((p) => p.popular);
     } else if (activeCategory !== "all") {
@@ -489,7 +491,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
       );
     }
     return list;
-  }, [initialProducts, activeCategory, activeSubCategory, activeChildren, searchTags, spotlightInput]);
+  }, [products, activeCategory, activeSubCategory, activeChildren, searchTags, spotlightInput]);
 
   const [confirmUnfavorite, setConfirmUnfavorite] = useState<string | null>(null);
 
@@ -1021,7 +1023,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
 
         {/* Favorites view */}
         {activeView === "favorites" && (() => {
-          const favProducts = initialProducts.filter(p => favoriteIds.has(p.id));
+          const favProducts = products.filter(p => favoriteIds.has(p.id));
           return favProducts.length > 0 ? (
             <>
               <div className="px-5 py-3 flex items-center justify-between shrink-0">
@@ -1559,6 +1561,20 @@ export default function POSClient({ initialProducts, initialCategories, userName
                   </button>
                   <button disabled={locking} onClick={() => { setShowSettingsMenu(false); if (locking) return; setLocking(true); sessionStorage.removeItem("pos-locked"); sessionStorage.removeItem("pos-images-cached"); fetch("/api/logout", { method: "POST" }).catch(() => {}).finally(() => { window.location.href = "/login"; }); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-danger hover:bg-pos-danger-light transition-colors disabled:opacity-50">
                     <LogOut className="h-4 w-4" /><span>{t(locale, "logout")}</span>
+                  </button>
+                  <div className="my-1.5 border-t border-pos-border" />
+                  <button onClick={async () => {
+                    setShowSettingsMenu(false);
+                    // Clear SW cache for product images
+                    const cache = await caches.open("pos-v2");
+                    const keys = await cache.keys();
+                    await Promise.all(keys.filter(k => new URL(k.url).pathname.startsWith("/products/")).map(k => cache.delete(k)));
+                    // Clear avatar cache
+                    localStorage.removeItem("pos_avatar_cache");
+                    // Strip images from state
+                    setProducts(prev => prev.map(p => ({ ...p, image: undefined })));
+                  }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] text-left text-pos-text-muted hover:bg-pos-surface-hover transition-colors">
+                    <Trash2 className="h-3.5 w-3.5" /><span>[Testing] Remove All Images</span>
                   </button>
                 </div>
               </>
