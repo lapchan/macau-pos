@@ -6,10 +6,17 @@
   user-select: none;
   -webkit-touch-callout: none;
 }
-html {
+html, body {
   touch-action: manipulation;
   /* Enable :active pseudo-class on iOS Safari */
   -webkit-tap-highlight-color: transparent;
+  /* Fix iOS Safari 100vh issue — use dvh for actual visible height */
+  height: 100%;
+}
+
+/* Override h-screen to use dvh on iOS Safari */
+.h-screen {
+  height: 100dvh !important;
 }
 
 input, textarea {
