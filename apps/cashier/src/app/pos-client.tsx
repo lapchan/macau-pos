@@ -1537,14 +1537,13 @@ export default function POSClient({ initialProducts, initialCategories, userName
                   <button onClick={async () => {
                     setShowSettingsMenu(false);
                     localStorage.removeItem("pos_avatar_cache");
-                    // Delete all SW caches and wait for completion
                     try {
                       const names = await caches.keys();
                       await Promise.all(names.map(n => caches.delete(n)));
                     } catch { /* no cache API */ }
-                    window.location.reload();
+                    setProducts(prev => prev.map(p => ({ ...p, image: undefined })));
                   }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] text-left text-pos-text-muted hover:bg-pos-surface-hover transition-colors">
-                    <Trash2 className="h-3.5 w-3.5" /><span>[Testing] Clear Cache & Reload</span>
+                    <Trash2 className="h-3.5 w-3.5" /><span>[Testing] Remove All Images</span>
                   </button>
                 </div>
               </>
