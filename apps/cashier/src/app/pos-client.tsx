@@ -476,7 +476,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
   const handleForceLogout = useCallback(() => {
     // 5 failed PIN attempts → full logout
     sessionStorage.removeItem("pos-locked");
-    window.fetch("/api/logout", { method: "POST" }).finally(() => {
+    window.fetch("/api/logout", { method: "POST", signal: AbortSignal.timeout(3000) }).catch(() => {}).finally(() => {
       window.location.href = "/login";
     });
   }, []);
@@ -1482,7 +1482,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
           onShiftClosed={() => {
             setShowShiftClose(false);
             sessionStorage.removeItem("pos-locked");
-            window.fetch("/api/logout", { method: "POST" }).finally(() => {
+            window.fetch("/api/logout", { method: "POST", signal: AbortSignal.timeout(3000) }).catch(() => {}).finally(() => {
               window.location.href = "/login";
             });
           }}
@@ -1565,7 +1565,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
                   <button onClick={() => { setShowSettingsMenu(false); handleLockScreen(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-text-secondary hover:bg-pos-surface-hover transition-colors">
                     <Lock className="h-4 w-4" /><span>{t(locale, "lock")}</span>
                   </button>
-                  <button disabled={locking} onClick={() => { setShowSettingsMenu(false); if (locking) return; setLocking(true); window.setTimeout(() => { window.fetch("/api/logout", { method: "POST" }).finally(() => { window.location.href = "/login"; }); }, 700); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-danger hover:bg-pos-danger-light transition-colors disabled:opacity-50">
+                  <button disabled={locking} onClick={() => { setShowSettingsMenu(false); if (locking) return; setLocking(true); window.setTimeout(() => { window.fetch("/api/logout", { method: "POST", signal: AbortSignal.timeout(3000) }).catch(() => {}).finally(() => { window.location.href = "/login"; }); }, 700); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-danger hover:bg-pos-danger-light transition-colors disabled:opacity-50">
                     <LogOut className="h-4 w-4" /><span>{t(locale, "logout")}</span>
                   </button>
                 </div>
