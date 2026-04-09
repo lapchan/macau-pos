@@ -235,7 +235,7 @@ function ProductGrid({ products, cart, addedId, locale, currency, favoriteIds, o
             </p>
             <div className="relative w-full aspect-square rounded-[var(--radius-sm)] bg-pos-bg my-1.5 flex items-center justify-center overflow-hidden">
               {product.image ? (
-                <img src={product.image} alt="" className="h-full w-full object-contain pointer-events-none select-none" draggable={false} loading="lazy" />
+                <img src={product.image} alt="" className="h-full w-full object-contain pointer-events-none select-none" draggable={false} loading="lazy" fetchPriority="low" />
               ) : (
                 <ShoppingBag className="h-7 w-7 text-pos-text-muted/40" strokeWidth={1.25} />
               )}
