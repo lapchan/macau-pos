@@ -94,7 +94,9 @@ export function useImagePreloader(imageUrls: string[]) {
         const batch = uncached.slice(i, i + BATCH_SIZE);
         await Promise.allSettled(
           batch.map(url =>
-            fetch(url, { signal: controller.signal }).catch(() => {})
+            fetch(url, { signal: controller.signal })
+              .then(res => res.blob())
+              .catch(() => {})
           )
         );
         fetchedCount += batch.length;
