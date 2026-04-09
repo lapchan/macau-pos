@@ -12,11 +12,12 @@ type Props = {
   cancelLabel: string;
   confirmLabel: string;
   variant?: "danger" | "primary";
+  loading?: boolean;
   zIndex?: number;
 };
 
 export default function ConfirmDialog({
-  open, onClose, onConfirm, icon, title, message, cancelLabel, confirmLabel, variant = "danger", zIndex = 50,
+  open, onClose, onConfirm, icon, title, message, cancelLabel, confirmLabel, variant = "danger", loading = false, zIndex = 50,
 }: Props) {
   if (!open) return null;
 
@@ -34,13 +35,15 @@ export default function ConfirmDialog({
         <div className="flex gap-2">
           <button
             onClick={onClose}
-            className="flex-1 h-10 rounded-[var(--radius-md)] text-[13px] font-medium text-pos-text-secondary border border-pos-border hover:bg-pos-surface-hover transition-colors"
+            disabled={loading}
+            className="flex-1 h-10 rounded-[var(--radius-md)] text-[13px] font-medium text-pos-text-secondary border border-pos-border hover:bg-pos-surface-hover transition-colors disabled:opacity-40"
           >
             {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
-            className={`flex-1 h-10 rounded-[var(--radius-md)] text-[13px] font-medium text-white transition-colors ${
+            disabled={loading}
+            className={`flex-1 h-10 rounded-[var(--radius-md)] text-[13px] font-medium text-white transition-colors disabled:opacity-40 ${
               variant === "danger"
                 ? "bg-pos-danger hover:bg-pos-danger/90"
                 : "bg-[#007aff] hover:bg-[#0066d6]"

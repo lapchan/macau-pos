@@ -53,6 +53,15 @@ ssh "${ECS_USER}@${ECS_HOST}" << 'REMOTE_SCRIPT'
   # Symlink .env.production → .env for docker compose
   ln -sf .env.production .env
 
+  # Sync product images to persistent volume (survives rebuilds, served by nginx)
+  echo "Syncing product images..."
+  PRODUCTS_VOL=$(docker volume inspect macau-pos_cashier-products -f '{{.Mountpoint}}' 2>/dev/null || true)
+  if [ -z "$PRODUCTS_VOL" ]; then
+    docker volume create macau-pos_cashier-products
+    PRODUCTS_VOL=$(docker volume inspect macau-pos_cashier-products -f '{{.Mountpoint}}')
+  fi
+  cp -r apps/cashier/public/products/* "$PRODUCTS_VOL/" 2>/dev/null || true
+
   # Build all images
   docker compose -f docker-compose.production.yml build
 

@@ -86,6 +86,7 @@ services:
       - /etc/nginx/ssl:/etc/nginx/ssl:ro
       - certbot-webroot:/var/www/certbot:ro
       - certbot-certs:/etc/letsencrypt:ro
+      - cashier-products:/data/cashier-products:ro
     depends_on:
       - admin
       - cashier
@@ -103,3 +104,4 @@ volumes:
   pgdata:
   certbot-webroot:
   certbot-certs:
+  cashier-products:

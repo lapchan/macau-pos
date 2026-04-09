@@ -246,7 +246,7 @@ export default function LockScreen({
         onConfirm={async () => {
           setReloading(true);
           try {
-            const res = await fetch("/api/ping", { cache: "no-store", signal: AbortSignal.timeout(5000) });
+            const res = await fetch("/api/ping", { cache: "no-store", signal: AbortSignal.timeout(3000) });
             if (res.ok) {
               window.location.reload();
               return;
@@ -272,6 +272,7 @@ export default function LockScreen({
         cancelLabel={t(locale, "lockReloadCancel")}
         confirmLabel={t(locale, "lockReloadConfirm")}
         variant="primary"
+        loading={reloading}
         zIndex={60}
       />
     </div>
