@@ -382,7 +382,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
     } catch { /* ignore */ }
     setMounted(true);
 
-    // Preload product images
+    // Preload product images via fetch (goes through SW cache)
     const imageUrls = initialProducts.map(p => p.image).filter(Boolean) as string[];
     if (sessionStorage.getItem("pos-images-cached") === "1" || imageUrls.length === 0) {
       setPreloading(false);
@@ -390,26 +390,32 @@ export default function POSClient({ initialProducts, initialCategories, userName
     }
     setPreloadProgress({ loaded: 0, total: imageUrls.length });
     let loaded = 0;
-    const done = () => {
-      loaded++;
-      setPreloadProgress({ loaded, total: imageUrls.length });
-      if (loaded >= imageUrls.length) {
+    let cancelled = false;
+    const BATCH = 10;
+
+    async function preloadAll() {
+      for (let i = 0; i < imageUrls.length; i += BATCH) {
+        if (cancelled) return;
+        const batch = imageUrls.slice(i, i + BATCH);
+        await Promise.allSettled(
+          batch.map(url => fetch(url).catch(() => {}))
+        );
+        loaded += batch.length;
+        if (!cancelled) setPreloadProgress({ loaded, total: imageUrls.length });
+      }
+      if (!cancelled) {
         sessionStorage.setItem("pos-images-cached", "1");
         setPreloading(false);
       }
-    };
-    for (const url of imageUrls) {
-      const img = new Image();
-      img.onload = done;
-      img.onerror = done;
-      img.src = url;
     }
+
+    preloadAll();
     // Timeout fallback — don't block forever
     const timeout = setTimeout(() => {
       sessionStorage.setItem("pos-images-cached", "1");
       setPreloading(false);
-    }, 15000);
-    return () => clearTimeout(timeout);
+    }, 30000);
+    return () => { cancelled = true; clearTimeout(timeout); };
   }, []);
 
   // Auto-sync pending orders when coming back online
