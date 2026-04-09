@@ -1534,16 +1534,15 @@ export default function POSClient({ initialProducts, initialCategories, userName
                     <LogOut className="h-4 w-4" /><span>{t(locale, "logout")}</span>
                   </button>
                   <div className="my-1.5 border-t border-pos-border" />
-                  <button onClick={() => {
+                  <button onClick={async () => {
                     setShowSettingsMenu(false);
-                    // Clear all caches and strip images, then reload
                     localStorage.removeItem("pos_avatar_cache");
+                    // Delete all SW caches and wait for completion
                     try {
-                      caches.keys().then(names => Promise.all(names.map(n => caches.delete(n)))).catch(() => {});
+                      const names = await caches.keys();
+                      await Promise.all(names.map(n => caches.delete(n)));
                     } catch { /* no cache API */ }
-                    setProducts(prev => prev.map(p => ({ ...p, image: undefined })));
-                    // Reload page after short delay so preloader runs fresh
-                    setTimeout(() => window.location.reload(), 500);
+                    window.location.reload();
                   }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] text-left text-pos-text-muted hover:bg-pos-surface-hover transition-colors">
                     <Trash2 className="h-3.5 w-3.5" /><span>[Testing] Clear Cache & Reload</span>
                   </button>
