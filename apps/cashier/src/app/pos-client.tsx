@@ -235,7 +235,7 @@ function ProductGrid({ products, cart, addedId, locale, currency, favoriteIds, o
             </p>
             <div className="relative w-full aspect-square rounded-[var(--radius-sm)] bg-pos-bg my-1.5 flex items-center justify-center overflow-hidden">
               {product.image ? (
-                <img src={product.image} alt="" className="h-full w-full object-contain pointer-events-none select-none" draggable={false} loading="lazy" />
+                <img src={product.image} alt="" className="h-full w-full object-contain pointer-events-none select-none" draggable={false} />
               ) : (
                 <ShoppingBag className="h-7 w-7 text-pos-text-muted/40" strokeWidth={1.25} />
               )}
@@ -349,6 +349,13 @@ export default function POSClient({ initialProducts, initialCategories, userName
   const [searchOrigin, setSearchOrigin] = useState({ x: 0, y: 0 });
   const searchBtnRef = useRef<HTMLElement>(null);
 
+  // Image preload state
+  const [preloading, setPreloading] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return sessionStorage.getItem("pos-images-cached") !== "1";
+  });
+  const [preloadProgress, setPreloadProgress] = useState({ loaded: 0, total: 0 });
+
   // Variant picker state
   const [variantPickerOpen, setVariantPickerOpen] = useState(false);
   const [variantProduct, setVariantProduct] = useState<Product | null>(null);
@@ -374,6 +381,35 @@ export default function POSClient({ initialProducts, initialCategories, userName
       if (saved) setFavoriteIds(new Set(JSON.parse(saved)));
     } catch { /* ignore */ }
     setMounted(true);
+
+    // Preload product images
+    const imageUrls = initialProducts.map(p => p.image).filter(Boolean) as string[];
+    if (sessionStorage.getItem("pos-images-cached") === "1" || imageUrls.length === 0) {
+      setPreloading(false);
+      return;
+    }
+    setPreloadProgress({ loaded: 0, total: imageUrls.length });
+    let loaded = 0;
+    const done = () => {
+      loaded++;
+      setPreloadProgress({ loaded, total: imageUrls.length });
+      if (loaded >= imageUrls.length) {
+        sessionStorage.setItem("pos-images-cached", "1");
+        setPreloading(false);
+      }
+    };
+    for (const url of imageUrls) {
+      const img = new Image();
+      img.onload = done;
+      img.onerror = done;
+      img.src = url;
+    }
+    // Timeout fallback — don't block forever
+    const timeout = setTimeout(() => {
+      sessionStorage.setItem("pos-images-cached", "1");
+      setPreloading(false);
+    }, 15000);
+    return () => clearTimeout(timeout);
   }, []);
 
   // Auto-sync pending orders when coming back online
@@ -766,6 +802,36 @@ export default function POSClient({ initialProducts, initialCategories, userName
     return (
       <div className="h-screen flex items-center justify-center bg-pos-bg">
         <div className="h-8 w-8 border-2 border-pos-accent/30 border-t-pos-accent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  // Preload screen — shown once after login while product images are caching
+  if (preloading) {
+    const pct = preloadProgress.total > 0 ? Math.round((preloadProgress.loaded / preloadProgress.total) * 100) : 0;
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-pos-bg gap-5">
+        <div className="h-12 w-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: "var(--color-pos-accent, #0071e3)" }}>
+          <ShoppingBag className="h-6 w-6 text-white" />
+        </div>
+        <div className="text-center">
+          <p className="text-[15px] font-medium text-pos-text">{t(locale, "preloadTitle")}</p>
+          <p className="text-[12px] text-pos-text-muted mt-1">
+            {preloadProgress.loaded} / {preloadProgress.total} {t(locale, "preloadImages")}
+          </p>
+        </div>
+        <div className="w-48 h-1.5 bg-pos-border rounded-full overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-300 ease-out"
+            style={{ width: `${pct}%`, backgroundColor: "var(--color-pos-accent, #0071e3)" }}
+          />
+        </div>
+        <button
+          onClick={() => { sessionStorage.setItem("pos-images-cached", "1"); setPreloading(false); }}
+          className="text-[12px] text-pos-text-muted hover:text-pos-text transition-colors mt-2"
+        >
+          {t(locale, "preloadSkip")}
+        </button>
       </div>
     );
   }

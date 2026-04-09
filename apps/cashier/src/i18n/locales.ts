@@ -101,6 +101,11 @@ type TranslationKeys = {
   lockReloadCancel: string;
   lockReloadConfirm: string;
 
+  // Preload
+  preloadTitle: string;
+  preloadImages: string;
+  preloadSkip: string;
+
   // Misc
   receiptDiscount: string;
   startShiftToSeeDrawer: string;
@@ -355,6 +360,9 @@ const translations: Record<Locale, TranslationKeys> = {
     lockReloadChecking: "正在檢查連線...",
     lockReloadCancel: "取消",
     lockReloadConfirm: "重新載入",
+    preloadTitle: "正在準備商品資料",
+    preloadImages: "張圖片",
+    preloadSkip: "跳過",
     receiptDiscount: "折扣",
     startShiftToSeeDrawer: "開始班次以查看錢櫃",
     comingSoon: "即將推出",
@@ -584,6 +592,9 @@ const translations: Record<Locale, TranslationKeys> = {
     lockReloadChecking: "正在检查连线...",
     lockReloadCancel: "取消",
     lockReloadConfirm: "重新加载",
+    preloadTitle: "正在准备商品资料",
+    preloadImages: "张图片",
+    preloadSkip: "跳过",
     receiptDiscount: "折扣",
     startShiftToSeeDrawer: "开始班次以查看钱柜",
     comingSoon: "即将推出",
@@ -813,6 +824,9 @@ const translations: Record<Locale, TranslationKeys> = {
     lockReloadChecking: "Checking connection...",
     lockReloadCancel: "Cancel",
     lockReloadConfirm: "Reload",
+    preloadTitle: "Preparing product data",
+    preloadImages: "images",
+    preloadSkip: "Skip",
     receiptDiscount: "Discount",
     startShiftToSeeDrawer: "Start a shift to see drawer",
     comingSoon: "Coming soon",
@@ -1042,6 +1056,9 @@ const translations: Record<Locale, TranslationKeys> = {
     lockReloadChecking: "A verificar ligação...",
     lockReloadCancel: "Cancelar",
     lockReloadConfirm: "Recarregar",
+    preloadTitle: "A preparar dados dos produtos",
+    preloadImages: "imagens",
+    preloadSkip: "Saltar",
     receiptDiscount: "Desconto",
     startShiftToSeeDrawer: "Iniciar turno para ver caixa",
     comingSoon: "Em breve",
@@ -1271,6 +1288,9 @@ const translations: Record<Locale, TranslationKeys> = {
     lockReloadChecking: "接続を確認中...",
     lockReloadCancel: "キャンセル",
     lockReloadConfirm: "再読み込み",
+    preloadTitle: "商品データを準備中",
+    preloadImages: "枚の画像",
+    preloadSkip: "スキップ",
     receiptDiscount: "割引",
     startShiftToSeeDrawer: "シフトを開始してドロワーを表示",
     comingSoon: "近日公開",
