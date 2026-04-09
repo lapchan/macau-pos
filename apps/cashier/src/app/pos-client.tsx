@@ -436,7 +436,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
     // 5 failed PIN attempts → full logout
     sessionStorage.removeItem("pos-locked");
     sessionStorage.removeItem("pos-images-cached");
-    fetch("/api/logout", { method: "POST" }).catch(() => {}); window.location.href = "/login";
+    window.stop(); fetch("/api/logout", { method: "POST" }).catch(() => {}); window.location.replace("/login");
   }, []);
 
 
@@ -1411,7 +1411,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
             setShowShiftClose(false);
             sessionStorage.removeItem("pos-locked");
             sessionStorage.removeItem("pos-images-cached");
-            fetch("/api/logout", { method: "POST" }).catch(() => {}); window.location.href = "/login";
+            window.stop(); fetch("/api/logout", { method: "POST" }).catch(() => {}); window.location.replace("/login");
           }}
         />
       )}
