@@ -56,7 +56,9 @@ self.addEventListener("fetch", (event) => {
         cache.match(request).then((cached) => {
           if (cached) return cached;
           return fetch(request).then((response) => {
-            if (response.ok) cache.put(request, response.clone());
+            if (response.ok && response.type !== "opaque") {
+              cache.put(request, response.clone()).catch(() => {});
+            }
             return response;
           }).catch(() => new Response("", { status: 503 }));
         })
@@ -76,7 +78,7 @@ self.addEventListener("fetch", (event) => {
               url.pathname.startsWith("/_next/static/") ||
               url.pathname.startsWith("/icons/")
             ) {
-              cache.put(request, clone);
+              cache.put(request, clone).catch(() => {});
             }
           });
         }
