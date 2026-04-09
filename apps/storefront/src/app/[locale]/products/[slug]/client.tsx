@@ -5,10 +5,10 @@ import { addToCart } from "@/lib/actions/cart";
 
 type ColorVariant = {
   id: string;
-  slug: string | null;
   name: string;
   colorName: string | null;
   image: string | null;
+  images: { url: string; alt?: string }[];
   stock: number | null;
   price: number;
   isCurrent: boolean;

@@ -2,6 +2,7 @@ import "server-only";
 import {
   db,
   products,
+  productVariants,
   categories,
   storefrontConfigs,
   storefrontPages,
@@ -171,16 +172,13 @@ export async function getProductBySlug(tenantId: string, slug: string) {
   return product ?? null;
 }
 
-/** Fetch color variants (siblings) for a product by variant_group_id.
- *  Returns all products sharing the same variant_group_id, each representing
- *  a different color of the same item. Used on PDP for clickable color swatches. */
+/** Fetch color/size variants for a product from the product_variants table.
+ *  Returns all active variants for a product with hasVariants=true.
+ *  Used on PDP for clickable color swatches. */
 export async function getColorVariants(tenantId: string, productId: string) {
-  // Get the current product's variant group
-  const [current] = await db
-    .select({
-      variantGroupId: products.variantGroupId,
-      colorName: products.colorName,
-    })
+  // Check if this product has variants
+  const [parent] = await db
+    .select({ hasVariants: products.hasVariants })
     .from(products)
     .where(
       and(
@@ -191,40 +189,53 @@ export async function getColorVariants(tenantId: string, productId: string) {
     )
     .limit(1);
 
-  if (!current?.variantGroupId) return [];
+  if (!parent?.hasVariants) return [];
 
-  // Fetch all siblings in the same variant group
-  const siblings = await db
+  // Fetch all active variants from the product_variants table
+  const variants = await db
     .select({
-      id: products.id,
-      slug: products.slug,
-      name: products.name,
-      colorName: products.colorName,
-      image: products.image,
-      stock: products.stock,
-      sellingPrice: products.sellingPrice,
+      id: productVariants.id,
+      name: productVariants.name,
+      sku: productVariants.sku,
+      image: productVariants.image,
+      images: productVariants.images,
+      stock: productVariants.stock,
+      sellingPrice: productVariants.sellingPrice,
+      optionCombo: productVariants.optionCombo,
+      sortOrder: productVariants.sortOrder,
     })
-    .from(products)
+    .from(productVariants)
     .where(
       and(
-        eq(products.tenantId, tenantId),
-        eq(products.variantGroupId, current.variantGroupId),
-        isNull(products.deletedAt),
-        eq(products.status, "active")
+        eq(productVariants.productId, productId),
+        eq(productVariants.tenantId, tenantId),
+        eq(productVariants.isActive, true)
       )
     )
-    .orderBy(asc(products.sortOrder), asc(products.name));
+    .orderBy(asc(productVariants.sortOrder));
 
-  return siblings.map((s) => ({
-    id: s.id,
-    slug: s.slug,
-    name: s.name,
-    colorName: s.colorName,
-    image: s.image,
-    stock: s.stock,
-    price: parseFloat(String(s.sellingPrice)),
-    isCurrent: s.id === productId,
-  }));
+  return variants.map((v, i) => {
+    const gallery = Array.isArray(v.images) && (v.images as unknown[]).length > 0
+      ? (v.images as { url: string; alt?: string }[])
+      : v.image
+      ? [{ url: v.image, alt: v.name }]
+      : [];
+
+    const combo = v.optionCombo as Record<string, string>;
+    const colorName = combo?.Color || combo?.["顏色"] || null;
+
+    return {
+      id: v.id,
+      slug: null, // variants don't have their own page
+      name: v.name,
+      colorName,
+      image: v.image,
+      images: gallery,
+      stock: v.stock,
+      price: parseFloat(String(v.sellingPrice)),
+      isCurrent: i === 0, // default to first variant
+    };
+  });
 }
 
 export async function getStorefrontCategories(tenantId: string) {

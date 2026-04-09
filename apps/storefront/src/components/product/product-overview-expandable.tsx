@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useRef, type CSSProperties } from "react";
 import Image from "next/image";
 import { StarIcon as StarSolidIcon } from "@heroicons/react/24/solid";
 import { StarIcon, HeartIcon, PlusIcon, MinusIcon } from "@heroicons/react/24/outline";
@@ -43,10 +43,10 @@ type RelatedProduct = {
 
 type ColorVariant = {
   id: string;
-  slug: string | null;
   name: string;
   colorName: string | null;
   image: string | null;
+  images: { url: string; alt?: string }[];
   stock: number | null;
   price: number;
   isCurrent: boolean;
@@ -153,6 +153,73 @@ function HMDisclosureSection({ title, items, content, defaultOpen = false }: { t
   );
 }
 
+// HUMAN MADE size guide — expandable section with measurement table
+function HMSizeGuideSection({ locale }: { locale: string }) {
+  const [open, setOpen] = useState(false);
+  const [unit, setUnit] = useState<"cm" | "in">("cm");
+
+  return (
+    <div>
+      <h3>
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="group relative flex w-full items-center justify-between py-4 text-left"
+        >
+          <span className="text-[#121212]" style={{ fontSize: "12px", letterSpacing: "0.05em" }}>
+            {t(locale, "尺碼表", "SIZE GUIDE", "GUIA DE TAMANHOS", "サイズガイド")}
+          </span>
+          <span className="ml-6 flex items-center text-[#121212]/40">
+            {open ? (
+              <MinusIcon className="size-4" aria-hidden="true" />
+            ) : (
+              <PlusIcon className="size-4" aria-hidden="true" />
+            )}
+          </span>
+        </button>
+      </h3>
+      {open && (
+        <div className="pb-4">
+          {/* Unit toggle */}
+          <div className="flex items-center gap-2 mb-3">
+            <button
+              type="button"
+              onClick={() => setUnit("cm")}
+              className={`px-2 py-0.5 transition-colors ${unit === "cm" ? "bg-[#121212] text-white" : "bg-[#f5f5f5] text-[#121212]/60"}`}
+              style={{ fontSize: "11px", letterSpacing: "0.05em" }}
+            >
+              cm
+            </button>
+            <button
+              type="button"
+              onClick={() => setUnit("in")}
+              className={`px-2 py-0.5 transition-colors ${unit === "in" ? "bg-[#121212] text-white" : "bg-[#f5f5f5] text-[#121212]/60"}`}
+              style={{ fontSize: "11px", letterSpacing: "0.05em" }}
+            >
+              in
+            </button>
+          </div>
+          {/* Size table */}
+          <table className="w-full border-collapse" style={{ fontSize: "11px", letterSpacing: "0.04em" }}>
+            <thead>
+              <tr className="border-b border-[#121212]/10">
+                <th className="text-left py-2 text-[#121212]/60 font-normal"></th>
+                <th className="text-left py-2 text-[#121212]/60 font-normal">F</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr className="border-b border-[#121212]/10">
+                <td className="py-2 text-[#121212]/60">HEAD MEASUREMENT</td>
+                <td className="py-2 text-[#121212]">{unit === "cm" ? "57~62" : "22.4~24.4"}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function ProductOverviewExpandable({
   product,
   locale,
@@ -163,7 +230,20 @@ export default function ProductOverviewExpandable({
   themeId,
   onAddToCart,
 }: Props) {
-  const images: ProductImage[] = product.images?.length
+  // ── Color variant state (client-side switching with slide transitions) ──
+  const initialVariantIdx = colorVariants.length > 1
+    ? Math.max(0, colorVariants.findIndex(v => v.isCurrent))
+    : -1;
+  const [activeVariantIdx, setActiveVariantIdx] = useState(initialVariantIdx);
+  const [slidePhase, setSlidePhase] = useState<'idle' | 'slide-out' | 'slide-in'>('idle');
+  const [slideDirection, setSlideDirection] = useState<'left' | 'right'>('left');
+  const animatingRef = useRef(false);
+
+  // Derive gallery from active variant (if available) or fall back to product images
+  const activeVariant = activeVariantIdx >= 0 ? colorVariants[activeVariantIdx] : null;
+  const images: ProductImage[] = activeVariant && activeVariant.images.length > 0
+    ? activeVariant.images
+    : product.images?.length
     ? product.images
     : product.image
     ? [{ url: product.image, alt: product.name }]
@@ -172,10 +252,53 @@ export default function ProductOverviewExpandable({
   const [adding, setAdding] = useState(false);
   const [addedMessage, setAddedMessage] = useState<string | null>(null);
 
-  const name = product.translations?.[locale] || product.name;
+  // Compute slide transform style for images only
+  const slideStyle: CSSProperties = slidePhase === 'slide-out'
+    ? {
+        transform: `translateX(${slideDirection === 'left' ? '-40px' : '40px'})`,
+        opacity: 0,
+        transition: 'transform 250ms ease-in-out, opacity 250ms ease-in-out',
+      }
+    : slidePhase === 'slide-in'
+    ? {
+        transform: 'translateX(0)',
+        opacity: 1,
+        transition: 'transform 250ms ease-in-out, opacity 250ms ease-in-out',
+      }
+    : { transform: 'translateX(0)', opacity: 1 };
+
+  // Handle color variant switch with slide transition
+  const handleVariantSwitch = useCallback((idx: number) => {
+    if (idx === activeVariantIdx || animatingRef.current) return;
+    animatingRef.current = true;
+
+    const dir = idx > activeVariantIdx ? 'left' : 'right';
+    setSlideDirection(dir);
+    setSlidePhase('slide-out');
+
+    // After slide-out, swap content and slide in
+    setTimeout(() => {
+      setActiveVariantIdx(idx);
+      setSelectedImage(0);
+      // Brief delay then slide in
+      requestAnimationFrame(() => {
+        setSlidePhase('slide-in');
+        setTimeout(() => {
+          setSlidePhase('idle');
+          animatingRef.current = false;
+        }, 280);
+      });
+    }, 260);
+  }, [activeVariantIdx]);
+
+  const name = activeVariant
+    ? (product.translations?.[locale] || activeVariant.name)
+    : (product.translations?.[locale] || product.name);
   const description = product.descTranslations?.[locale] || product.description;
-  const price = parseFloat(String(product.sellingPrice));
-  const inStock = product.stock == null || product.stock > 0;
+  const price = activeVariant ? activeVariant.price : parseFloat(String(product.sellingPrice));
+  const activeStock = activeVariant ? activeVariant.stock : product.stock;
+  const inStock = activeStock == null || activeStock > 0;
+  const activeColorName = activeVariant?.colorName || colorVariants.find(v => v.isCurrent)?.colorName || "";
 
   // Default detail sections — 商品描述 first, then shipping/returns
   const sections: DetailSection[] = detailSections || [
@@ -207,7 +330,8 @@ export default function ProductOverviewExpandable({
     if (!onAddToCart) return;
     setAdding(true);
     setAddedMessage(null);
-    const result = await onAddToCart(product.id, 1);
+    const productId = activeVariant ? activeVariant.id : product.id;
+    const result = await onAddToCart(productId, 1);
     setAdding(false);
     if (result.success) {
       setAddedMessage(t(locale, "已加入購物車！", "Added to cart!", "Adicionado!", "カートに追加しました！"));
@@ -250,7 +374,10 @@ export default function ProductOverviewExpandable({
             {/* ── Image gallery ── */}
             <div>
               {/* Main image — no rounded corners, object-contain like humanmade.jp */}
-              <div className="relative w-full overflow-hidden bg-[#f5f5f5]" style={{ aspectRatio: "1/1" }}>
+              <div
+                className="relative w-full overflow-hidden bg-[#f5f5f5]"
+                style={{ aspectRatio: "1/1", ...slideStyle }}
+              >
                 {images.length > 0 ? (
                   <Image
                     src={images[selectedImage]?.url}
@@ -273,7 +400,10 @@ export default function ProductOverviewExpandable({
 
               {/* Thumbnail row */}
               {images.length > 1 && (
-                <div className="mt-3 grid grid-cols-4 gap-2">
+                <div
+                  className="mt-3 grid grid-cols-4 gap-2"
+                  style={slideStyle}
+                >
                   {images.slice(0, 4).map((img, i) => (
                     <button
                       key={i}
@@ -294,7 +424,7 @@ export default function ProductOverviewExpandable({
                 <span className="text-[#dc3545]" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>NEW</span>
               </div>
 
-              {/* Product name */}
+              {/* Product name + price — static, doesn't change between variants */}
               <h1
                 className="text-[#121212]"
                 style={{ fontSize: "16px", letterSpacing: "0.06rem", lineHeight: "1.6" }}
@@ -307,19 +437,20 @@ export default function ProductOverviewExpandable({
                 MOP${price.toLocaleString("en-US", { minimumFractionDigits: 0 })}
               </p>
 
-              {/* Color variants — clickable product image swatches */}
+              {/* Color variants — clickable product image swatches with crossfade */}
               {colorVariants.length > 1 && (
                 <div className="mt-5">
                   <p className="text-[#121212]/60" style={{ fontSize: "11px", letterSpacing: "0.05em" }}>
-                    Color: <span className="text-[#121212]">{colorVariants.find(v => v.isCurrent)?.colorName || ""}</span>
+                    Color: <span className="text-[#121212]">{activeColorName}</span>
                   </p>
                   <div className="mt-2.5 flex flex-wrap gap-2">
-                    {colorVariants.map((variant) => (
-                      <a
+                    {colorVariants.map((variant, idx) => (
+                      <button
                         key={variant.id}
-                        href={variant.slug ? `/${locale}/products/${variant.slug}` : undefined}
-                        className={`relative block overflow-hidden transition-all ${
-                          variant.isCurrent
+                        type="button"
+                        onClick={() => handleVariantSwitch(idx)}
+                        className={`relative block overflow-hidden transition-all cursor-pointer ${
+                          idx === activeVariantIdx
                             ? "ring-1 ring-[#121212]"
                             : "ring-1 ring-[#e5e5e5] hover:ring-[#121212]/50"
                         }`}
@@ -349,7 +480,7 @@ export default function ProductOverviewExpandable({
                             </span>
                           </div>
                         )}
-                      </a>
+                      </button>
                     ))}
                   </div>
                 </div>
@@ -404,9 +535,19 @@ export default function ProductOverviewExpandable({
                 {t(locale, "加入收藏", "ADD TO WISHLIST", "ADICIONAR AOS FAVORITOS", "ウィッシュリストに追加")}
               </button>
 
-              {/* Expandable sections — clean accordion */}
-              <div className="mt-8 divide-y divide-[#121212]/10 border-t border-[#121212]/10">
-                {sections.map((section, i) => (
+              {/* Description — shown directly (not in accordion) for HM theme */}
+              {description && (
+                <div className="mt-8 border-t border-[#121212]/10 pt-6">
+                  <div className="text-[#121212]/70 whitespace-pre-line" style={{ fontSize: "12px", letterSpacing: "0.04em", lineHeight: "2" }}>
+                    {description}
+                  </div>
+                </div>
+              )}
+
+              {/* Expandable sections — size guide + shipping/returns */}
+              <div className="mt-4 divide-y divide-[#121212]/10 border-t border-[#121212]/10">
+                <HMSizeGuideSection locale={locale} />
+                {sections.filter(s => !s.defaultOpen).map((section, i) => (
                   <HMDisclosureSection
                     key={i}
                     title={section.title}

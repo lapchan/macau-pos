@@ -32,7 +32,6 @@ import CustomerDetailSheet, { type LinkedCustomer } from "@/components/customer/
 import ProductSearchSpotlight from "@/components/search/product-search-spotlight";
 import { fetchProductVariants, lookupBarcode, type OrderDiscount } from "@/lib/actions";
 import { useBarcodeScanner } from "@/lib/use-barcode-scanner";
-import { useImagePreloader } from "@/lib/use-image-preloader";
 import { useOnlineStatus } from "@/lib/use-online-status";
 import { getPendingCount, syncPendingOrders } from "@/lib/offline-queue";
 import {
@@ -298,8 +297,6 @@ function ProductGrid({ products, cart, addedId, locale, currency, favoriteIds, o
 }
 
 export default function POSClient({ initialProducts, initialCategories, userName, userAvatar, userId, userPinHash, terminalName, terminalCode, activeShiftId, taxRate = 0, currency = "MOP" }: Props) {
-  // [TESTING] Allow clearing products for reload testing
-  const [products, setProducts] = useState(initialProducts);
   const [locale, setLocale] = useState<Locale>("tc");
   const [activeTab, setActiveTab] = useState<"cashier" | "orders" | "reports">("cashier");
   const [reportView, setReportView] = useState<"drawer" | "sales">("drawer");
@@ -352,9 +349,6 @@ export default function POSClient({ initialProducts, initialCategories, userName
   const [searchOrigin, setSearchOrigin] = useState({ x: 0, y: 0 });
   const searchBtnRef = useRef<HTMLElement>(null);
 
-  // Image preload
-  const imageUrls = useMemo(() => initialProducts.map(p => p.image).filter(Boolean) as string[], [initialProducts]);
-  const preloader = useImagePreloader(imageUrls);
 
   // Variant picker state
   const [variantPickerOpen, setVariantPickerOpen] = useState(false);
@@ -454,7 +448,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
   const activeChildren = activeParent?.children || [];
 
   const filtered = useMemo(() => {
-    let list = products;
+    let list = initialProducts;
     if (activeCategory === "popular") {
       list = list.filter((p) => p.popular);
     } else if (activeCategory !== "all") {
@@ -480,7 +474,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
       );
     }
     return list;
-  }, [products, activeCategory, activeSubCategory, activeChildren, searchTags, spotlightInput]);
+  }, [initialProducts, activeCategory, activeSubCategory, activeChildren, searchTags, spotlightInput]);
 
   const [confirmUnfavorite, setConfirmUnfavorite] = useState<string | null>(null);
 
@@ -776,38 +770,6 @@ export default function POSClient({ initialProducts, initialCategories, userName
     );
   }
 
-  // Preload screen
-  if (preloader.phase !== "done") {
-    const pct = preloader.total > 0 ? Math.round((preloader.loaded / preloader.total) * 100) : 0;
-    return (
-      <div className="h-screen flex flex-col items-center justify-center bg-pos-bg gap-5">
-        <div className="h-12 w-12 rounded-2xl flex items-center justify-center" style={{ backgroundColor: "var(--color-pos-accent, #0071e3)" }}>
-          <ShoppingBag className="h-6 w-6 text-white" />
-        </div>
-        <div className="text-center">
-          <p className="text-[15px] font-medium text-pos-text">{t(locale, "preloadTitle")}</p>
-          <p className="text-[12px] text-pos-text-muted mt-1">
-            {preloader.phase === "checking"
-              ? "Checking cache..."
-              : `${preloader.loaded} / ${preloader.total} ${t(locale, "preloadImages")}`}
-          </p>
-        </div>
-        <div className="w-48 h-1.5 bg-pos-border rounded-full overflow-hidden">
-          <div
-            className="h-full rounded-full transition-all duration-150 ease-out"
-            style={{ width: `${pct}%`, backgroundColor: "var(--color-pos-accent, #0071e3)" }}
-          />
-        </div>
-        <button
-          onClick={() => preloader.skip()}
-          className="text-[12px] text-pos-text-muted hover:text-pos-text transition-colors mt-2"
-        >
-          {t(locale, "preloadSkip")}
-        </button>
-      </div>
-    );
-  }
-
   return (
     <>
     {/* Shift open gate — blocks POS until shift is started */}
@@ -994,7 +956,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
 
         {/* Favorites view */}
         {activeView === "favorites" && (() => {
-          const favProducts = products.filter(p => favoriteIds.has(p.id));
+          const favProducts = initialProducts.filter(p => favoriteIds.has(p.id));
           return favProducts.length > 0 ? (
             <>
               <div className="px-5 py-3 flex items-center justify-between shrink-0">
@@ -1534,17 +1496,6 @@ export default function POSClient({ initialProducts, initialCategories, userName
                     <LogOut className="h-4 w-4" /><span>{t(locale, "logout")}</span>
                   </button>
                   <div className="my-1.5 border-t border-pos-border" />
-                  <button onClick={async () => {
-                    setShowSettingsMenu(false);
-                    localStorage.removeItem("pos_avatar_cache");
-                    try {
-                      const names = await caches.keys();
-                      await Promise.all(names.map(n => caches.delete(n)));
-                    } catch { /* no cache API */ }
-                    setProducts(prev => prev.map(p => ({ ...p, image: undefined })));
-                  }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[11px] text-left text-pos-text-muted hover:bg-pos-surface-hover transition-colors">
-                    <Trash2 className="h-3.5 w-3.5" /><span>[Testing] Remove All Images</span>
-                  </button>
                 </div>
               </>
             )}

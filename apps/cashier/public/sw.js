@@ -1,19 +1,7 @@
-const CACHE_NAME = "pos-v3";
+const CACHE_NAME = "pos-v4";
 
-// App shell files to cache on install
-const APP_SHELL = [
-  "/",
-  "/login",
-  "/manifest.json",
-  "/icons/icon-192.png",
-  "/icons/icon-512.png",
-];
-
-// Install — cache app shell
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(APP_SHELL))
-  );
+// Install — skip waiting to activate immediately
+self.addEventListener("install", () => {
   self.skipWaiting();
 });
 
@@ -27,29 +15,29 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
-// Fetch — network first, fallback to cache
+// Fetch handler
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 
-  // Skip non-GET requests (POST for server actions, etc.)
+  // Skip non-GET
   if (request.method !== "GET") return;
 
-  // Skip API routes — always go to network
   const url = new URL(request.url);
+
+  // Skip API routes
   if (url.pathname.startsWith("/api/")) return;
 
-  // Navigation requests (page loads) — always network, no cache
-  // This ensures middleware auth checks always run
+  // Navigation — always network (middleware auth checks)
   if (request.mode === "navigate") {
     event.respondWith(
-      fetch(request).catch(() => {
-        return caches.match("/") || new Response("Offline", { status: 503 });
-      })
+      fetch(request).catch(() =>
+        new Response("Offline", { status: 503, headers: { "Content-Type": "text/html" } })
+      )
     );
     return;
   }
 
-  // Product images — cache first (preloader populates cache, instant display)
+  // Product images — cache first, then network
   if (url.pathname.startsWith("/products/")) {
     event.respondWith(
       caches.open(CACHE_NAME).then((cache) =>
@@ -67,28 +55,24 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets — network first, cache fallback
+  // Everything else — network first, cache static assets
   event.respondWith(
     fetch(request)
       .then((response) => {
-        if (response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            if (
-              url.pathname.startsWith("/_next/static/") ||
-              url.pathname.startsWith("/icons/")
-            ) {
+        if (response.ok && response.type !== "opaque") {
+          if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/")) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
               cache.put(request, clone).catch(() => {});
-            }
-          });
+            });
+          }
         }
         return response;
       })
-      .catch(() => {
-        return caches.match(request).then((cached) => {
-          if (cached) return cached;
-          return new Response("Offline", { status: 503 });
-        });
-      })
+      .catch(() =>
+        caches.match(request).then((cached) =>
+          cached || new Response("Offline", { status: 503 })
+        )
+      )
   );
 });

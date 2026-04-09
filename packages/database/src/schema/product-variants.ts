@@ -29,6 +29,7 @@ export const productVariants = pgTable(
     originalPrice: decimal("original_price", { precision: 10, scale: 2 }),
     stock: integer("stock"), // null = use parent's stock
     image: varchar("image", { length: 500 }),
+    images: jsonb("images"), // gallery: [{ url, alt }]
     optionCombo: jsonb("option_combo").notNull(), // { "Size": "M", "Color": "暗魂黑" }
     isActive: boolean("is_active").notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(0),

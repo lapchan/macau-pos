@@ -532,3 +532,244 @@ Continued HUMAN MADE (humanmade.jp) theme implementation across all remaining st
 - Added edge.dis.commercecloud.salesforce.com to next.config.ts
 
 **Commit:** `93158b7` — feat: Add HUMAN MADE theme styling for all storefront pages (15 files, +2527/-157)
+
+## Product Variants + Slide Transition + Descriptions (2026-04-07)
+
+Continued from previous session (context compacted). Implemented proper product variant architecture and PDP enhancements.
+
+**Product variant architecture refactor:**
+- Migrated from `variant_group_id` approach (separate product rows per color) to proper `product_variants` table (one parent product + variant rows)
+- DAILY CAP #260407: 1 parent product (`hasVariants: true`, slug `daily-cap-260407`) + 2 variants in `product_variants` (WHITE + BLACK)
+- Added `images` JSONB column to `product_variants` schema for per-variant gallery (4 images each)
+- Soft-deleted the BLACK duplicate product row
+- Updated `getColorVariants()` query to read from `product_variants` table instead of sibling products
+- Removed `variant_group_id` deduplication from `getStorefrontProducts()` (no longer needed — child products are soft-deleted)
+- Removed `slug` from `ColorVariant` type — variants don't have their own page
+
+**Slide transition on color switch:**
+- Client-side variant switching with smooth slide animation (images only — name/price stay static)
+- 3-phase: slide-out (250ms, translateX ± 40px + fade) → swap content → slide-in (250ms)
+- Direction-aware: clicking right variant slides left, clicking left variant slides right
+- Used `useRef` for animation lock to prevent double-clicks during transition
+- URL stays at `/tc/products/daily-cap-260407` (no page change)
+- Thumbnails update together with main image
+
+**Full product descriptions:**
+- Updated model number: #260406 → #260407, price: MOP$490 → MOP$1,450
+- Added full description in TC/EN/JA: DAILY series intro, 5 bullet points (cotton, embroidery, date print, adjustable, gift), customization notices
+- Added specs: ITEM ID HM31GD0407, MATERIAL 100% COTTON, COLOR WHITE/BLACK, MADE IN CHINA
+- Description shown directly (not in accordion) for HM theme
+- Added `HMSizeGuideSection` component with cm/in unit toggle and measurement table (F: 57~62cm)
+- Expandable accordion sections: 尺碼表, 送貨資訊, 退換政策
+
+**DB changes:**
+- `product_variants.images` JSONB column added
+- Updated SKUs: HM31GD0407WH9, HM31GD0407BK9
+- `desc_translations` populated for TC, EN, JA
+
+**Files changed:**
+- `packages/database/src/schema/product-variants.ts` — added `images` JSONB column
+- `apps/storefront/src/lib/storefront-queries.ts` — rewrote `getColorVariants()` for `product_variants` table, removed variant dedup from listing, added `productVariants` import
+- `apps/storefront/src/components/product/product-overview-expandable.tsx` — slide transition, `HMSizeGuideSection`, inline description, static name/price, removed `useRouter`/slug from variant type
+- `apps/storefront/src/app/[locale]/products/[slug]/client.tsx` — removed `slug` from `ColorVariant` type
+
+## Cashier UX — iPad Polish + Currency + Deployment (2026-04-08)
+
+**Shift close modal redesign:**
+- Converted from centered modal to full bottom-up sheet with two-column layout
+- Left: user profile (lock screen style — 64px avatar, name), shift summary (duration, orders, sales, payment breakdown, expected cash)
+- Right: cents-based numpad (no iPad virtual keyboard), variance display with percentage, note button (spotlight overlay)
+- Note card: blue theme (matching expected cash), 2-line display, spotlight overlay for editing
+- Variance always rendered (opacity toggle) to prevent layout shift
+
+**Checkout cash layout:**
+- Moved change due under amount due (top area, centered)
+- Pinned numpad + presets + confirm button at bottom
+- Terminal status moved from header to bottom-right
+
+**Button consistency:**
+- Standardized all primary buttons to `rounded-[var(--radius-md)]` across entire app
+- Login page, checkout, shift modals, history, keypad — all consistent
+
+**Note input spotlight pattern:**
+- Keypad note modal → spotlight overlay (drops from top, matches product search)
+- Shift close note → same spotlight pattern
+
+**Long press product preview:**
+- Long press (500ms) on product card opens variant picker bottom-up sheet
+- Non-variant products: product info + "Add to cart" button (reuses VariantPicker with `onAddDirect` prop)
+- Variant products: same behavior as tap (fetches variants, shows options)
+- Fixed variant picker infinite loading by using explicit `loading` prop instead of inferring from `options.length`
+
+**Dynamic tenant currency:**
+- Added `tenantCurrency` to auth session query (`packages/database/src/auth.ts`)
+- Threaded `currency` prop from `page.tsx` → `POSClient` → all child components
+- Replaced 60+ hardcoded "MOP" and "$" references with dynamic `{currency}`
+- Product cards now show `{currency} {price}` instead of `${price}`
+- i18n strings updated with `{currency}` placeholder
+- `createOrder` action uses `session.tenantCurrency`
+
+**iPad touch UX:**
+- Disabled text selection globally (`user-select: none`, `-webkit-touch-callout: none`)
+- Re-enabled for input/textarea only
+- Disabled pinch-zoom (`viewport: maximumScale 1, userScalable false`, `touch-action: manipulation`)
+
+**Numpad digit sizing (+20%):**
+- Checkout & shift close: 20→24px digits, 16→19px C/⌫, h-12→h-14
+- Keypad view: 28→34px digits, 22→26px C, h-72→h-86px
+- Cart trash icon: 12→14px
+
+**Other UI:**
+- "Update" button in settings menu (reloads app on iPad)
+- In-store/Online order pages → coming soon placeholder
+- Smoother sheet transitions (0.4s up spring, 0.35s down ease-out)
+- Shift modals moved outside `activeTab === "cashier"` block (accessible from any tab)
+
+**Deployment:**
+- Moved project from `/opt/macau-pos` to `~/app/macau-pos` on ECS
+- Deploy flow: `git pull` + `docker compose build cashier` + `up -d`
+- 3 commits: `ac44a23`, `0a521c0`, `968a8d4`
+
+## Cashier UX — iPad Polish + Currency + Deployment (2026-04-08)
+
+**Shift close modal redesign:**
+- Full bottom-up sheet with two-column layout (summary left, numpad right)
+- User profile in lock screen style (64px avatar, name, subtitle)
+- Cents-based numpad — no iPad virtual keyboard
+- Variance display with percentage, always-rendered (no layout shift)
+- Note: blue card (matching expected cash), 2-line display, spotlight overlay
+
+**Checkout cash layout:**
+- Change due moved under amount due (top, centered)
+- Numpad + presets + confirm pinned at bottom
+- Terminal status moved to bottom-right
+
+**Button consistency:**
+- All primary buttons standardized to `rounded-[var(--radius-md)]` across entire app (login, checkout, shift, history, keypad)
+
+**Dynamic tenant currency:**
+- Added `tenantCurrency` to auth session (packages/database/src/auth.ts)
+- Threaded `currency` prop from page.tsx → POSClient → all child components
+- Replaced 60+ hardcoded "MOP" and "$" with dynamic `{currency}`
+- i18n strings updated with `{currency}` placeholder
+- createOrder action uses session.tenantCurrency
+
+**iPad touch UX:**
+- Disabled text selection globally (user-select: none, -webkit-touch-callout: none)
+- Disabled pinch-zoom (viewport maximumScale 1, touch-action: manipulation)
+- Re-enabled selection for input/textarea only
+
+**Other improvements:**
+- Long press (800ms) on product cards opens variant picker preview
+- Non-variant products: reuses VariantPicker with onAddDirect prop
+- Fixed variant picker infinite loading (explicit loading prop)
+- Numpad digits enlarged ~20% for iPad (20→24px, 28→34px, h-12→h-14)
+- Cart trash icon enlarged (12→14px)
+- "Update" button in settings menu (reloads app)
+- In-store/Online order pages → coming soon
+- Smoother sheet transitions (0.4s up, 0.35s down)
+- Shift modals accessible from any tab
+
+**Deployment:**
+- Moved project to ~/app/macau-pos on ECS (was /opt/macau-pos)
+- Deploy flow: git pull + docker compose build + up -d
+- Set storefront theme to humanmade via DB
+- Rebuilt both cashier and storefront containers
+- 4 commits: ac44a23, 0a521c0, 968a8d4, e35d419
+
+## Savewo Catalog Scrape + Image Download (2026-04-08)
+
+**Full catalog scrape (294 products):**
+- Scraped store.savewo.com sitemap (294 product URLs)
+- Extracted JSON-LD structured data: name, SKU, price, images, description
+- Data file: packages/database/src/data/savewo-full-catalog.json
+
+**Category structure (13 parent, 14 sub):**
+- 3D Masks (3D立體口罩): 3DMEOW(66), Memories(16), Kuro(10), 3DKIDS(8), Ultra(6), 3DBEAR(3), Hana(3), Smile(2), Extreme Pro(1) = 115
+- 2D Masks (2D對摺口罩): Royal(11), Regal(2) = 13
+- Masks — Other (其他口罩): Classic(11), Premium(6), General(3) = 20
+- Power & Cables(39), Test Kits(26), Living(23), HealthChair(19), Rainec(13), Airflow(8), Wondaleaf(8), Personal Care(5), Transkin(4), Face Shield(1)
+- All categories have bilingual EN+TC names
+
+**Brands:** SAVEWO(220), HEALTHCHAIR(18), RAINEC(13), CARCELL(12), MAGCELL(9), TRANSKIN(7), POWERCABLE(6), WONDALEAF(6), POWERCELL(2), MASTERCANE(1)
+
+**Image download (1,531 new images):**
+- Storefront: 1,671 images at 540px in apps/storefront/public/products/savewo/
+- Cashier: 308 images at 300px in apps/cashier/public/products/savewo/
+- Naming: {slug}.jpg (first), {slug}-2.jpg, {slug}-3.jpg (gallery)
+- 0 skipped — all 294 products have images
+
+**Scripts created:**
+- scripts/scrape-savewo.sh — sitemap + JSON-LD scraper
+- scripts/download-savewo-images.sh — parallel image downloader
+
+**Next:** Phase 3 — DB import (create categories, insert products, map images)
+
+## Savewo Product Import + Brands Table (2026-04-08, continued)
+
+**Brands table (new):**
+- Created `brands` table: id, tenant_id, name, slug, logo, created_at
+- Added `brand_id` FK on products table
+- 10 brands inserted: SAVEWO(108), HEALTHCHAIR(18), CARCELL(12), MAGCELL(9), TRANSKIN(7), WONDALEAF(6), POWERCABLE(6), POWERCELL(2), MASTERCANE(1), RAINEC(1)
+- Product cards now use `product.brand` from DB instead of parsing from name
+- Removed `extractBrand()` function and `KNOWN_BRANDS` array entirely
+- Drizzle schema: `packages/database/src/schema/brands.ts`, exported from index
+
+**Savewo product import (294 products):**
+- Scraped full catalog from store.savewo.com sitemap + JSON-LD structured data
+- 13 parent categories + 14 sub-categories with bilingual EN+TC names
+- 21 variant parents with 145 color variants (124 children soft-deleted)
+- Option groups + option values generated from product_variants.option_combo
+- Data files: savewo-full-catalog.json, savewo-import.sql, savewo-variants-v3.sql, savewo-option-groups.sql
+
+**Image optimization:**
+- Downloaded 308 cashier + 1,671 storefront images from Shopline CDN
+- Cashier images resized on server: 258MB → 6.2MB (300px width, quality 80)
+- Images baked into Docker build via source tree on server
+
+**iPad fixes:**
+- Disabled text selection (user-select: none, -webkit-touch-callout: none)
+- Disabled pinch-zoom (viewport maximumScale 1, touch-action: manipulation)
+- Added "Update" button in settings menu
+
+**DB final state:**
+- 186 active products, 21 variant parents, 145 product_variants
+- 33 categories (13 parent + 14 sub + 6 existing)
+- 10 brands
+
+**Deployment:**
+- Server path: ~/app/macau-pos
+- Deploy: git pull + docker compose build cashier + up -d
+- Storefront rebuilt with humanmade theme
+- Commits: 968a8d4, e35d419, 00c7a11
+
+## Cashier UX Polish — Close Button, Flyouts, Checkout (2026-04-08, continued)
+
+**CloseButton shared component:**
+- New `apps/cashier/src/components/shared/close-button.tsx`
+- `active:scale-[0.90]` tap feedback matching lock screen
+- 120ms delay before onClick to show visual feedback
+- Replaced 16 inline close buttons across 12 files
+- Props: onClick, className, dark (for checkout dark mode), label
+
+**Spotlight close transitions:**
+- Product search spotlight: fade out + slide up (200ms)
+- Customer search spotlight: same transition
+- Both use closing state + setTimeout pattern
+
+**Flyout menu positioning:**
+- Theme/Language flyouts now render inside relative wrapper of trigger row
+- Position: `left-full top-0` — aligned to the trigger button row
+- Works correctly in both portrait and landscape
+
+**Checkout improvements:**
+- Dark mode persisted to localStorage (`pos-checkout-dark`)
+- Cash keypad: removed flex-1 gap, content centered vertically with `justify-center`
+
+**Shift close modal:**
+- Reverted portrait stacking — kept two-column layout for all orientations
+
+**Zero-price products:**
+- 4 Ultra masks set to HKD 149 + sold_out status
+
+**Commits:** dc8bcf3, 84da935, b7c54d3, d0261e6, a45430c

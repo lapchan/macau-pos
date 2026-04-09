@@ -1,0 +1,119 @@
+{
+  "premiummask": {"title": "PremiumMask 超卓四摺口罩", "products": ["{{item.product_id}}"]}
+,
+  "3dmask": {"title": "3DMASK", "products": ["{{item.product_id}}"]}
+,
+  "3dbear": {"title": "3DBEAR 立體啤幼兒口罩", "products": ["{{item.product_id}}"]}
+,
+  "3dmask-smile": {"title": "3DMASK Smile (FFP2)", "products": ["{{item.product_id}}"]}
+,
+  "3dmask-extremepro": {"title": "3DMASK Extreme Pro", "products": ["{{item.product_id}}"]}
+,
+  "3dmask-memories": {"title": "3DMASK Memories", "products": ["{{item.product_id}}"]}
+,
+  "rainec": {"title": "Rainec 防UV超潑水高性能雨傘", "products": ["{{item.product_id}}"]}
+,
+  "healthchair": {"title": "HealthChair 智能電動輪椅", "products": ["{{item.product_id}}"]}
+,
+  "3dmask-ultracarbon": {"title": "3DMASK Ultra Carbon (FFP2, KF94)", "products": ["{{item.product_id}}"]}
+,
+  "mask-149-buy2get1": {"title": "$149 口罩買二送一專區（可混款，請輸入3件以享有優惠）", "products": ["{{item.product_id}}"]}
+,
+  "airflow": {"title": "SAVEWO AirFlow 便儶式風扇", "products": ["{{item.product_id}}"]}
+,
+  "transkin": {"title": "Transkin 透氣薄膜膠布", "products": ["{{item.product_id}}"]}
+,
+  "faceshield": {"title": "FACESHIELD FS-001防護全面罩", "products": ["{{item.product_id}}"]}
+,
+  "9in1": {"title": "9合1", "products": ["{{item.product_id}}"]}
+,
+  "kamen-rider": {"title": "《幪面超人RX KAMEN RIDER》", "products": ["{{item.product_id}}"]}
+,
+  "10in1": {"title": "10合1 抗原快速檢測試劑", "products": ["{{item.product_id}}"]}
+,
+  "mask-129-buy2get1": {"title": "$129 口罩買二送一專區（可混款，請輸入3件以享有優惠）", "products": ["{{item.product_id}}"]}
+,
+  "hairbrush": {"title": "無線負離子直髮梳", "products": ["{{item.product_id}}"]}
+,
+  "3dmask-kuro": {"title": "3DMASK Kuro", "products": ["{{item.product_id}}"]}
+,
+  "3dmeow": {"title": "3DMEOW 立體喵口罩 (KF94)", "products": ["{{item.product_id}}"]}
+,
+  "antigentestkit": {"title": "新型冠狀病毒抗原測試劑", "products": ["{{item.product_id}}"]}
+,
+  "new-items": {"title": "最新貨品 New Items", "products": ["{{item.product_id}}"]}
+,
+  "living": {"title": "SAVEWO LIVING 生活百貨", "products": ["{{item.product_id}}"]}
+,
+  "evangelion": {"title": "《新世紀福音戰士 EVANGELION 》", "products": ["{{item.product_id}}"]}
+,
+  "2dmask-royal": {"title": "2D 對摺型口罩 ROYAL MASK (KN95)", "products": ["{{item.product_id}}"]}
+,
+  "health-care": {"title": "護理保健", "products": ["{{item.product_id}}"]}
+,
+  "cable": {"title": "SAVEWO StrapCable / PowerCable / ProCable 數碼線材", "products": ["{{item.product_id}}"]}
+,
+  "uniplug": {"title": "SAVEWO UniPlug", "products": ["{{item.product_id}}"]}
+,
+  "energy-digital": {"title": "SAVEWO ENERGY 數碼產品", "products": ["{{item.product_id}}"]}
+,
+  "magmount": {"title": "SAVEWO MagMount", "products": ["{{item.product_id}}"]}
+,
+  "condom-catheter": {"title": "Condom Catheter 完美導尿管", "products": ["{{item.product_id}}"]}
+,
+  "aromatherapy": {"title": "香薰及淨味產品", "products": ["{{item.product_id}}"]}
+,
+  "eheat": {"title": "SAVEWO eHeat", "products": ["{{item.product_id}}"]}
+,
+  "carcell": {"title": "CarCell 汽車啟停電池", "products": ["{{item.product_id}}"]}
+,
+  "6in1": {"title": "6合1", "products": ["{{item.product_id}}"]}
+,
+  "5in1": {"title": "5合1 抗原快速檢測試劑", "products": ["{{item.product_id}}"]}
+,
+  "mastercane": {"title": "Savewo MasterCane 超輕碳纖維摺疊式拐杖", "products": ["{{item.product_id}}"]}
+,
+  "11in1": {"title": "11合1 抗原快速檢測試劑", "products": ["{{item.product_id}}"]}
+,
+  "2dmask-regal": {"title": "2D 對摺型口罩 REGAL MASK", "products": ["{{item.product_id}}"]}
+,
+  "others": {"title": "其他貨品", "products": ["{{item.product_id}}"]}
+,
+  "air-purifier": {"title": "TGP-X1C 空氣淨化機與配件及消毒除菌", "products": ["{{item.product_id}}"]}
+,
+  "facemask-respirator": {"title": "HealthCare 防護口罩", "products": ["{{item.product_id}}"]}
+,
+  "3dmask-hana": {"title": "3DMASK Hana (KF94)", "products": ["{{item.product_id}}"]}
+,
+  "3dmask-ultra": {"title": "3DMASK Ultra", "products": ["{{item.product_id}}"]}
+,
+  "3dmask-kids": {"title": "3DMASK Kids 超立體兒童口罩 (KF94, KN95)", "products": ["{{item.product_id}}"]}
+,
+  "classicmask": {"title": "ClassicMask 常規三摺平面口罩", "products": ["{{item.product_id}}"]}
+,
+  "ip": {"title": "動漫聯成及限定系列", "products": ["{{item.product_id}}"]}
+,
+  "hotdeal": {"title": "熱門款式狂熱優惠", "products": ["{{item.product_id}}"]}
+,
+  "dash": {"title": "電動滑板車", "products": ["{{item.product_id}}"]}
+,
+  "powerbank": {"title": "Power Bank 行動電源", "products": ["{{item.product_id}}"]}
+,
+  "proglass": {"title": "SAVEWO ProGlass", "products": ["{{item.product_id}}"]}
+,
+  "oxygen": {"title": "SAVEWO Oxygen 便攜式手提氧氣機", "products": ["{{item.product_id}}"]}
+,
+  "carplug": {"title": "SAVEWO CARPLUG", "products": ["{{item.product_id}}"]}
+,
+  "procloth": {"title": "SAVEWO ProCloth", "products": ["{{item.product_id}}"]}
+,
+  "airwheel": {"title": "Airwheel 智慧騎行登機箱", "products": ["{{item.product_id}}"]}
+,
+  "covid19": {"title": "COVID-19", "products": ["{{item.product_id}}"]}
+,
+  "wondaleaf": {"title": "Wondaleaf 膠粘敷料袋", "products": ["{{item.product_id}}"]}
+,
+  "3in1": {"title": "3合1 抗原快速檢測試劑", "products": ["{{item.product_id}}"]}
+,
+  "massage-gun": {"title": "筋膜按摩槍", "products": ["{{item.product_id}}"]}
+}
