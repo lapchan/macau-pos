@@ -1,4 +1,4 @@
-const CACHE_NAME = "pos-v2";
+const CACHE_NAME = "pos-v3";
 
 // App shell files to cache on install
 const APP_SHELL = [
@@ -49,7 +49,23 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Static assets & images — network first, cache fallback
+  // Product images — cache first (preloader populates cache, instant display)
+  if (url.pathname.startsWith("/products/")) {
+    event.respondWith(
+      caches.open(CACHE_NAME).then((cache) =>
+        cache.match(request).then((cached) => {
+          if (cached) return cached;
+          return fetch(request).then((response) => {
+            if (response.ok) cache.put(request, response.clone());
+            return response;
+          }).catch(() => new Response("", { status: 503 }));
+        })
+      )
+    );
+    return;
+  }
+
+  // Static assets — network first, cache fallback
   event.respondWith(
     fetch(request)
       .then((response) => {
@@ -58,8 +74,7 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => {
             if (
               url.pathname.startsWith("/_next/static/") ||
-              url.pathname.startsWith("/icons/") ||
-              url.pathname.startsWith("/products/")
+              url.pathname.startsWith("/icons/")
             ) {
               cache.put(request, clone);
             }

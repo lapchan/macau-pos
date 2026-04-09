@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 
-const SW_CACHE_NAME = "pos-v2";
+const SW_CACHE_NAME = "pos-v3";
 const BATCH_SIZE = 6;
 const TIMEOUT_MS = 30000;
 
