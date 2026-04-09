@@ -350,10 +350,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
   const searchBtnRef = useRef<HTMLElement>(null);
 
   // Image preload state
-  const [preloading, setPreloading] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return sessionStorage.getItem("pos-images-cached") !== "1";
-  });
+  const [preloading, setPreloading] = useState(true);
   const [preloadProgress, setPreloadProgress] = useState({ loaded: 0, total: 0 });
 
   // Variant picker state
@@ -384,7 +381,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
 
     // Preload product images via fetch (goes through SW cache)
     const imageUrls = initialProducts.map(p => p.image).filter(Boolean) as string[];
-    if (sessionStorage.getItem("pos-images-cached") === "1" || imageUrls.length === 0) {
+    if (imageUrls.length === 0) {
       setPreloading(false);
       return;
     }
@@ -476,9 +473,8 @@ export default function POSClient({ initialProducts, initialCategories, userName
   const handleForceLogout = useCallback(() => {
     // 5 failed PIN attempts → full logout
     sessionStorage.removeItem("pos-locked");
-    window.fetch("/api/logout", { method: "POST", signal: AbortSignal.timeout(3000) }).catch(() => {}).finally(() => {
-      window.location.href = "/login";
-    });
+    sessionStorage.removeItem("pos-images-cached");
+    window.location.href = "/api/logout";
   }, []);
 
 
@@ -1482,9 +1478,8 @@ export default function POSClient({ initialProducts, initialCategories, userName
           onShiftClosed={() => {
             setShowShiftClose(false);
             sessionStorage.removeItem("pos-locked");
-            window.fetch("/api/logout", { method: "POST", signal: AbortSignal.timeout(3000) }).catch(() => {}).finally(() => {
-              window.location.href = "/login";
-            });
+            sessionStorage.removeItem("pos-images-cached");
+            window.location.href = "/api/logout";
           }}
         />
       )}
@@ -1565,7 +1560,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
                   <button onClick={() => { setShowSettingsMenu(false); handleLockScreen(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-text-secondary hover:bg-pos-surface-hover transition-colors">
                     <Lock className="h-4 w-4" /><span>{t(locale, "lock")}</span>
                   </button>
-                  <button disabled={locking} onClick={() => { setShowSettingsMenu(false); if (locking) return; setLocking(true); window.setTimeout(() => { window.fetch("/api/logout", { method: "POST", signal: AbortSignal.timeout(3000) }).catch(() => {}).finally(() => { window.location.href = "/login"; }); }, 700); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-danger hover:bg-pos-danger-light transition-colors disabled:opacity-50">
+                  <button disabled={locking} onClick={() => { setShowSettingsMenu(false); if (locking) return; setLocking(true); sessionStorage.removeItem("pos-locked"); sessionStorage.removeItem("pos-images-cached"); window.location.href = "/api/logout"; }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-danger hover:bg-pos-danger-light transition-colors disabled:opacity-50">
                     <LogOut className="h-4 w-4" /><span>{t(locale, "logout")}</span>
                   </button>
                 </div>
