@@ -474,7 +474,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
     // 5 failed PIN attempts → full logout
     sessionStorage.removeItem("pos-locked");
     sessionStorage.removeItem("pos-images-cached");
-    window.location.href = "/api/logout";
+    fetch("/api/logout", { method: "POST" }).catch(() => {}).finally(() => { window.location.href = "/login"; });
   }, []);
 
 
@@ -1479,7 +1479,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
             setShowShiftClose(false);
             sessionStorage.removeItem("pos-locked");
             sessionStorage.removeItem("pos-images-cached");
-            window.location.href = "/api/logout";
+            fetch("/api/logout", { method: "POST" }).catch(() => {}).finally(() => { window.location.href = "/login"; });
           }}
         />
       )}
@@ -1560,7 +1560,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
                   <button onClick={() => { setShowSettingsMenu(false); handleLockScreen(); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-text-secondary hover:bg-pos-surface-hover transition-colors">
                     <Lock className="h-4 w-4" /><span>{t(locale, "lock")}</span>
                   </button>
-                  <button disabled={locking} onClick={() => { setShowSettingsMenu(false); if (locking) return; setLocking(true); sessionStorage.removeItem("pos-locked"); sessionStorage.removeItem("pos-images-cached"); window.location.href = "/api/logout"; }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-danger hover:bg-pos-danger-light transition-colors disabled:opacity-50">
+                  <button disabled={locking} onClick={() => { setShowSettingsMenu(false); if (locking) return; setLocking(true); sessionStorage.removeItem("pos-locked"); sessionStorage.removeItem("pos-images-cached"); fetch("/api/logout", { method: "POST" }).catch(() => {}).finally(() => { window.location.href = "/login"; }); }} className="w-full flex items-center gap-2.5 px-3 py-2 text-[13px] text-left text-pos-danger hover:bg-pos-danger-light transition-colors disabled:opacity-50">
                     <LogOut className="h-4 w-4" /><span>{t(locale, "logout")}</span>
                   </button>
                 </div>
