@@ -7,3 +7,6 @@ node_modules
 *.md
 docs
 .skills
+
+# Product images — served by nginx from persistent volume
+apps/cashier/public/products
