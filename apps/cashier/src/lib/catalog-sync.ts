@@ -180,6 +180,29 @@ export async function getCachedVariants(productId: string) {
   return { options: data.options, variants: data.variants };
 }
 
+// ─── Variant Image URLs ──────────────────────────────────
+
+export async function getVariantImageUrls(): Promise<string[]> {
+  try {
+    const db = await import("./catalog-db").then(m => m.openCatalogDB());
+    const tx = db.transaction("variants", "readonly");
+    const all: CatalogVariantData[] = await new Promise((resolve, reject) => {
+      const req = tx.objectStore("variants").getAll();
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+    const urls: string[] = [];
+    for (const entry of all) {
+      for (const v of entry.variants) {
+        if (v.image) urls.push(v.image);
+      }
+    }
+    return [...new Set(urls)];
+  } catch {
+    return [];
+  }
+}
+
 // ─── Reset ───────────────────────────────────────────────
 
 export async function resetCatalog(): Promise<void> {

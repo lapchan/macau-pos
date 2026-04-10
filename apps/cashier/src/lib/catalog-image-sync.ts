@@ -63,12 +63,14 @@ type ProgressCallback = (progress: ImageSyncProgress) => void;
 export async function syncImages(
   products: CatalogProduct[],
   onProgress?: ProgressCallback,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  extraImageUrls?: string[]
 ): Promise<void> {
-  // Collect unique image URLs
-  const imageUrls = [...new Set(
-    products.map((p) => p.image).filter(Boolean) as string[]
-  )];
+  // Collect unique image URLs (products + variants + extras)
+  const imageUrls = [...new Set([
+    ...products.map((p) => p.image).filter(Boolean) as string[],
+    ...(extraImageUrls || []),
+  ])];
 
   if (imageUrls.length === 0) return;
 

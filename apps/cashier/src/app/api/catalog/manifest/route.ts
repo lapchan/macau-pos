@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import {
-  db, getSession, products, locations, pricingStrategyItems,
+  db, getSession, products, productVariants, locations, pricingStrategyItems,
   eq, and, or, isNull, sql,
 } from "@macau-pos/database";
 
@@ -31,12 +31,18 @@ export async function GET() {
 
     // Compute catalog version: MAX(version) + count + last updated
     let result;
+    // Also check variant updatedAt for delta detection
+    const [variantMaxUpdated] = await db
+      .select({ maxUpdatedAt: sql<string>`MAX(${productVariants.updatedAt})` })
+      .from(productVariants)
+      .where(eq(productVariants.tenantId, tenantId));
+
     if (!strategyId) {
       [result] = await db
         .select({
           maxVersion: sql<number>`COALESCE(MAX(${products.version}), 0)`,
           productCount: sql<number>`COUNT(*)`,
-          lastUpdatedAt: sql<string>`MAX(${products.updatedAt})`,
+          lastUpdatedAt: sql<string>`GREATEST(MAX(${products.updatedAt}), ${variantMaxUpdated?.maxUpdatedAt || null})`,
         })
         .from(products)
         .where(and(eq(products.tenantId, tenantId), isNull(products.deletedAt)));
@@ -45,7 +51,7 @@ export async function GET() {
         .select({
           maxVersion: sql<number>`COALESCE(MAX(${products.version}), 0)`,
           productCount: sql<number>`COUNT(*)`,
-          lastUpdatedAt: sql<string>`GREATEST(MAX(${products.updatedAt}), MAX(${pricingStrategyItems.updatedAt}))`,
+          lastUpdatedAt: sql<string>`GREATEST(MAX(${products.updatedAt}), MAX(${pricingStrategyItems.updatedAt}), ${variantMaxUpdated?.maxUpdatedAt || null})`,
         })
         .from(products)
         .leftJoin(

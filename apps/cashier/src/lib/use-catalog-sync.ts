@@ -9,6 +9,7 @@ import {
   checkSyncNeeded,
   performFullSync,
   performDeltaSync,
+  getVariantImageUrls,
 } from "./catalog-sync";
 import {
   initImageCache,
@@ -131,6 +132,9 @@ export function useCatalogSync(
     if (!mountedRef.current) return;
     if (showProgress) setSyncStatus("images");
 
+    // Collect variant image URLs
+    const variantUrls = await getVariantImageUrls();
+
     await syncImages(catalogProducts, (progress) => {
       if (!mountedRef.current) return;
       if (showProgress) {
@@ -140,7 +144,7 @@ export function useCatalogSync(
           total: progress.total,
         });
       }
-    }, signal);
+    }, signal, variantUrls);
 
     await cleanupOrphanedImages(catalogProducts);
     if (mountedRef.current) {

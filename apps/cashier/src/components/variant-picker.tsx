@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Check, ShoppingBag, Package, AlertCircle } from "lucide-react";
 import CloseButton from "@/components/shared/close-button";
 import { cn } from "@/lib/cn";
+import { resolveImageSrc } from "@/lib/catalog-image-sync";
 import { type Locale, t } from "@/i18n/locales";
 
 export type VariantOption = {
@@ -193,7 +194,7 @@ export default function VariantPicker({
           {/* Product image */}
           <div className="h-20 w-20 rounded-2xl bg-gray-100 flex items-center justify-center shrink-0 overflow-hidden">
             {productImage ? (
-              <img src={productImage} alt="" className="h-full w-full object-cover pointer-events-none select-none" draggable={false} />
+              <img src={resolveImageSrc(productImage)} alt="" className="h-full w-full object-cover pointer-events-none select-none" draggable={false} />
             ) : (
               <ShoppingBag className="h-8 w-8 text-gray-300" strokeWidth={1.25} />
             )}
@@ -306,7 +307,7 @@ export default function VariantPicker({
                             )}
                           >
                             {swatchImage ? (
-                              <img src={swatchImage} alt="" className="h-full w-full object-cover pointer-events-none select-none" draggable={false} />
+                              <img src={resolveImageSrc(swatchImage)} alt="" className="h-full w-full object-cover pointer-events-none select-none" draggable={false} />
                             ) : swatchColor ? (
                               <span
                                 className="block h-full w-full"
@@ -343,7 +344,7 @@ export default function VariantPicker({
               <div className="flex items-center gap-3">
                 <div className="h-10 w-10 rounded-xl bg-white border border-gray-200 flex items-center justify-center shrink-0 overflow-hidden">
                   {(matchingVariant.image || productImage) ? (
-                    <img src={matchingVariant.image || productImage} alt="" className="h-full w-full object-cover pointer-events-none select-none" draggable={false} />
+                    <img src={resolveImageSrc(matchingVariant.image || productImage)} alt="" className="h-full w-full object-cover pointer-events-none select-none" draggable={false} />
                   ) : (
                     <Package className="h-4 w-4 text-gray-400" />
                   )}
