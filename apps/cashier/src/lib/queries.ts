@@ -130,6 +130,7 @@ export async function getProductVariantsForCashier(productId: string) {
       id: optionGroups.id,
       name: optionGroups.name,
       translations: optionGroups.translations,
+      displayType: optionGroups.displayType,
       sortOrder: optionGroups.sortOrder,
     })
     .from(optionGroups)
@@ -149,6 +150,7 @@ export async function getProductVariantsForCashier(productId: string) {
     options.push({
       groupName: group.name,
       groupTranslations: group.translations as Record<string, string> | null,
+      displayType: group.displayType || "auto",
       values: values.map((v) => v.value),
       valueTranslations: values.map((v) => v.translations as Record<string, string> | null),
     });

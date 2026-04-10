@@ -22,6 +22,7 @@ export const optionGroups = pgTable(
       .references(() => products.id, { onDelete: "cascade" }),
     name: varchar("name", { length: 100 }).notNull(),
     translations: jsonb("translations").default({}),
+    displayType: varchar("display_type", { length: 20 }).notNull().default("auto"), // "auto" | "color" | "image" | "text"
     sortOrder: integer("sort_order").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

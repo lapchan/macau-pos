@@ -10,6 +10,7 @@ import { type Locale, t } from "@/i18n/locales";
 export type VariantOption = {
   groupName: string;
   groupTranslations?: Record<string, string> | null;
+  displayType?: string; // "auto" | "color" | "image" | "text"
   values: string[];
   valueTranslations?: (Record<string, string> | null)[];
 };
@@ -280,9 +281,10 @@ export default function VariantPicker({
                     const variantForVal = variants.find(
                       (v) => v.optionCombo[opt.groupName] === val && v.isActive
                     );
-                    const swatchImage = variantForVal?.image || null;
-                    const swatchColor = getColorHex(val);
-                    const hasSwatch = !!(swatchImage || swatchColor);
+                    const dtype = opt.displayType || "auto";
+                    const swatchImage = dtype !== "color" && dtype !== "text" ? (variantForVal?.image || null) : null;
+                    const swatchColor = dtype !== "image" && dtype !== "text" ? getColorHex(val) : null;
+                    const hasSwatch = dtype !== "text" && !!(swatchImage || swatchColor);
 
                     return (
                       <button

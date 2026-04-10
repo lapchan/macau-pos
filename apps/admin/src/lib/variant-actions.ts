@@ -321,3 +321,16 @@ export async function clearVariants(productId: string): Promise<ActionResult> {
     return { success: false, error: "Failed to clear variants" };
   }
 }
+
+export async function updateOptionGroupDisplayType(groupId: string, displayType: string) {
+  try {
+    await db
+      .update(optionGroups)
+      .set({ displayType })
+      .where(eq(optionGroups.id, groupId));
+    return { success: true };
+  } catch (err) {
+    console.error("updateOptionGroupDisplayType error:", err);
+    return { success: false };
+  }
+}

@@ -14,6 +14,7 @@ import {
   generateVariants,
   clearVariants,
   updateVariant,
+  updateOptionGroupDisplayType,
 } from "@/lib/variant-actions";
 
 // Color name → hex lookup for swatch display
@@ -47,7 +48,7 @@ function getColorHex(name: string): string | null {
 }
 
 type OptionValue = { id: string; value: string; sortOrder: number };
-type OptionGroup = { id: string; name: string; sortOrder: number; values: OptionValue[] };
+type OptionGroup = { id: string; name: string; displayType: string; sortOrder: number; values: OptionValue[] };
 type Variant = {
   id: string;
   name: string;
@@ -230,14 +231,31 @@ export default function VariantEditor({
             <div key={group.id} className="bg-surface-hover/50 rounded-[var(--radius-md)] p-3">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-[13px] font-medium text-text-primary">{group.name}</span>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteGroup(group.id)}
-                  disabled={isPending}
-                  className="text-text-tertiary hover:text-danger transition-colors"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                <div className="flex items-center gap-2">
+                  <select
+                    value={group.displayType || "auto"}
+                    onChange={(e) => {
+                      const newType = e.target.value;
+                      setGroups(prev => prev.map(g => g.id === group.id ? { ...g, displayType: newType } : g));
+                      updateOptionGroupDisplayType(group.id, newType);
+                      onDirty();
+                    }}
+                    className="text-[11px] px-1.5 py-0.5 rounded border border-border bg-surface text-text-secondary"
+                  >
+                    <option value="auto">Auto</option>
+                    <option value="color">Color</option>
+                    <option value="image">Image</option>
+                    <option value="text">Text Only</option>
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteGroup(group.id)}
+                    disabled={isPending}
+                    className="text-text-tertiary hover:text-danger transition-colors"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
 
               {/* Values as chips */}

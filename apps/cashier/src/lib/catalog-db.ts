@@ -54,6 +54,7 @@ export type CatalogVariantData = {
   options: {
     groupName: string;
     groupTranslations: Record<string, string> | null;
+    displayType: string;
     values: string[];
     valueTranslations: (Record<string, string> | null)[];
   }[];
