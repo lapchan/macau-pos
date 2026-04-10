@@ -24,8 +24,8 @@ type CategoryOption = {
 };
 
 type OptionValueData = { id: string; value: string; sortOrder: number };
-type OptionGroupData = { id: string; name: string; sortOrder: number; values: OptionValueData[] };
-type VariantData = { id: string; name: string; sku: string | null; sellingPrice: string; stock: number | null; optionCombo: Record<string, string>; isActive: boolean };
+type OptionGroupData = { id: string; name: string; displayType: string; sortOrder: number; values: OptionValueData[] };
+type VariantData = { id: string; name: string; sku: string | null; barcode: string | null; sellingPrice: string; stock: number | null; optionCombo: Record<string, string>; isActive: boolean; image: string | null };
 
 type ProductData = {
   id: string;
@@ -90,7 +90,7 @@ export default function ProductEditor({ open, onClose, product, categories }: Pr
       }
 
       // Load variant data for edit mode
-      if (product?.id && product?.hasVariants) {
+      if (product?.id) {
         setVariantsLoading(true);
         Promise.all([
           getProductOptions(product.id),
@@ -99,6 +99,7 @@ export default function ProductEditor({ open, onClose, product, categories }: Pr
           setLoadedOptionGroups(groups.map(g => ({
             id: g.id,
             name: g.name,
+            displayType: g.displayType || "auto",
             sortOrder: g.sortOrder,
             values: g.values.map(v => ({ id: v.id, value: v.value, sortOrder: v.sortOrder })),
           })));
