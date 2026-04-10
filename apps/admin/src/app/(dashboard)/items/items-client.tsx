@@ -332,7 +332,7 @@ export default function ItemsClient({ products, categories, categoryOptions = []
                 const badgeLabel = t(locale, (statusLabelKeys[product.status] || "common.statusActive") as any);
                 const isSelected = selected.has(product.id);
                 return (<Fragment key={product.id}>
-                  <tr className={cn("border-b border-border last:border-0 transition-colors group", isSelected ? "bg-accent-light/30" : "hover:bg-surface-hover/50")}>
+                  <tr className={cn("border-b border-border last:border-0 transition-colors group cursor-pointer", isSelected ? "bg-accent-light/30" : "hover:bg-surface-hover/50")} onClick={(e) => { if ((e.target as HTMLElement).closest("button, input, a, [role=menuitem]")) return; handleEdit(product); }}>
                     <td className="px-3 py-2.5"><input type="checkbox" checked={isSelected} onChange={() => toggleSelect(product.id)} aria-label={interpolate(t(locale, "items.selectItem"), { name: product.name })} className="rounded border-border-strong accent-accent" /></td>
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-2.5 min-w-0">
