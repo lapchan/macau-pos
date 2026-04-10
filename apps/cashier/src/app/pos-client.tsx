@@ -520,6 +520,8 @@ export default function POSClient({ initialProducts, initialCategories, userName
     // If product has variants, open variant picker instead of adding directly
     if (product.hasVariants) {
       setVariantProduct(product);
+      setVariantOptions([]);
+      setVariantItems([]);
       setVariantLoading(true);
       setVariantPickerOpen(true);
       fetchProductVariants(product.id)
@@ -531,7 +533,6 @@ export default function POSClient({ initialProducts, initialCategories, userName
           })));
         })
         .catch(async () => {
-          // Offline fallback — load from IndexedDB
           const cached = await getCachedVariants(product.id);
           if (cached) {
             setVariantOptions(cached.options);
@@ -562,6 +563,8 @@ export default function POSClient({ initialProducts, initialCategories, userName
   const openProductPreview = useCallback((product: Product) => {
     if (!product.inStock) return;
     setVariantProduct(product);
+    setVariantOptions([]);
+    setVariantItems([]);
     setVariantPickerOpen(true);
     if (product.hasVariants) {
       setVariantLoading(true);
