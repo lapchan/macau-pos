@@ -34,6 +34,7 @@ import { fetchProductVariants, lookupBarcode, type OrderDiscount } from "@/lib/a
 import { useBarcodeScanner } from "@/lib/use-barcode-scanner";
 import { useCatalogSync } from "@/lib/use-catalog-sync";
 import { resolveImageSrc } from "@/lib/catalog-image-sync";
+import { getCachedVariants } from "@/lib/catalog-sync";
 import SyncOverlay from "@/components/shared/sync-overlay";
 import { useOnlineStatus } from "@/lib/use-online-status";
 import { getPendingCount, syncPendingOrders } from "@/lib/offline-queue";
@@ -529,7 +530,17 @@ export default function POSClient({ initialProducts, initialCategories, userName
             optionCombo: v.optionCombo as Record<string, string>,
           })));
         })
-        .catch(console.error)
+        .catch(async () => {
+          // Offline fallback — load from IndexedDB
+          const cached = await getCachedVariants(product.id);
+          if (cached) {
+            setVariantOptions(cached.options);
+            setVariantItems(cached.variants.map(v => ({
+              ...v,
+              optionCombo: v.optionCombo as Record<string, string>,
+            })));
+          }
+        })
         .finally(() => setVariantLoading(false));
       return;
     }
@@ -562,7 +573,16 @@ export default function POSClient({ initialProducts, initialCategories, userName
             optionCombo: v.optionCombo as Record<string, string>,
           })));
         })
-        .catch(console.error)
+        .catch(async () => {
+          const cached = await getCachedVariants(product.id);
+          if (cached) {
+            setVariantOptions(cached.options);
+            setVariantItems(cached.variants.map(v => ({
+              ...v,
+              optionCombo: v.optionCombo as Record<string, string>,
+            })));
+          }
+        })
         .finally(() => setVariantLoading(false));
     } else {
       // No variants — show empty options so picker renders product info + add button

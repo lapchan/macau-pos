@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import {
   db, getSession, products, categories, brands, locations,
-  pricingStrategyItems, eq, and, or, isNull, gt, asc, sql,
+  pricingStrategyItems, productVariants, eq, and, or, isNull, gt, asc, sql,
 } from "@macau-pos/database";
+import { getProductVariantsForCashier } from "@/lib/queries";
 
 const COOKIE_NAME = "pos_session";
 
@@ -152,12 +153,22 @@ export async function GET(request: NextRequest) {
       sortOrder: c.sortOrder,
     }));
 
+    // ─── Fetch variants for products with hasVariants ────
+    const variantProducts = catalogProducts.filter((p) => p.hasVariants);
+    const variantsData = await Promise.all(
+      variantProducts.map(async (p) => {
+        const data = await getProductVariantsForCashier(p.id);
+        return { productId: p.id, ...data };
+      })
+    );
+
     // ─── Catalog version ─────────────────────────────────
     const maxVersion = catalogProducts.reduce((max, p) => Math.max(max, p.version), 0);
 
     return NextResponse.json({
       products: catalogProducts,
       categories: catalogCategories,
+      variants: variantsData,
       deletedProductIds,
       syncedAt,
       catalogVersion: maxVersion,

@@ -4,12 +4,13 @@
  */
 
 const DB_NAME = "pos-catalog";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 // Store names
 export const STORES = {
   PRODUCTS: "products",
   CATEGORIES: "categories",
+  VARIANTS: "variants",
   IMAGES: "images",
   SYNC_META: "sync-meta",
 } as const;
@@ -48,6 +49,25 @@ export type CachedImage = {
   fetchedAt: string;
 };
 
+export type CatalogVariantData = {
+  productId: string;
+  options: {
+    groupName: string;
+    groupTranslations: Record<string, string> | null;
+    values: string[];
+    valueTranslations: (Record<string, string> | null)[];
+  }[];
+  variants: {
+    id: string;
+    name: string;
+    sellingPrice: string;
+    stock: number | null;
+    optionCombo: Record<string, string>;
+    isActive: boolean;
+    image: string | null;
+  }[];
+};
+
 export type SyncMetaKey =
   | "lastSyncAt"
   | "catalogVersion"
@@ -78,6 +98,10 @@ export function openCatalogDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(STORES.CATEGORIES)) {
         const store = db.createObjectStore(STORES.CATEGORIES, { keyPath: "id" });
         store.createIndex("by-sortOrder", "sortOrder");
+      }
+
+      if (!db.objectStoreNames.contains(STORES.VARIANTS)) {
+        db.createObjectStore(STORES.VARIANTS, { keyPath: "productId" });
       }
 
       if (!db.objectStoreNames.contains(STORES.IMAGES)) {
@@ -178,6 +202,32 @@ export async function replaceCategories(items: CatalogCategory[]): Promise<void>
   return txPromise(tx);
 }
 
+// ─── Variants CRUD ───────────────────────────────────────
+
+export async function getVariants(productId: string): Promise<CatalogVariantData | undefined> {
+  const db = await openCatalogDB();
+  const tx = db.transaction(STORES.VARIANTS, "readonly");
+  return requestPromise(tx.objectStore(STORES.VARIANTS).get(productId));
+}
+
+export async function putVariants(items: CatalogVariantData[]): Promise<void> {
+  if (items.length === 0) return;
+  const db = await openCatalogDB();
+  const tx = db.transaction(STORES.VARIANTS, "readwrite");
+  const store = tx.objectStore(STORES.VARIANTS);
+  for (const item of items) {
+    store.put(item);
+  }
+  return txPromise(tx);
+}
+
+export async function clearVariants(): Promise<void> {
+  const db = await openCatalogDB();
+  const tx = db.transaction(STORES.VARIANTS, "readwrite");
+  tx.objectStore(STORES.VARIANTS).clear();
+  return txPromise(tx);
+}
+
 // ─── Images CRUD ─────────────────────────────────────────
 
 export async function getCachedImage(url: string): Promise<CachedImage | undefined> {
@@ -253,11 +303,12 @@ export async function getAllMeta(): Promise<Record<string, string | number | nul
 export async function clearAllStores(): Promise<void> {
   const db = await openCatalogDB();
   const tx = db.transaction(
-    [STORES.PRODUCTS, STORES.CATEGORIES, STORES.IMAGES, STORES.SYNC_META],
+    [STORES.PRODUCTS, STORES.CATEGORIES, STORES.VARIANTS, STORES.IMAGES, STORES.SYNC_META],
     "readwrite"
   );
   tx.objectStore(STORES.PRODUCTS).clear();
   tx.objectStore(STORES.CATEGORIES).clear();
+  tx.objectStore(STORES.VARIANTS).clear();
   tx.objectStore(STORES.IMAGES).clear();
   tx.objectStore(STORES.SYNC_META).clear();
   return txPromise(tx);

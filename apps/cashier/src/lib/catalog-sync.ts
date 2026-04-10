@@ -6,8 +6,12 @@
 import {
   type CatalogProduct,
   type CatalogCategory,
+  type CatalogVariantData,
   getAllProducts,
   getAllCategories,
+  getVariants,
+  putVariants,
+  clearVariants,
   getAllMeta,
   writeFullSync,
   writeDeltaSync,
@@ -27,6 +31,7 @@ export type CatalogManifest = {
 export type CatalogSyncResponse = {
   products: CatalogProduct[];
   categories: CatalogCategory[];
+  variants: CatalogVariantData[];
   deletedProductIds: string[];
   syncedAt: string;
   catalogVersion: number;
@@ -101,6 +106,12 @@ export async function performFullSync(
     pricingStrategyId: data.pricingStrategyId,
   });
 
+  // Cache variants
+  if (data.variants?.length) {
+    await clearVariants();
+    await putVariants(data.variants);
+  }
+
   return {
     products: data.products,
     categories: data.categories,
@@ -126,6 +137,11 @@ export async function performDeltaSync(): Promise<SyncResult> {
     lastSyncAt: data.syncedAt,
     catalogVersion: data.catalogVersion,
   });
+
+  // Update variants for changed products
+  if (data.variants?.length) {
+    await putVariants(data.variants);
+  }
 
   // Read full product list from IndexedDB (delta only changed some)
   const allProducts = await getAllProducts();
@@ -154,6 +170,14 @@ export async function loadFromCache(): Promise<SyncResult | null> {
   } catch {
     return null;
   }
+}
+
+// ─── Cached Variants ─────────────────────────────────────
+
+export async function getCachedVariants(productId: string) {
+  const data = await getVariants(productId);
+  if (!data) return null;
+  return { options: data.options, variants: data.variants };
 }
 
 // ─── Reset ───────────────────────────────────────────────
