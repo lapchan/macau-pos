@@ -32,6 +32,9 @@ import CustomerDetailSheet, { type LinkedCustomer } from "@/components/customer/
 import ProductSearchSpotlight from "@/components/search/product-search-spotlight";
 import { fetchProductVariants, lookupBarcode, type OrderDiscount } from "@/lib/actions";
 import { useBarcodeScanner } from "@/lib/use-barcode-scanner";
+import { useCatalogSync } from "@/lib/use-catalog-sync";
+import { resolveImageSrc } from "@/lib/catalog-image-sync";
+import SyncOverlay from "@/components/shared/sync-overlay";
 import { useOnlineStatus } from "@/lib/use-online-status";
 import { getPendingCount, syncPendingOrders } from "@/lib/offline-queue";
 import {
@@ -96,6 +99,7 @@ type Props = {
   userAvatar?: string | null;
   userId?: string | null;
   userPinHash?: string | null;
+  locationId?: string | null;
   terminalName?: string | null;
   terminalCode?: string | null;
   activeShiftId?: string | null;
@@ -235,7 +239,7 @@ function ProductGrid({ products, cart, addedId, locale, currency, favoriteIds, o
             </p>
             <div className="relative w-full aspect-square rounded-[var(--radius-sm)] bg-pos-bg my-1.5 flex items-center justify-center overflow-hidden">
               {product.image ? (
-                <img src={product.image} alt="" className="h-full w-full object-contain pointer-events-none select-none" draggable={false} loading="lazy" fetchPriority="low" />
+                <img src={resolveImageSrc(product.image)} alt="" className="h-full w-full object-contain pointer-events-none select-none" draggable={false} loading="lazy" fetchPriority="low" />
               ) : (
                 <ShoppingBag className="h-7 w-7 text-pos-text-muted/40" strokeWidth={1.25} />
               )}
@@ -296,7 +300,8 @@ function ProductGrid({ products, cart, addedId, locale, currency, favoriteIds, o
   );
 }
 
-export default function POSClient({ initialProducts, initialCategories, userName, userAvatar, userId, userPinHash, terminalName, terminalCode, activeShiftId, taxRate = 0, currency = "MOP" }: Props) {
+export default function POSClient({ initialProducts, initialCategories, userName, userAvatar, userId, userPinHash, locationId, terminalName, terminalCode, activeShiftId, taxRate = 0, currency = "MOP" }: Props) {
+  const catalog = useCatalogSync(initialProducts, initialCategories, locationId || null);
   const [locale, setLocale] = useState<Locale>("tc");
   const [activeTab, setActiveTab] = useState<"cashier" | "orders" | "reports">("cashier");
   const [reportView, setReportView] = useState<"drawer" | "sales">("drawer");
@@ -442,13 +447,13 @@ export default function POSClient({ initialProducts, initialCategories, userName
 
   // Find the active parent category and its children
   const activeParent = useMemo(() => {
-    return initialCategories.find((c) => c.id === activeCategory);
-  }, [initialCategories, activeCategory]);
+    return catalog.categories.find((c) => c.id === activeCategory);
+  }, [catalog.categories, activeCategory]);
 
   const activeChildren = activeParent?.children || [];
 
   const filtered = useMemo(() => {
-    let list = initialProducts;
+    let list = catalog.products;
     if (activeCategory === "popular") {
       list = list.filter((p) => p.popular);
     } else if (activeCategory !== "all") {
@@ -474,7 +479,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
       );
     }
     return list;
-  }, [initialProducts, activeCategory, activeSubCategory, activeChildren, searchTags, spotlightInput]);
+  }, [catalog.products, activeCategory, activeSubCategory, activeChildren, searchTags, spotlightInput]);
 
   const [confirmUnfavorite, setConfirmUnfavorite] = useState<string | null>(null);
 
@@ -770,6 +775,17 @@ export default function POSClient({ initialProducts, initialCategories, userName
     );
   }
 
+  // First-time catalog sync — show progress overlay
+  if (catalog.syncStatus === "initial-sync" || catalog.syncStatus === "images") {
+    return (
+      <SyncOverlay
+        progress={catalog.syncProgress}
+        locale={locale}
+        onSkip={() => {/* skip handled by hook timeout */}}
+      />
+    );
+  }
+
   return (
     <>
     {/* Shift open gate — blocks POS until shift is started */}
@@ -879,7 +895,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
         {activeView === "library" && (
           <>
             <div className="h-[48px] flex items-center gap-1.5 px-5 bg-pos-surface border-b border-pos-border shrink-0 overflow-x-auto hide-scrollbar">
-              {initialCategories.map((cat) => {
+              {catalog.categories.map((cat) => {
                 const Icon = iconMap[cat.icon] || LayoutGrid;
                 const isActive = activeCategory === cat.id;
                 return (
@@ -956,7 +972,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
 
         {/* Favorites view */}
         {activeView === "favorites" && (() => {
-          const favProducts = initialProducts.filter(p => favoriteIds.has(p.id));
+          const favProducts = catalog.products.filter(p => favoriteIds.has(p.id));
           return favProducts.length > 0 ? (
             <>
               <div className="px-5 py-3 flex items-center justify-between shrink-0">

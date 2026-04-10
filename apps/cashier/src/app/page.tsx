@@ -16,6 +16,7 @@ export default async function POSPage() {
   let terminalCode: string | null = null;
   let activeShiftId: string | null = null;
   let userPinHash: string | null = null;
+  let locationId: string | null = null;
   let taxRate = 0;
   let currency = "MOP";
 
@@ -27,6 +28,7 @@ export default async function POSPage() {
     terminalName = session?.terminalName || null;
     terminalCode = session?.terminalCode || null;
     currency = session?.tenantCurrency || "MOP";
+    locationId = session?.locationId || null;
 
     // Check for active shift
     const activeShift = await getActiveShift();
@@ -100,5 +102,5 @@ export default async function POSPage() {
     console.error("Failed to fetch from DB, using mock data:", error);
   }
 
-  return <POSClient initialProducts={productList} initialCategories={categoryList} userName={userName} userAvatar={userAvatar} userId={userId} userPinHash={userPinHash} terminalName={terminalName} terminalCode={terminalCode} activeShiftId={activeShiftId} taxRate={taxRate} currency={currency} />;
+  return <POSClient initialProducts={productList} initialCategories={categoryList} userName={userName} userAvatar={userAvatar} userId={userId} userPinHash={userPinHash} locationId={locationId} terminalName={terminalName} terminalCode={terminalCode} activeShiftId={activeShiftId} taxRate={taxRate} currency={currency} />;
 }

@@ -54,8 +54,16 @@ function ServiceWorkerRegistration() {
       dangerouslySetInnerHTML={{
         __html: `
           if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then(function(regs) {
-              regs.forEach(function(r) { r.unregister(); });
+            window.addEventListener('load', function() {
+              navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(function() {
+                // Precache all JS/CSS chunks for offline support
+                var chunks = [];
+                document.querySelectorAll('script[src*="/_next/static/"]').forEach(function(s) { chunks.push(s.src); });
+                document.querySelectorAll('link[href*="/_next/static/"]').forEach(function(l) { chunks.push(l.href); });
+                if (navigator.serviceWorker.controller && chunks.length > 0) {
+                  navigator.serviceWorker.controller.postMessage({ type: 'PRECACHE_CHUNKS', urls: chunks });
+                }
+              }).catch(function() {});
             });
           }
         `,
