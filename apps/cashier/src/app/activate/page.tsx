@@ -1,18 +1,20 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useRef, useCallback, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Monitor, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 
 const CODE_LENGTH = 6;
 
 export default function ActivateTerminalPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [state, setState] = useState<"idle" | "loading" | "success">("idle");
   const [terminalName, setTerminalName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const autoActivatedRef = useRef(false);
 
   const handleActivate = useCallback(async (activationCode: string) => {
     setError(null);
@@ -64,6 +66,19 @@ export default function ActivateTerminalPage() {
       handleActivate(cleaned);
     }
   }, [handleActivate]);
+
+  // Auto-activate from QR code URL (?code=ABC123)
+  useEffect(() => {
+    const urlCode = searchParams.get("code");
+    if (urlCode && urlCode.length >= 4 && !autoActivatedRef.current) {
+      autoActivatedRef.current = true;
+      const cleaned = urlCode.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, CODE_LENGTH);
+      setCode(cleaned);
+      if (cleaned.length === CODE_LENGTH) {
+        handleActivate(cleaned);
+      }
+    }
+  }, [searchParams, handleActivate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100 flex items-center justify-center p-6">

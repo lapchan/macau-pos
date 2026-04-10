@@ -8,6 +8,7 @@ import { Card } from "@/components/shared/card";
 import BottomSheet from "@/components/shared/bottom-sheet";
 import { useLocale } from "@/i18n/context";
 import { t } from "@/i18n/locales";
+import { QRCodeSVG } from "qrcode.react";
 import { interpolate } from "@macau-pos/i18n";
 import {
   createTerminal,
@@ -294,6 +295,16 @@ function ActivationCodeDialog({
                 <Copy className="h-4 w-4" />
               )}
             </button>
+          </div>
+          <div className="flex flex-col items-center mb-4">
+            <div className="bg-white p-3 rounded-xl border border-border">
+              <QRCodeSVG
+                value={`https://pos.hkretailai.com/activate?code=${code}`}
+                size={160}
+                level="M"
+              />
+            </div>
+            <p className="text-[11px] text-text-tertiary mt-2">Scan with iPad camera to activate</p>
           </div>
           <button
             onClick={onClose}
