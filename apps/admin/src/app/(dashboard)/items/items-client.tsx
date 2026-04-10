@@ -334,7 +334,7 @@ export default function ItemsClient({ products, categories, categoryOptions = []
                 return (<Fragment key={product.id}>
                   <tr className={cn("border-b border-border last:border-0 transition-colors group cursor-pointer", isSelected ? "bg-accent-light/30" : "hover:bg-surface-hover/50")} onClick={(e) => { if ((e.target as HTMLElement).closest("button, input, a, [role=menuitem]")) return; handleEdit(product); }}>
                     <td className="px-3 py-2.5"><input type="checkbox" checked={isSelected} onChange={() => toggleSelect(product.id)} aria-label={interpolate(t(locale, "items.selectItem"), { name: product.name })} className="rounded border-border-strong accent-accent" /></td>
-                    <td className="px-3 py-2.5">
+                    <td className="px-3 py-2.5 max-w-[400px]">
                       <div className="flex items-center gap-2.5 min-w-0">
                         {/* Expand chevron for products with variants */}
                         {product.hasVariants && (product.variantCount || 0) > 0 ? (
