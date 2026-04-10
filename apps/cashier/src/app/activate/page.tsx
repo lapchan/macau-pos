@@ -2,7 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Monitor, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Monitor, Loader2, AlertCircle, CheckCircle2, QrCode, X } from "lucide-react";
 
 const CODE_LENGTH = 6;
 
@@ -15,6 +15,8 @@ export default function ActivateTerminalPage() {
   const [terminalName, setTerminalName] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const autoActivatedRef = useRef(false);
+  const [scanning, setScanning] = useState(false);
+  const scannerRef = useRef<any>(null);
 
   const handleActivate = useCallback(async (activationCode: string) => {
     setError(null);
@@ -66,6 +68,56 @@ export default function ActivateTerminalPage() {
       handleActivate(cleaned);
     }
   }, [handleActivate]);
+
+  const handleQrScan = useCallback((decodedText: string) => {
+    // Extract code from URL or use raw text
+    let activationCode = decodedText;
+    try {
+      const url = new URL(decodedText);
+      const codeParam = url.searchParams.get("code");
+      if (codeParam) activationCode = codeParam;
+    } catch { /* not a URL, use raw text */ }
+
+    const cleaned = activationCode.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, CODE_LENGTH);
+    if (cleaned.length === CODE_LENGTH) {
+      setScanning(false);
+      // Stop scanner
+      scannerRef.current?.stop?.().catch(() => {});
+      scannerRef.current = null;
+      setCode(cleaned);
+      handleActivate(cleaned);
+    }
+  }, [handleActivate]);
+
+  const startScanner = useCallback(async () => {
+    setScanning(true);
+    setError(null);
+    try {
+      const { Html5Qrcode } = await import("html5-qrcode");
+      const scanner = new Html5Qrcode("qr-scanner-viewport");
+      scannerRef.current = scanner;
+      await scanner.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        handleQrScan,
+        () => {}
+      );
+    } catch {
+      setError("Camera access denied. Please allow camera permission.");
+      setScanning(false);
+    }
+  }, [handleQrScan]);
+
+  const stopScanner = useCallback(() => {
+    scannerRef.current?.stop?.().catch(() => {});
+    scannerRef.current = null;
+    setScanning(false);
+  }, []);
+
+  // Cleanup scanner on unmount
+  useEffect(() => {
+    return () => { scannerRef.current?.stop?.().catch(() => {}); };
+  }, []);
 
   // Auto-activate from QR code URL (?code=ABC123)
   useEffect(() => {
@@ -162,12 +214,34 @@ export default function ActivateTerminalPage() {
               </div>
             )}
 
-            {/* Help text */}
-            <p className="text-xs text-gray-400 mt-4">
-              Ask your store manager for the activation code.
-              <br />
-              It can be found in <span className="font-medium">Admin → Terminals → Add Terminal</span>.
-            </p>
+            {/* QR Scanner */}
+            {scanning ? (
+              <div className="mb-4">
+                <div className="relative rounded-xl overflow-hidden bg-black">
+                  <div id="qr-scanner-viewport" className="w-full" style={{ minHeight: 280 }} />
+                  <button
+                    onClick={stopScanner}
+                    className="absolute top-2 right-2 h-8 w-8 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">Point camera at the QR code in Admin</p>
+              </div>
+            ) : (
+              <button
+                onClick={startScanner}
+                disabled={state === "loading"}
+                className="mb-4 inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-50 text-blue-600 text-sm font-medium hover:bg-blue-100 transition-colors disabled:opacity-50"
+              >
+                <QrCode className="h-4 w-4" />
+                Scan QR Code
+              </button>
+            )}
+
+            <div className="text-xs text-gray-400 border-t border-gray-200 pt-4 mt-2">
+              <p>Enter the code manually or scan the QR code from Admin → Terminals.</p>
+            </div>
 
             {/* Clear button */}
             {code.length > 0 && state === "idle" && (
