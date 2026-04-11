@@ -909,7 +909,7 @@ export default function TerminalsClient({ terminals, summary, locations = [] }: 
                       }
                       aria-label={interpolate(t(locale, "terminals.actionsFor"), { name: terminal.name })}
                       aria-expanded={menuOpen === terminal.id}
-                      className="p-1.5 rounded-[var(--radius-sm)] text-text-tertiary hover:text-text-secondary hover:bg-surface-hover transition-colors opacity-0 group-hover:opacity-100"
+                      className="p-1.5 rounded-[var(--radius-sm)] text-text-tertiary hover:text-text-secondary hover:bg-surface-hover transition-colors"
                     >
                       <MoreHorizontal className="h-4 w-4" />
                     </button>
