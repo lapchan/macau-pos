@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { db, terminals, eq, and, isNull } from "@macau-pos/database";
-import { sql } from "drizzle-orm";
+import { db, terminals, eq } from "@macau-pos/database";
 
 export async function POST(request: NextRequest) {
   try {
@@ -31,7 +30,7 @@ export async function POST(request: NextRequest) {
     if (!terminal) {
       return NextResponse.json(
         { success: false, error: "Invalid code. Please check and try again." },
-        { status: 404 }
+        { status: 400 }
       );
     }
 

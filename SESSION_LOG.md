@@ -773,3 +773,56 @@ Continued from previous session (context compacted). Implemented proper product 
 - 4 Ultra masks set to HKD 149 + sold_out status
 
 **Commits:** dc8bcf3, 84da935, b7c54d3, d0261e6, a45430c
+
+## Lock Screen Offline + Image Optimization (2026-04-09 to 2026-04-10)
+
+**Lock screen improvements:**
+- Offline PIN verification via client-side bcrypt (pinHash passed from server)
+- Connection indicator (wifi icon) on lock screen with reload confirm dialog
+- Reload checks connectivity before navigating (prevents stuck loading)
+- 150ms delay on PIN auto-submit so 4th dot renders visually
+
+**Shared UI components created:**
+- `confirm-dialog.tsx` — reusable confirm modal (used in lock screen, cashier unfavorite, reload)
+- `avatar.tsx` — shared avatar with localStorage cache + onError fallback
+- Both replace inline implementations across 6+ locations
+
+**Offline resilience:**
+- All server action calls wrapped with try/catch for offline
+- Shift open redirects to login on "no active session"
+- Product images prevent iOS long-press drag (`pointer-events-none`, `draggable={false}`)
+
+**Logout fixes:**
+- `window.stop()` cancels all pending image loads before redirect
+- Fire-and-forget API call (non-blocking DB delete)
+- Immediate `window.location.replace("/login")` — never waits for fetch
+
+**Image optimization (critical fix):**
+- Original product images were 5-9MB each (299MB total) — caused connection flooding
+- Created POS thumbnails at `/products/pos/` (400x400px, quality 80, 9.2MB total — 97% reduction)
+- DB updated to point POS products to `/products/pos/` paths
+- Originals preserved at `/products/savewo/` for storefront/admin use
+- Product `<img>` tags: `loading="lazy"` + `fetchPriority="low"` — NEVER remove
+
+**Service worker:**
+- SW went through v1→v2→v3→v4→self-destruct→pass-through during debugging
+- Root cause of all SW issues was `loading="lazy"` being removed, causing 308 images to flood connections
+- Currently pass-through only (no fetch handler), layout.tsx unregisters all SWs
+- Image preloading deferred — plan written but needs proper implementation in future session
+
+**Infrastructure:**
+- `.dockerignore` excludes product images from Docker build (prevents OOM)
+- `.gitignore` excludes product images from git
+- nginx serves product images from Docker volume with cache headers
+- nginx sends `no-cache` for sw.js
+- Deploy via `git pull` on server (NOT rsync)
+- iOS Safari `100dvh` fix for bottom bar visibility
+
+**Lessons learned:**
+- Removing `loading="lazy"` from 308 product images caused cascading failures across the entire app
+- Never add large assets to Docker build context (caused OOM crash)
+- Never use rsync for deploys — always git pull
+- SW `c.navigate()` is unreliable on iOS Safari
+- Product images must be optimized thumbnails for POS, not originals
+
+**Commits:** ab1919a through fa33968 (many iterations)
