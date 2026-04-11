@@ -32,6 +32,11 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Terminal was unlinked from admin — force re-activation
+    if (!terminal.activatedAt) {
+      return NextResponse.json({ success: false, error: "unlinked" });
+    }
+
     return NextResponse.json({
       success: true,
       terminalId: terminal.id,
