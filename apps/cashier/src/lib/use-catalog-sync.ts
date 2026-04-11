@@ -219,6 +219,9 @@ export function useCatalogSync(
           await initImageCache();
           setSyncStatus("idle");
 
+          // Sync any missing images in background
+          doImageSync(cached.products, false);
+
           // Check for updates in background (non-blocking)
           backgroundCheck();
         } else if (navigator.onLine) {
