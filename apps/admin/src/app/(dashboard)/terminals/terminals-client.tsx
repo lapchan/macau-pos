@@ -840,7 +840,15 @@ export default function TerminalsClient({ terminals, summary, locations = [] }: 
           </select>
           <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-tertiary pointer-events-none" />
         </div>
-        <div className="flex items-center border border-border rounded-[var(--radius-sm)] overflow-hidden ml-auto">
+        <button
+          onClick={() => router.refresh()}
+          disabled={isPending}
+          className="h-9 w-9 flex items-center justify-center rounded-[var(--radius-sm)] border border-border text-text-tertiary hover:text-text-secondary hover:bg-surface-hover transition-colors disabled:opacity-50 ml-auto"
+          title={t(locale, "common.refresh")}
+        >
+          <RefreshCw className={cn("h-4 w-4", isPending && "animate-spin")} />
+        </button>
+        <div className="flex items-center border border-border rounded-[var(--radius-sm)] overflow-hidden">
           {([
             { key: "grid" as const, label: t(locale, "terminals.viewGrid") },
             { key: "list" as const, label: t(locale, "terminals.viewList") },

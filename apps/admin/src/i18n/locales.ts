@@ -7,6 +7,7 @@ import type { Locale } from "@macau-pos/i18n";
 export type AdminTranslationKeys = {
   // ── Common ──────────────────────────────────────────────
   "common.cancel": string;
+  "common.refresh": string;
   "common.close": string;
   "common.save": string;
   "common.saveChanges": string;
@@ -640,6 +641,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
   en: {
     // Common
     "common.cancel": "Cancel",
+    "common.refresh": "Refresh",
     "common.close": "Close",
     "common.save": "Save",
     "common.saveChanges": "Save changes",
@@ -1259,6 +1261,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
   // ═══════════════════════════════════════════════════════
   tc: {
     "common.cancel": "取消",
+    "common.refresh": "重新整理",
     "common.close": "關閉",
     "common.save": "儲存",
     "common.saveChanges": "儲存變更",
@@ -1863,6 +1866,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
   // ═══════════════════════════════════════════════════════
   sc: {
     "common.cancel": "取消",
+    "common.refresh": "刷新",
     "common.close": "关闭",
     "common.save": "保存",
     "common.saveChanges": "保存更改",
@@ -2467,6 +2471,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
   // ═══════════════════════════════════════════════════════
   pt: {
     "common.cancel": "Cancelar",
+    "common.refresh": "Atualizar",
     "common.close": "Fechar",
     "common.save": "Guardar",
     "common.saveChanges": "Guardar alterações",
@@ -3071,6 +3076,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
   // ═══════════════════════════════════════════════════════
   ja: {
     "common.cancel": "キャンセル",
+    "common.refresh": "更新",
     "common.close": "閉じる",
     "common.save": "保存",
     "common.saveChanges": "変更を保存",
