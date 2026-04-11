@@ -26,7 +26,10 @@ function ActivateTerminalContent() {
   const [scanning, setScanning] = useState(false);
   const scannerRef = useRef<any>(null);
 
+  console.log("[Activate] Component mounted, state:", state, "code:", code);
+
   const handleActivate = useCallback(async (activationCode: string) => {
+    console.log("[Activate] handleActivate called with:", activationCode);
     setError(null);
     setState("loading");
 
@@ -45,6 +48,7 @@ function ActivateTerminalContent() {
       });
 
       const data = await res.json();
+      console.log("[Activate] API response:", data);
 
       if (data.success) {
         // Store terminal ID
@@ -59,20 +63,22 @@ function ActivateTerminalContent() {
         setError(data.error || "Activation failed");
         setState("idle");
       }
-    } catch {
+    } catch (e) {
+      console.error("[Activate] Network error:", e);
       setError("Network error. Please check your connection.");
       setState("idle");
     }
   }, [router]);
 
   const handleInput = useCallback((value: string) => {
-    // Only allow alphanumeric, auto-uppercase
+    console.log("[Activate] handleInput raw:", value);
     const cleaned = value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, CODE_LENGTH);
+    console.log("[Activate] handleInput cleaned:", cleaned);
     setCode(cleaned);
     setError(null);
 
-    // Auto-submit when full code entered
     if (cleaned.length === CODE_LENGTH) {
+      console.log("[Activate] Full code entered, auto-submitting");
       handleActivate(cleaned);
     }
   }, [handleActivate]);
