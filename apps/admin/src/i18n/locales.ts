@@ -336,6 +336,7 @@ export type AdminTranslationKeys = {
   "terminals.enable": string;
   "terminals.statusDisabled": string;
   "terminals.regenerateCode": string;
+  "terminals.unlink": string;
   "terminals.remove": string;
   "terminals.removeConfirm": string;
   "terminals.removeMessage": string;
@@ -957,6 +958,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.enable": "Enable",
     "terminals.statusDisabled": "Disabled",
     "terminals.regenerateCode": "Regenerate Code",
+    "terminals.unlink": "Unlink Device",
     "terminals.remove": "Remove",
     "terminals.removeConfirm": "Remove terminal?",
     "terminals.removeMessage": "\"{name}\" will be permanently deleted. This action cannot be undone.",
@@ -1556,6 +1558,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.enable": "啟用",
     "terminals.statusDisabled": "已停用",
     "terminals.regenerateCode": "重新產生代碼",
+    "terminals.unlink": "解除綁定",
     "terminals.remove": "移除",
     "terminals.removeConfirm": "移除終端？",
     "terminals.removeMessage": "「{name}」將被永久刪除，此操作無法撤銷。",
@@ -2153,6 +2156,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.enable": "启用",
     "terminals.statusDisabled": "已停用",
     "terminals.regenerateCode": "重新生成代码",
+    "terminals.unlink": "解除绑定",
     "terminals.remove": "移除",
     "terminals.removeConfirm": "移除终端？",
     "terminals.removeMessage": "「{name}」将被永久删除，此操作无法撤销。",
@@ -2750,6 +2754,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.enable": "Ativar",
     "terminals.statusDisabled": "Desativado",
     "terminals.regenerateCode": "Regenerar Código",
+    "terminals.unlink": "Desvincular Dispositivo",
     "terminals.remove": "Remover",
     "terminals.removeConfirm": "Remover terminal?",
     "terminals.removeMessage": "\"{name}\" será permanentemente eliminado. Esta ação não pode ser desfeita.",
@@ -3347,6 +3352,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.enable": "有効化",
     "terminals.statusDisabled": "無効",
     "terminals.regenerateCode": "コード再生成",
+    "terminals.unlink": "デバイス解除",
     "terminals.remove": "削除",
     "terminals.removeConfirm": "端末を削除しますか？",
     "terminals.removeMessage": "「{name}」は完全に削除されます。この操作は元に戻せません。",

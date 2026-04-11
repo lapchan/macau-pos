@@ -166,6 +166,34 @@ export async function setTerminalStatus(
   }
 }
 
+// ─── Unlink Device ──────────────────────────────────────
+export async function unlinkTerminal(
+  terminalId: string
+): Promise<ActionResult> {
+  try {
+    const tenantId = await requireTenantId();
+
+    const activationCode = generateActivationCode();
+
+    await db
+      .update(terminals)
+      .set({
+        activatedAt: null,
+        deviceInfo: null,
+        lastHeartbeatAt: null,
+        activationCode,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(terminals.id, terminalId), eq(terminals.tenantId, tenantId)));
+
+    revalidatePath("/terminals");
+    return { success: true, data: { id: terminalId, activationCode } };
+  } catch (err) {
+    console.error("unlinkTerminal error:", err);
+    return { success: false, error: "Failed to unlink terminal" };
+  }
+}
+
 // ─── Regenerate Activation Code ───────────────────────────
 export async function regenerateActivationCode(
   terminalId: string

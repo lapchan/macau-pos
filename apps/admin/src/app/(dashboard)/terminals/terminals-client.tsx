@@ -15,6 +15,7 @@ import {
   deleteTerminal,
   setTerminalStatus,
   regenerateActivationCode,
+  unlinkTerminal,
 } from "@/lib/terminal-actions";
 import {
   Plus,
@@ -37,6 +38,7 @@ import {
   Search,
   ChevronDown,
   KeyRound,
+  Unplug,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────
@@ -581,6 +583,20 @@ export default function TerminalsClient({ terminals, summary, locations = [] }: 
     });
   };
 
+  const handleUnlink = (id: string, terminalCode: string) => {
+    setMenuOpen(null);
+    startTransition(async () => {
+      const result = await unlinkTerminal(id);
+      if (result.success && result.data?.activationCode) {
+        setActivationCodeDialog({
+          code: result.data.activationCode,
+          terminalCode,
+        });
+      }
+      router.refresh();
+    });
+  };
+
   const handleDeleteConfirm = () => {
     if (!deleteTarget) return;
     startTransition(async () => {
@@ -640,6 +656,15 @@ export default function TerminalsClient({ terminals, summary, locations = [] }: 
             terminalCode: terminal.code,
           });
         },
+      });
+    }
+
+    // Unlink — only for activated (paired) terminals
+    if (terminal.activatedAt) {
+      actions.push({
+        icon: Unplug,
+        label: t(locale, "terminals.unlink"),
+        onClick: () => handleUnlink(terminal.id, terminal.code),
       });
     }
 
