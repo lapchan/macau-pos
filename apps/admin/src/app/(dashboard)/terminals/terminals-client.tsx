@@ -16,6 +16,7 @@ import {
   setTerminalStatus,
   regenerateActivationCode,
   unlinkTerminal,
+  refreshTerminals,
 } from "@/lib/terminal-actions";
 import {
   Plus,
@@ -841,7 +842,7 @@ export default function TerminalsClient({ terminals, summary, locations = [] }: 
           <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-text-tertiary pointer-events-none" />
         </div>
         <button
-          onClick={() => router.refresh()}
+          onClick={() => startTransition(() => refreshTerminals())}
           disabled={isPending}
           className="h-9 w-9 flex items-center justify-center rounded-[var(--radius-sm)] border border-border text-text-tertiary hover:text-text-secondary hover:bg-surface-hover active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
           title={t(locale, "common.refresh")}

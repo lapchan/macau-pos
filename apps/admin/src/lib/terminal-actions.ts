@@ -218,3 +218,8 @@ export async function regenerateActivationCode(
     return { success: false, error: "Failed to regenerate activation code" };
   }
 }
+
+// ─── Refresh terminals page data ──────────────────────────
+export async function refreshTerminals() {
+  revalidatePath("/terminals");
+}
