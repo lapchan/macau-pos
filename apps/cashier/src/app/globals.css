@@ -141,6 +141,12 @@ body {
 }
 .animate-mode-switch { animation: modeSwitch 0.4s cubic-bezier(0.16, 1, 0.3, 1) both; }
 
+/* Progress bar countdown for forced logout */
+@keyframes shrink {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
 /* PIN error shake — iOS style */
 @keyframes shake {
   0%, 100% { transform: translateX(0); }

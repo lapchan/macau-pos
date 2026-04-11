@@ -1,30 +1,43 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 
 const HEARTBEAT_INTERVAL = 60_000; // 60 seconds
 
+export type ForcedLogoutReason = "unlinked" | "disabled" | null;
+
 /**
  * Sends periodic heartbeat pings to keep the terminal "online" in admin dashboard.
- * Reads terminal ID from localStorage. Silently fails on network errors.
+ * Also detects if the terminal has been unlinked or disabled by admin.
  */
 export function useHeartbeat() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [forcedLogout, setForcedLogout] = useState<ForcedLogoutReason>(null);
 
-  useEffect(() => {
-    const sendHeartbeat = () => {
-      const terminalId = localStorage.getItem("pos_terminal_id");
-      if (!terminalId) return;
+  const sendHeartbeat = useCallback(() => {
+    const terminalId = localStorage.getItem("pos_terminal_id");
+    if (!terminalId) return;
 
-      fetch("/api/terminals/heartbeat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ terminalId }),
-      }).catch(() => {
+    fetch("/api/terminals/heartbeat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ terminalId }),
+      cache: "no-store",
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.error === "unlinked" || data.error === "not-found") {
+          setForcedLogout("unlinked");
+        } else if (data.error === "disabled") {
+          setForcedLogout("disabled");
+        }
+      })
+      .catch(() => {
         // Silent fail — terminal will show "offline" after 3 min in admin
       });
-    };
+  }, []);
 
+  useEffect(() => {
     // Send immediately on mount
     sendHeartbeat();
 
@@ -34,5 +47,7 @@ export function useHeartbeat() {
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, []);
+  }, [sendHeartbeat]);
+
+  return { forcedLogout };
 }
