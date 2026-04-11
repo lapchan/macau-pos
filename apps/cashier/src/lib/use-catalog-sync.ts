@@ -132,21 +132,27 @@ export function useCatalogSync(
     if (!mountedRef.current) return;
     if (showProgress) setSyncStatus("images");
 
-    // Collect variant image URLs
-    const variantUrls = await getVariantImageUrls();
+    try {
+      // Collect variant image URLs
+      let variantUrls: string[] = [];
+      try { variantUrls = await getVariantImageUrls(); } catch { /* ignore */ }
 
-    await syncImages(catalogProducts, (progress) => {
-      if (!mountedRef.current) return;
-      if (showProgress) {
-        setSyncProgress({
-          phase: "images",
-          current: progress.cached,
-          total: progress.total,
-        });
-      }
-    }, signal, variantUrls);
+      await syncImages(catalogProducts, (progress) => {
+        if (!mountedRef.current) return;
+        if (showProgress) {
+          setSyncProgress({
+            phase: "images",
+            current: progress.cached,
+            total: progress.total,
+          });
+        }
+      }, signal, variantUrls);
 
-    await cleanupOrphanedImages(catalogProducts);
+      try { await cleanupOrphanedImages(catalogProducts); } catch { /* ignore */ }
+    } catch (e) {
+      console.error("Image sync error:", e);
+    }
+
     if (mountedRef.current) {
       setSyncStatus("idle");
       setSyncProgress(null);

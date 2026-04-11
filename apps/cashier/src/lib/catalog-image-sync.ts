@@ -72,11 +72,12 @@ export async function syncImages(
     ...(extraImageUrls || []),
   ])];
 
-  if (imageUrls.length === 0) return;
+  if (imageUrls.length === 0) { console.log("[ImageSync] No image URLs to sync"); return; }
 
   // Check which are already cached
   const cachedUrls = new Set(await getAllImageUrls());
   const needed = imageUrls.filter((url) => !cachedUrls.has(url));
+  console.log(`[ImageSync] ${imageUrls.length} total, ${cachedUrls.size} cached, ${needed.length} needed`);
 
   const progress: ImageSyncProgress = {
     total: imageUrls.length,
