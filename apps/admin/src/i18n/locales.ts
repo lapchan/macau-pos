@@ -339,6 +339,9 @@ export type AdminTranslationKeys = {
   "terminals.statusDisabled": string;
   "terminals.regenerateCode": string;
   "terminals.unlink": string;
+  "terminals.unlinkConfirm": string;
+  "terminals.unlinkMessage": string;
+  "terminals.unlinking": string;
   "terminals.remove": string;
   "terminals.removeConfirm": string;
   "terminals.removeMessage": string;
@@ -964,6 +967,9 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.statusDisabled": "Disabled",
     "terminals.regenerateCode": "Regenerate Code",
     "terminals.unlink": "Unlink Device",
+    "terminals.unlinkConfirm": "Unlink this device?",
+    "terminals.unlinkMessage": "The active session on \"{name}\" will be terminated and the device will need to re-activate with a new code.",
+    "terminals.unlinking": "Unlinking...",
     "terminals.remove": "Remove",
     "terminals.removeConfirm": "Remove terminal?",
     "terminals.removeMessage": "\"{name}\" will be permanently deleted. This action cannot be undone.",
@@ -1567,6 +1573,9 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.statusDisabled": "已停用",
     "terminals.regenerateCode": "重新產生代碼",
     "terminals.unlink": "解除綁定",
+    "terminals.unlinkConfirm": "確定解除綁定？",
+    "terminals.unlinkMessage": "「{name}」的使用中工作階段將被終止，裝置需要使用新代碼重新啟用。",
+    "terminals.unlinking": "正在解除...",
     "terminals.remove": "移除",
     "terminals.removeConfirm": "移除終端？",
     "terminals.removeMessage": "「{name}」將被永久刪除，此操作無法撤銷。",
@@ -2168,6 +2177,9 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.statusDisabled": "已停用",
     "terminals.regenerateCode": "重新生成代码",
     "terminals.unlink": "解除绑定",
+    "terminals.unlinkConfirm": "确定解除绑定？",
+    "terminals.unlinkMessage": "「{name}」的使用中工作阶段将被终止，设备需要使用新代码重新启用。",
+    "terminals.unlinking": "正在解除...",
     "terminals.remove": "移除",
     "terminals.removeConfirm": "移除终端？",
     "terminals.removeMessage": "「{name}」将被永久删除，此操作无法撤销。",
@@ -2769,6 +2781,9 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.statusDisabled": "Desativado",
     "terminals.regenerateCode": "Regenerar Código",
     "terminals.unlink": "Desvincular Dispositivo",
+    "terminals.unlinkConfirm": "Desvincular este dispositivo?",
+    "terminals.unlinkMessage": "A sessão ativa em \"{name}\" será terminada e o dispositivo precisará ser reativado com um novo código.",
+    "terminals.unlinking": "Desvinculando...",
     "terminals.remove": "Remover",
     "terminals.removeConfirm": "Remover terminal?",
     "terminals.removeMessage": "\"{name}\" será permanentemente eliminado. Esta ação não pode ser desfeita.",
@@ -3370,6 +3385,9 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.statusDisabled": "無効",
     "terminals.regenerateCode": "コード再生成",
     "terminals.unlink": "デバイス解除",
+    "terminals.unlinkConfirm": "このデバイスの接続を解除しますか？",
+    "terminals.unlinkMessage": "「{name}」のアクティブセッションが終了し、新しいコードで再アクティベーションが必要になります。",
+    "terminals.unlinking": "解除中...",
     "terminals.remove": "削除",
     "terminals.removeConfirm": "端末を削除しますか？",
     "terminals.removeMessage": "「{name}」は完全に削除されます。この操作は元に戻せません。",

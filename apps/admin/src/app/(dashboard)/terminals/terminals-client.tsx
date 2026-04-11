@@ -179,6 +179,71 @@ const summaryItems: {
 
 // ─── Delete Confirmation Dialog ───────────────────────────────
 
+function UnlinkConfirmDialog({
+  open,
+  onClose,
+  onConfirm,
+  terminalName,
+  isPending,
+  locale,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  terminalName: string;
+  isPending: boolean;
+  locale: import("@macau-pos/i18n").Locale;
+}) {
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && open && !isPending) onClose();
+    };
+    if (open) {
+      document.addEventListener("keydown", handler);
+      return () => document.removeEventListener("keydown", handler);
+    }
+  }, [open, isPending, onClose]);
+
+  if (!open) return null;
+
+  return (
+    <>
+      <div className="fixed inset-0 z-50 bg-black/30" onClick={isPending ? undefined : onClose} />
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="w-full max-w-[360px] bg-surface rounded-[var(--radius-lg)] border border-border shadow-2xl p-5">
+          <div className="flex justify-center mb-3">
+            <div className="h-10 w-10 rounded-full bg-warning-light flex items-center justify-center">
+              <Unplug className="h-5 w-5 text-warning" />
+            </div>
+          </div>
+          <p className="text-sm font-medium text-text-primary text-center mb-2">
+            {t(locale, "terminals.unlinkConfirm")}
+          </p>
+          <p className="text-xs text-text-secondary text-center mb-5">
+            {interpolate(t(locale, "terminals.unlinkMessage"), { name: terminalName })}
+          </p>
+          <div className="flex gap-2.5">
+            <button
+              onClick={onClose}
+              disabled={isPending}
+              className="flex-1 h-10 rounded-[var(--radius-md)] border border-border text-[13px] font-medium text-text-secondary hover:bg-surface-hover transition-colors disabled:opacity-50"
+            >
+              {t(locale, "common.cancel")}
+            </button>
+            <button
+              onClick={onConfirm}
+              disabled={isPending}
+              className="flex-1 h-10 rounded-[var(--radius-md)] bg-warning text-white text-[13px] font-medium hover:bg-warning/90 transition-colors disabled:opacity-50"
+            >
+              {isPending ? t(locale, "terminals.unlinking") : t(locale, "terminals.unlink")}
+            </button>
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
 function DeleteConfirmDialog({
   open,
   onClose,
@@ -536,6 +601,7 @@ export default function TerminalsClient({ terminals, summary, locations = [] }: 
   const [statusFilter, setStatusFilter] = useState<DisplayStatus | "all">("all");
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [unlinkTarget, setUnlinkTarget] = useState<{ id: string; name: string; code: string } | null>(null);
   const [activationCodeDialog, setActivationCodeDialog] = useState<{
     code: string;
     terminalCode: string;
@@ -594,16 +660,22 @@ export default function TerminalsClient({ terminals, summary, locations = [] }: 
     });
   };
 
-  const handleUnlink = (id: string, terminalCode: string) => {
+  const handleUnlink = (id: string, name: string, code: string) => {
     setMenuOpen(null);
+    setUnlinkTarget({ id, name, code });
+  };
+
+  const handleUnlinkConfirm = () => {
+    if (!unlinkTarget) return;
     startTransition(async () => {
-      const result = await unlinkTerminal(id);
+      const result = await unlinkTerminal(unlinkTarget.id);
       if (result.success && result.data?.activationCode) {
         setActivationCodeDialog({
           code: result.data.activationCode,
-          terminalCode,
+          terminalCode: unlinkTarget.code,
         });
       }
+      setUnlinkTarget(null);
       router.refresh();
     });
   };
@@ -675,7 +747,7 @@ export default function TerminalsClient({ terminals, summary, locations = [] }: 
       actions.push({
         icon: Unplug,
         label: t(locale, "terminals.unlink"),
-        onClick: () => handleUnlink(terminal.id, terminal.code),
+        onClick: () => handleUnlink(terminal.id, terminal.name, terminal.code),
       });
     }
 
@@ -1072,6 +1144,14 @@ export default function TerminalsClient({ terminals, summary, locations = [] }: 
 
       {/* Dialogs */}
       <AddTerminalDialog open={showAddDialog} onClose={() => setShowAddDialog(false)} locale={locale} locations={locations} />
+      <UnlinkConfirmDialog
+        open={!!unlinkTarget}
+        onClose={() => setUnlinkTarget(null)}
+        onConfirm={handleUnlinkConfirm}
+        terminalName={unlinkTarget?.name || ""}
+        isPending={isPending}
+        locale={locale}
+      />
       <DeleteConfirmDialog
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
