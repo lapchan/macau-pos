@@ -826,3 +826,51 @@ Continued from previous session (context compacted). Implemented proper product 
 - Product images must be optimized thumbnails for POS, not originals
 
 **Commits:** ab1919a through fa33968 (many iterations)
+
+## Catalog Sync + QR Activation + Variant Display Types (2026-04-10 → 2026-04-12)
+
+Built IndexedDB-backed product catalog sync for offline support and faster loads. Added QR code terminal activation and variant display type configuration.
+
+**Catalog Sync (IndexedDB):**
+- New module: `catalog-db.ts`, `catalog-sync.ts`, `catalog-image-sync.ts`, `use-catalog-sync.ts`
+- IndexedDB database `pos-catalog` v2 with stores: products, categories, variants, images, sync-meta
+- API routes: `/api/catalog/manifest` (cheap version check every 60s), `/api/catalog/sync` (full/delta data)
+- SSR props provide instant first paint → IndexedDB takes over as source of truth
+- Image blobs stored in IndexedDB → served via blob URLs through `resolveImageSrc()`
+- Batch image fetch (6 concurrent), orphan cleanup, change detection
+- Location-scoped via PricingStrategy system (price/stock/availability overrides via COALESCE)
+- Delta sync: products where `updatedAt > since`, includes `deletedProductIds`
+- Manifest check includes product, variant, and pricing strategy updatedAt
+- `pos-client.tsx` fully integrated: uses `useCatalogSync` hook, `resolveImageSrc()` for all images
+- Variant picker falls back to `getCachedVariants()` when offline
+- First load: SyncOverlay with progress → images sync in background after POS visible
+- Subsequent loads: instant from IndexedDB, background manifest check
+
+**Service Worker (restored):**
+- App shell caching: HTML/JS/CSS (network-first for navigation, cache-first for /_next/static/)
+- Products/images explicitly skipped (handled by IndexedDB)
+- `layout.tsx` registers SW with `updateViaCache: 'none'`, sends PRECACHE_CHUNKS after load
+
+**QR Code Terminal Activation:**
+- Admin: shows QR code in activation dialog (qrcode.react library)
+- Cashier: camera scanner on activate page (html5-qrcode library)
+- URL auto-fill via `?code=` query parameter
+- Wrapped in `<Suspense>` for `useSearchParams()` (Next.js 16 requirement)
+- Bug: activation returns 404 — codes were consumed by curl tests during debugging
+
+**Variant Display Types:**
+- Added `displayType` column on `option_groups` table (auto/color/image/text)
+- Admin variant editor: dropdown per option group to configure display type
+- Cashier variant picker: respects displayType setting
+- DB schema change in `packages/database/src/schema/option-groups.ts`
+
+**Admin Fixes:**
+- Product images served by nginx for admin subdomain (was missing volume mount)
+- Product name column capped at 400px (prevented column overflow)
+- Row click opens product detail
+
+**Pending from this session:**
+- Terminal activation debugging (verify DB state, test with fresh activation code)
+- Debug logging system (toggleable via localStorage, off for production)
+
+**Commits:** a45430c and prior (catalog sync series)
