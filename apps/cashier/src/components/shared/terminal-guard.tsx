@@ -28,8 +28,8 @@ export default function TerminalGuard({ children }: { children: React.ReactNode 
       return;
     }
 
-    // Validate terminal with server
-    fetch(`/api/terminals/me?id=${terminalId}`)
+    // Validate terminal with server (no-store prevents cached stale responses)
+    fetch(`/api/terminals/me?id=${terminalId}`, { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
