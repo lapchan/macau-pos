@@ -39,6 +39,7 @@ import {
   ChevronDown,
   KeyRound,
   Unplug,
+  Unlink,
 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────
@@ -94,7 +95,7 @@ function isOnline(lastHeartbeatAt: Date | null): boolean {
   return Date.now() - new Date(lastHeartbeatAt).getTime() < 3 * 60 * 1000;
 }
 
-type DisplayStatus = "online" | "offline" | "disabled" | "maintenance";
+type DisplayStatus = "online" | "offline" | "unpaired" | "disabled" | "maintenance";
 
 function getDisplayStatus(
   status: "active" | "disabled" | "maintenance",
@@ -103,7 +104,7 @@ function getDisplayStatus(
 ): DisplayStatus {
   if (status === "disabled") return "disabled";
   if (status === "maintenance") return "maintenance";
-  if (!activatedAt) return "offline"; // Not paired — can't be online
+  if (!activatedAt) return "unpaired";
   return isOnline(lastHeartbeatAt) ? "online" : "offline";
 }
 
@@ -133,6 +134,14 @@ const statusConfig: Record<
     bg: "bg-danger",
     badgeBg: "bg-danger-light",
     icon: WifiOff,
+  },
+  unpaired: {
+    label: "Not Paired",
+    labelKey: "terminals.statusUnpaired",
+    color: "text-warning",
+    bg: "bg-warning",
+    badgeBg: "bg-warning-light",
+    icon: Unlink,
   },
   disabled: {
     label: "Disabled",
@@ -753,6 +762,7 @@ export default function TerminalsClient({ terminals, summary, locations = [] }: 
             <option value="all">{t(locale, "terminals.allStatuses")}</option>
             <option value="online">{t(locale, "terminals.statusOnline")}</option>
             <option value="offline">{t(locale, "terminals.statusOffline")}</option>
+            <option value="unpaired">{t(locale, "terminals.statusUnpaired")}</option>
             <option value="disabled">{t(locale, "terminals.statusDisabled")}</option>
             <option value="maintenance">{t(locale, "terminals.statusMaintenance")}</option>
           </select>

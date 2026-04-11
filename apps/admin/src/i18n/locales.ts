@@ -316,6 +316,7 @@ export type AdminTranslationKeys = {
   "terminals.viewList": string;
   "terminals.statusOnline": string;
   "terminals.statusOffline": string;
+  "terminals.statusUnpaired": string;
   "terminals.statusWarning": string;
   "terminals.statusMaintenance": string;
   "terminals.revenue": string;
@@ -940,6 +941,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.viewList": "List view",
     "terminals.statusOnline": "Online",
     "terminals.statusOffline": "Offline",
+    "terminals.statusUnpaired": "Not Paired",
     "terminals.statusWarning": "Warning",
     "terminals.statusMaintenance": "Maintenance",
     "terminals.revenue": "Revenue",
@@ -1542,6 +1544,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.viewList": "列表檢視",
     "terminals.statusOnline": "在線",
     "terminals.statusOffline": "離線",
+    "terminals.statusUnpaired": "未配對",
     "terminals.statusWarning": "警告",
     "terminals.statusMaintenance": "維護中",
     "terminals.revenue": "營收",
@@ -2142,6 +2145,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.viewList": "列表视图",
     "terminals.statusOnline": "在线",
     "terminals.statusOffline": "离线",
+    "terminals.statusUnpaired": "未配对",
     "terminals.statusWarning": "警告",
     "terminals.statusMaintenance": "维护中",
     "terminals.revenue": "营收",
@@ -2742,6 +2746,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.viewList": "Vista em lista",
     "terminals.statusOnline": "Online",
     "terminals.statusOffline": "Offline",
+    "terminals.statusUnpaired": "Não Emparelhado",
     "terminals.statusWarning": "Aviso",
     "terminals.statusMaintenance": "Manutenção",
     "terminals.revenue": "Receita",
@@ -3342,6 +3347,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.viewList": "リスト表示",
     "terminals.statusOnline": "オンライン",
     "terminals.statusOffline": "オフライン",
+    "terminals.statusUnpaired": "未ペアリング",
     "terminals.statusWarning": "警告",
     "terminals.statusMaintenance": "メンテナンス中",
     "terminals.revenue": "売上",
