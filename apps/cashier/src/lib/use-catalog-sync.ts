@@ -163,10 +163,11 @@ export function useCatalogSync(
       const result = await performFullSync(locationId);
       applySyncResult(result.products, result.categories);
 
-      // Sync images
-      await doImageSync(result.products, showOverlay);
+      // Show POS immediately, sync images in background (no overlay)
+      if (mountedRef.current) setSyncStatus("idle");
+      doImageSync(result.products, false);
     } catch {
-      if (mountedRef.current) setSyncStatus("error");
+      if (mountedRef.current) setSyncStatus("idle");
     }
   }, [locationId, applySyncResult, doImageSync]);
 
@@ -228,10 +229,10 @@ export function useCatalogSync(
           try {
             const result = await performFullSync(locationId);
             applySyncResult(result.products, result.categories);
-            setSyncProgress({ phase: "data", current: result.products.length, total: result.products.length });
 
-            // Sync images with progress
-            await doImageSync(result.products, true);
+            // Show POS immediately, sync images in background
+            if (mountedRef.current) setSyncStatus("idle");
+            doImageSync(result.products, false);
           } catch {
             // Sync failed — fall through to SSR props
             if (mountedRef.current) setSyncStatus("idle");
