@@ -39,9 +39,10 @@ export default function TerminalGuard({ children }: { children: React.ReactNode 
           setTerminalName(data.terminalName || "");
           setStatus("disabled");
         } else {
-          // Terminal not found — clear stored ID and redirect
+          // Terminal not found or unlinked — clear stored data and redirect
           localStorage.removeItem("pos_terminal_id");
           localStorage.removeItem("pos_terminal_name");
+          sessionStorage.removeItem("pos-locked");
           setStatus("not-activated");
         }
       })
@@ -92,6 +93,7 @@ export default function TerminalGuard({ children }: { children: React.ReactNode 
             onClick={() => {
               localStorage.removeItem("pos_terminal_id");
               localStorage.removeItem("pos_terminal_name");
+              sessionStorage.removeItem("pos-locked");
               router.replace("/activate");
             }}
             className="mt-6 text-xs text-blue-500 hover:text-blue-600 transition-colors"
