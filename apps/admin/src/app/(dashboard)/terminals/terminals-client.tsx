@@ -843,7 +843,7 @@ export default function TerminalsClient({ terminals, summary, locations = [] }: 
         <button
           onClick={() => router.refresh()}
           disabled={isPending}
-          className="h-9 w-9 flex items-center justify-center rounded-[var(--radius-sm)] border border-border text-text-tertiary hover:text-text-secondary hover:bg-surface-hover transition-colors disabled:opacity-50 ml-auto"
+          className="h-9 w-9 flex items-center justify-center rounded-[var(--radius-sm)] border border-border text-text-tertiary hover:text-text-secondary hover:bg-surface-hover active:scale-95 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ml-auto"
           title={t(locale, "common.refresh")}
         >
           <RefreshCw className={cn("h-4 w-4", isPending && "animate-spin")} />
