@@ -98,10 +98,12 @@ type DisplayStatus = "online" | "offline" | "disabled" | "maintenance";
 
 function getDisplayStatus(
   status: "active" | "disabled" | "maintenance",
-  lastHeartbeatAt: Date | null
+  lastHeartbeatAt: Date | null,
+  activatedAt?: Date | null
 ): DisplayStatus {
   if (status === "disabled") return "disabled";
   if (status === "maintenance") return "maintenance";
+  if (!activatedAt) return "offline"; // Not paired — can't be online
   return isOnline(lastHeartbeatAt) ? "online" : "offline";
 }
 
@@ -554,7 +556,7 @@ export default function TerminalsClient({ terminals, summary, locations = [] }: 
     }
     // Status filter
     if (statusFilter !== "all") {
-      const ds = getDisplayStatus(terminal.status, terminal.lastHeartbeatAt);
+      const ds = getDisplayStatus(terminal.status, terminal.lastHeartbeatAt, terminal.activatedAt);
       if (ds !== statusFilter) return false;
     }
     return true;
@@ -608,7 +610,7 @@ export default function TerminalsClient({ terminals, summary, locations = [] }: 
 
   // ─── Build action menu items for a terminal ────────────────
   function getMenuActions(terminal: TerminalRow) {
-    const ds = getDisplayStatus(terminal.status, terminal.lastHeartbeatAt);
+    const ds = getDisplayStatus(terminal.status, terminal.lastHeartbeatAt, terminal.activatedAt);
     const actions: {
       icon: React.ComponentType<{ className?: string }>;
       label: string;
@@ -781,7 +783,7 @@ export default function TerminalsClient({ terminals, summary, locations = [] }: 
       {view === "grid" ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filtered.map((terminal) => {
-            const ds = getDisplayStatus(terminal.status, terminal.lastHeartbeatAt);
+            const ds = getDisplayStatus(terminal.status, terminal.lastHeartbeatAt, terminal.activatedAt);
             const cfg = statusConfig[ds];
             const StatusIcon = cfg.icon;
             return (
@@ -901,7 +903,7 @@ export default function TerminalsClient({ terminals, summary, locations = [] }: 
                   <div>
                     <div className="flex items-center gap-1 text-xs text-text-tertiary mb-0.5">
                       <DollarSign className="h-3 w-3" />
-                      {terminal.activeShift ? t(locale, "terminals.shiftRevenue") || "Shift" : t(locale, "terminals.revenue")}
+                      {terminal.activeShift ? t(locale, "terminals.shiftRevenue") : t(locale, "terminals.revenue")}
                     </div>
                     <p className="text-sm font-semibold tabular-nums text-text-primary">
                       {t(locale, "common.mop")} {terminal.activeShift ? terminal.activeShift.shiftSales.toLocaleString() : terminal.todayRevenue.toLocaleString()}
@@ -919,7 +921,7 @@ export default function TerminalsClient({ terminals, summary, locations = [] }: 
                   <div>
                     <div className="flex items-center gap-1 text-xs text-text-tertiary mb-0.5">
                       <Package className="h-3 w-3" />
-                      {terminal.activeShift ? t(locale, "terminals.shiftOrders") || "Shift" : t(locale, "terminals.orders")}
+                      {terminal.activeShift ? t(locale, "terminals.shiftOrders") : t(locale, "terminals.orders")}
                     </div>
                     <p className="text-sm font-semibold tabular-nums text-text-primary">
                       {terminal.activeShift ? terminal.activeShift.shiftOrders : terminal.todayOrders}
@@ -961,7 +963,7 @@ export default function TerminalsClient({ terminals, summary, locations = [] }: 
             </thead>
             <tbody>
               {filtered.map((terminal) => {
-                const ds = getDisplayStatus(terminal.status, terminal.lastHeartbeatAt);
+                const ds = getDisplayStatus(terminal.status, terminal.lastHeartbeatAt, terminal.activatedAt);
                 const cfg = statusConfig[ds];
                 return (
                   <tr

@@ -319,6 +319,7 @@ export type AdminTranslationKeys = {
   "terminals.statusWarning": string;
   "terminals.statusMaintenance": string;
   "terminals.revenue": string;
+  "terminals.shiftRevenue": string;
   "terminals.stock": string;
   "terminals.synced": string;
   "terminals.colTerminal": string;
@@ -362,6 +363,7 @@ export type AdminTranslationKeys = {
   "terminals.noResults": string;
   "terminals.cashier": string;
   "terminals.orders": string;
+  "terminals.shiftOrders": string;
   "terminals.colOrders": string;
   "terminals.colCashier": string;
   "terminals.total": string;
@@ -941,6 +943,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.statusWarning": "Warning",
     "terminals.statusMaintenance": "Maintenance",
     "terminals.revenue": "Revenue",
+    "terminals.shiftRevenue": "Shift",
     "terminals.stock": "Stock",
     "terminals.synced": "Synced",
     "terminals.colTerminal": "Terminal",
@@ -984,6 +987,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.noResults": "No terminals found.",
     "terminals.cashier": "Cashier",
     "terminals.orders": "Orders",
+    "terminals.shiftOrders": "Shift",
     "terminals.colOrders": "Orders",
     "terminals.colCashier": "Cashier",
     "terminals.total": "Total",
@@ -1541,6 +1545,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.statusWarning": "警告",
     "terminals.statusMaintenance": "維護中",
     "terminals.revenue": "營收",
+    "terminals.shiftRevenue": "當更",
     "terminals.stock": "庫存",
     "terminals.synced": "已同步",
     "terminals.colTerminal": "終端",
@@ -1584,6 +1589,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.noResults": "找不到終端。",
     "terminals.cashier": "收銀員",
     "terminals.orders": "訂單",
+    "terminals.shiftOrders": "當更",
     "terminals.colOrders": "訂單",
     "terminals.colCashier": "收銀員",
     "terminals.total": "總計",
@@ -2139,6 +2145,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.statusWarning": "警告",
     "terminals.statusMaintenance": "维护中",
     "terminals.revenue": "营收",
+    "terminals.shiftRevenue": "当更",
     "terminals.stock": "库存",
     "terminals.synced": "已同步",
     "terminals.colTerminal": "终端",
@@ -2182,6 +2189,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.noResults": "未找到终端。",
     "terminals.cashier": "收银员",
     "terminals.orders": "订单",
+    "terminals.shiftOrders": "当更",
     "terminals.colOrders": "订单",
     "terminals.colCashier": "收银员",
     "terminals.total": "总计",
@@ -2737,6 +2745,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.statusWarning": "Aviso",
     "terminals.statusMaintenance": "Manutenção",
     "terminals.revenue": "Receita",
+    "terminals.shiftRevenue": "Turno",
     "terminals.stock": "Stock",
     "terminals.synced": "Sincronizado",
     "terminals.colTerminal": "Terminal",
@@ -2780,6 +2789,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.noResults": "Nenhum terminal encontrado.",
     "terminals.cashier": "Caixa",
     "terminals.orders": "Pedidos",
+    "terminals.shiftOrders": "Turno",
     "terminals.colOrders": "Pedidos",
     "terminals.colCashier": "Caixa",
     "terminals.total": "Total",
@@ -3335,6 +3345,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.statusWarning": "警告",
     "terminals.statusMaintenance": "メンテナンス中",
     "terminals.revenue": "売上",
+    "terminals.shiftRevenue": "シフト",
     "terminals.stock": "在庫",
     "terminals.synced": "同期済み",
     "terminals.colTerminal": "端末",
@@ -3378,6 +3389,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "terminals.noResults": "端末が見つかりません。",
     "terminals.cashier": "レジ担当",
     "terminals.orders": "注文",
+    "terminals.shiftOrders": "シフト",
     "terminals.colOrders": "注文",
     "terminals.colCashier": "レジ担当",
     "terminals.total": "合計",
