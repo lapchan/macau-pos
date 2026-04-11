@@ -350,7 +350,7 @@ export default function ItemsClient({ products, categories, categoryOptions = []
                         )}
                         <div className="h-9 w-9 rounded-[var(--radius-sm)] bg-surface-hover flex items-center justify-center shrink-0 overflow-hidden">
                           {product.image ? (
-                            <img src={product.image} alt="" className="h-full w-full object-cover" />
+                            <img src={product.image} alt={product.name} className="h-full w-full object-cover" />
                           ) : (
                             <Package className="h-4 w-4 text-text-tertiary" strokeWidth={1.5} />
                           )}
@@ -441,7 +441,7 @@ export default function ItemsClient({ products, categories, categoryOptions = []
                           {/* Variant image */}
                           <div className="h-7 w-7 rounded-[var(--radius-sm)] bg-surface-hover flex items-center justify-center shrink-0 overflow-hidden">
                             {variant.image ? (
-                              <img src={variant.image} alt="" className="h-full w-full object-cover" />
+                              <img src={variant.image} alt={Object.values(variant.optionCombo).join(" / ")} className="h-full w-full object-cover" />
                             ) : (
                               <Package className="h-3 w-3 text-text-tertiary" strokeWidth={1.5} />
                             )}

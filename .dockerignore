@@ -8,5 +8,6 @@ node_modules
 docs
 .skills
 
-# Product images — served by nginx from persistent volume
+# Product images — served by nginx from persistent volume, NOT in Docker
 apps/cashier/public/products
+apps/storefront/public/products

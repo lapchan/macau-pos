@@ -410,7 +410,7 @@ export default function ProductOverviewExpandable({
                       onClick={() => setSelectedImage(i)}
                       className={`relative aspect-square overflow-hidden bg-[#f5f5f5] ${i === selectedImage ? "ring-1 ring-[#121212]" : "ring-1 ring-transparent hover:ring-[#121212]/30"} transition-all`}
                     >
-                      <Image src={img.url} alt="" fill sizes="80px" className="object-cover" />
+                      <Image src={img.url} alt={img.alt || name} fill sizes="80px" className="object-cover" />
                     </button>
                   ))}
                 </div>
@@ -654,7 +654,7 @@ export default function ProductOverviewExpandable({
                     >
                       <span className="sr-only">{img.alt || `Image ${i + 1}`}</span>
                       <span className="absolute inset-0 overflow-hidden rounded-md">
-                        <Image src={img.url} alt="" fill sizes="80px" className="object-cover" />
+                        <Image src={img.url} alt={img.alt || name} fill sizes="80px" className="object-cover" />
                       </span>
                       {/* Selection ring */}
                       <span

@@ -372,7 +372,7 @@ export default function VariantEditor({
                           <label className="cursor-pointer inline-flex items-center justify-center">
                             {v.image ? (
                               <div className="relative group">
-                                <img src={v.image} alt="" className="h-8 w-8 rounded-full object-cover border border-border" />
+                                <img src={v.image} alt={v.name || ""} className="h-8 w-8 rounded-full object-cover border border-border" />
                                 <button
                                   type="button"
                                   onClick={(e) => {

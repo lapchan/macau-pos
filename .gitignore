@@ -15,3 +15,4 @@ QA-REPORT.md
 .turbo/
 .vercel/
 apps/cashier/public/products/
+apps/storefront/public/products/

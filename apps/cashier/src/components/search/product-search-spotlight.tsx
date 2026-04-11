@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { cn } from "@/lib/cn";
 import { type Locale, t, getProductName } from "@/i18n/locales";
 import { type Product } from "@/data/mock";
+import { resolveImageSrc } from "@/lib/catalog-image-sync";
 import { Search, X, ShoppingBag } from "lucide-react";
 import CloseButton from "@/components/shared/close-button";
 
@@ -122,7 +123,7 @@ export default function ProductSearchSpotlight({
                       >
                         <div className="h-10 w-10 rounded-[var(--radius-sm)] bg-pos-bg flex items-center justify-center shrink-0 overflow-hidden">
                           {product.image ? (
-                            <img src={product.image} alt="" className="h-full w-full object-cover" />
+                            <img src={resolveImageSrc(product.image)} alt={displayName} className="h-full w-full object-cover" loading="lazy" fetchPriority="low" />
                           ) : (
                             <ShoppingBag className="h-4 w-4 text-pos-text-muted/40" strokeWidth={1.5} />
                           )}
