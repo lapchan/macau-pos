@@ -1,12 +1,20 @@
 "use client";
 
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Monitor, Loader2, AlertCircle, CheckCircle2, QrCode, X } from "lucide-react";
 
 const CODE_LENGTH = 6;
 
 export default function ActivateTerminalPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center"><Loader2 className="h-8 w-8 text-blue-500 animate-spin" /></div>}>
+      <ActivateTerminalContent />
+    </Suspense>
+  );
+}
+
+function ActivateTerminalContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [code, setCode] = useState("");
