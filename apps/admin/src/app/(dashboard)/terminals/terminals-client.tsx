@@ -871,7 +871,7 @@ export default function TerminalsClient({ terminals, summary, locations = [] }: 
 
       {/* Terminal cards grid */}
       {view === "grid" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-4 transition-opacity duration-300", isPending && "opacity-50 pointer-events-none")}>
           {filtered.map((terminal) => {
             const ds = getDisplayStatus(terminal.status, terminal.lastHeartbeatAt, terminal.activatedAt);
             const cfg = statusConfig[ds];
@@ -1029,7 +1029,7 @@ export default function TerminalsClient({ terminals, summary, locations = [] }: 
         </div>
       ) : (
         /* List view */
-        <Card padding="none">
+        <Card padding="none" className={cn("transition-opacity duration-300", isPending && "opacity-50 pointer-events-none")}>
           <table className="w-full text-sm" aria-label={t(locale, "terminals.title")}>
             <thead>
               <tr className="border-b border-border">
