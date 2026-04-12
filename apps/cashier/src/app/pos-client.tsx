@@ -27,6 +27,7 @@ import KeypadView from "@/components/pos/keypad-view";
 import DiscountPopover from "@/components/pos/discount-popover";
 import dynamic from "next/dynamic";
 const CameraScanner = dynamic(() => import("@/components/scanner/camera-scanner"), { ssr: false });
+import ScanFeedback, { type ScanFeedbackState } from "@/components/scanner/scan-feedback";
 import CustomerSearchSpotlight from "@/components/customer/customer-search-spotlight";
 import CustomerDetailSheet, { type LinkedCustomer } from "@/components/customer/customer-detail-sheet";
 import ProductSearchSpotlight from "@/components/search/product-search-spotlight";
@@ -339,6 +340,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
   const [showShiftSummary, setShowShiftSummary] = useState(false);
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
   const [showCameraScanner, setShowCameraScanner] = useState(false);
+  const [scanFeedback, setScanFeedback] = useState<ScanFeedbackState>(null);
   const [showCustomerDetail, setShowCustomerDetail] = useState(false);
   const [linkedCustomer, setLinkedCustomer] = useState<LinkedCustomer | null>(null);
   const [showShiftClose, setShowShiftClose] = useState(false);
@@ -681,10 +683,26 @@ export default function POSClient({ initialProducts, initialCategories, userName
   }, []);
 
   // ─── Barcode scanner ───────────────────────────────────────
+  const showScanFeedback = useCallback(
+    (kind: "success" | "not-found" | "error", message: string) => {
+      setScanFeedback({ kind, message, nonce: Date.now() });
+    },
+    []
+  );
+
   const handleBarcodeScan = useCallback(async (barcode: string) => {
+    const code = barcode.trim();
     let result;
-    try { result = await lookupBarcode(barcode); } catch { return; }
-    if (!result.found) return;
+    try {
+      result = await lookupBarcode(code);
+    } catch {
+      showScanFeedback("error", t(locale, "scanError").replace("{code}", code));
+      return;
+    }
+    if (!result.found) {
+      showScanFeedback("not-found", t(locale, "scanNotFound").replace("{code}", code));
+      return;
+    }
 
     // Customer membership card
     if (result.type === "customer") {
@@ -694,6 +712,10 @@ export default function POSClient({ initialProducts, initialCategories, userName
         phone: result.customer.phone || undefined,
         email: result.customer.email || undefined,
       });
+      showScanFeedback(
+        "success",
+        t(locale, "scanCustomerLinked").replace("{name}", result.customer.name)
+      );
       return;
     }
 
@@ -701,6 +723,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
       // Add variant directly to cart
       const variantCartId = `${result.productId}__${result.variantId}`;
       const variantName = Object.values(result.optionCombo).join(" / ");
+      const displayName = `${result.productName} · ${variantName}`;
       setAddedId(result.productId);
       setTimeout(() => setAddedId(null), 300);
       setCart((prev) => {
@@ -712,7 +735,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
         }
         return [...prev, {
           id: variantCartId,
-          name: `${result.productName} · ${variantName}`,
+          name: displayName,
           price: result.price,
           category: "scanned",
           inStock: true,
@@ -722,8 +745,11 @@ export default function POSClient({ initialProducts, initialCategories, userName
           variantOptions: Object.values(result.optionCombo),
         }];
       });
+      showScanFeedback("success", t(locale, "scanAdded").replace("{name}", displayName));
     } else {
       // Product — if it has variants, open picker; otherwise add directly
+      const displayName =
+        (result.translations && result.translations[locale]) || result.name;
       if (result.hasVariants) {
         const product: Product = {
           id: result.productId,
@@ -758,8 +784,9 @@ export default function POSClient({ initialProducts, initialCategories, userName
           }];
         });
       }
+      showScanFeedback("success", t(locale, "scanAdded").replace("{name}", displayName));
     }
-  }, [addToCart]);
+  }, [addToCart, locale, showScanFeedback]);
 
   useBarcodeScanner({
     onScan: handleBarcodeScan,
@@ -1702,6 +1729,9 @@ export default function POSClient({ initialProducts, initialCategories, userName
           onClose={() => setShowCameraScanner(false)}
         />
       )}
+
+      {/* ============ SCAN FEEDBACK BANNER ============ */}
+      <ScanFeedback state={scanFeedback} onDone={() => setScanFeedback(null)} />
 
       {/* ============ CUSTOMER SEARCH SPOTLIGHT ============ */}
       {showCustomerSearch && (

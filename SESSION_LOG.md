@@ -874,3 +874,130 @@ Built IndexedDB-backed product catalog sync for offline support and faster loads
 - Debug logging system (toggleable via localStorage, off for production)
 
 **Commits:** a45430c and prior (catalog sync series)
+
+## Image Management Review + Deploy Timing (2026-04-12)
+
+Product review of image management across all 3 apps (cashier, admin, storefront). Found and fixed critical issues.
+
+**Critical fixes:**
+- Storefront nginx was missing `/products/` location — images proxied through Node.js instead of served directly. Added nginx block with 7-day cache, matching admin/cashier.
+- Storefront product images (1,731 files, ~1GB) were tracked in git and included in Docker build. Removed from git (`git rm --cached`), added to `.dockerignore` and `.gitignore`.
+- Cashier search spotlight (`product-search-spotlight.tsx`) was NOT using `resolveImageSrc()` — images wouldn't display offline. Fixed with `resolveImageSrc()` + `loading="lazy"` + `fetchPriority="low"`.
+
+**Medium fixes:**
+- Admin: empty `alt=""` on product images → now uses `product.name`
+- Admin: empty `alt=""` on variant images → now uses option combo text
+- Admin: variant editor image `alt=""` → uses `v.name`
+- Storefront: thumbnail gallery `alt=""` → uses `img.alt || name`
+
+**Infrastructure discovery:**
+- Nginx container mounts config from `/opt/macau-pos/` (old copy), NOT `/root/app/macau-pos/` (active repo). Must copy config after git pull: `cp /root/app/macau-pos/deploy/nginx/conf.d/default.conf /opt/macau-pos/deploy/nginx/conf.d/default.conf`
+
+**Deploy timing (real build with code changes):**
+- Git push: 2s
+- Git pull (server): 6s
+- Build cashier: 41s
+- Build admin: 27s
+- Build storefront: 91s (largest app)
+- Restart containers + nginx: 9s
+- Verification: 26s
+- **Total: ~3 min 22s**
+
+**Commits:** e1db84b, 97b2ffa
+
+## Terminal Unlink Flow + Heartbeat Detection + Variant Image Fix (2026-04-12)
+
+**Terminal unlink — real-time detection via heartbeat:**
+- Heartbeat API (`/api/terminals/heartbeat`) now checks `activatedAt` and `status` before updating heartbeat
+- Returns `error: "unlinked"` / `"disabled"` / `"not-found"` when terminal is invalid
+- `useHeartbeat` hook returns `forcedLogout` state (was fire-and-forget)
+- `AppShell` renders blocking overlay on forced logout: "Terminal Disconnected" with 4s countdown → redirect to `/activate`
+- Clears localStorage (`pos_terminal_id`, `pos_terminal_name`) and sessionStorage (`pos-locked`)
+
+**Cache-busting fix:**
+- Terminal guard fetch had no cache control — browser served stale `{ success: true }` after admin unlinked device
+- Added `cache: "no-store"` to terminal guard fetch
+- Added `export const dynamic = "force-dynamic"` to `/api/terminals/me` route
+
+**Unlink confirmation dialog:**
+- Added `UnlinkConfirmDialog` component (orange warning theme, matching `DeleteConfirmDialog` pattern)
+- Shows terminal name and warning: "The active session will be terminated and the device will need to re-activate"
+- i18n in all 5 languages (EN, TC, SC, PT, JP)
+
+**"Not Paired" status for unlinked terminals:**
+- Added `unpaired` display status with orange badge and `Unlink` icon
+- Replaces misleading red "Offline" for terminals that have never been paired
+- Added to status filter dropdown
+- i18n: "Not Paired" / "未配對" / "未配对" / "Não Emparelhado" / "未ペアリング"
+
+**Variant image path fix (production DB):**
+- 145 variant images pointed to full-size originals (`/products/savewo/`, ~330KB each)
+- Updated to optimized POS thumbnails (`/products/pos/savewo/`, ~22KB each) — 15x smaller
+- `UPDATE product_variants SET image = REPLACE(image, '/products/savewo/', '/products/pos/savewo/')`
+
+**Root cause of "sudden unlink":**
+- Terminals were unlinked in previous session during unlink feature testing
+- Old cashier code had no heartbeat check and browser cached stale API responses
+- New heartbeat code correctly detected the already-unlinked state on first run
+
+**Commits:** 47a93d6, c54ea1b, ac831d1, 3ae2af1
+
+## Terminal Refresh Button + Loading Animation (2026-04-12)
+
+**Refresh button for terminals page:**
+- Added refresh button (RefreshCw icon) in toolbar, positioned before grid/list toggle
+- i18n "Refresh" label in all 5 languages
+
+**Refresh button UX fixes (3 iterations):**
+1. Added `cursor-pointer` and `active:scale-95` tap feedback animation
+2. Fixed: `router.refresh()` wasn't wrapped in `startTransition` so `isPending` was never true — no spinner, no fade. Replaced with `refreshTerminals()` server action (`revalidatePath("/terminals")`) called inside `startTransition`. Now spinner + opacity fade work correctly.
+3. Fixed: terminal card action button (`⋯`) was invisible on touch devices due to `opacity-0 group-hover:opacity-100` — removed hover-only visibility, button now always visible.
+
+**Loading state during refresh:**
+- Grid view: `opacity-50 pointer-events-none` with 300ms transition
+- List view: same treatment on Card wrapper
+- RefreshCw icon: `animate-spin` while `isPending`
+
+**Deploy command fix:**
+- Discovered `docker compose` without `-f` flag only sees `docker-compose.yml` (which only has postgres)
+- Correct command: `docker compose -f docker-compose.production.yml --env-file .env.production build <app> && up -d <app>`
+
+## Hardware Scanner Test Scaffolding (2026-04-12)
+
+Set up everything needed to test the USB barcode scanner on iPad. The hook (`use-barcode-scanner.ts`) and lookup (`actions.ts:lookupBarcode`) were already in place, but three things blocked testing:
+1. **No barcodes in DB** — Savewo import didn't include barcode column; all 188 products had `barcode = NULL`
+2. **Silent failure** — `handleBarcodeScan` swallowed errors and not-found results with no UI feedback
+3. **Nothing physical to scan** — needed printable test codes
+
+**Scan feedback banner (new):**
+- `apps/cashier/src/components/scanner/scan-feedback.tsx` — fixed top-center pill, 3 variants (success/not-found/error), fades in/out after 2s
+- Uses `nonce: Date.now()` so identical messages re-trigger animation
+- z-index 60 (above sheets, below modals)
+
+**`handleBarcodeScan` rewrite (`pos-client.tsx:685`):**
+- Surfaces feedback for: error, not-found, customer linked, variant added, product added
+- Display name uses `result.translations[locale]` when available
+- Added `showScanFeedback` callback wrapped in `useCallback`
+
+**i18n: 4 new keys × 5 locales:**
+- `scanAdded` (`{name}` placeholder), `scanCustomerLinked` (`{name}`), `scanNotFound` (`{code}`), `scanError` (`{code}`)
+- `t()` doesn't interpolate so we use `.replace("{name}", ...)` at call site
+
+**Test EAN-13 SQL (`packages/database/src/data/test-barcodes.sql`):**
+- Assigns 10 valid EAN-13 codes (`200000000001x` series, "in-store" 200x prefix → never collides with real GTINs) to first 10 active CountingStars products via CTE + ROW_NUMBER
+- Prints slot↔product mapping after update
+- Wrapped in `BEGIN`/`COMMIT`, includes revert SQL in comments
+
+**Printable test page (`apps/cashier/public/barcodes-test.html`):**
+- Static HTML, JsBarcode CDN renders all 10 EAN-13s as scannable images
+- 2-column grid, Print + Fullscreen buttons, print-friendly CSS
+- Served by Next.js static at `pos.hkretailai.com/barcodes-test.html`
+
+**Pre-existing type errors** (catalog routes, history-actions, pos-client.tsx:905) unchanged. Build still passes via `typescript.ignoreBuildErrors`.
+
+**Deferred (not implemented):**
+- IndexedDB fallback for offline scans (catalog-db has `by-barcode` index but `lookupBarcode` is server-only)
+- Beep/haptic feedback via `navigator.vibrate` + Audio
+- Quantity multiplier prefix support
+
+**Commits:** f7dee61, 4b9eed0, 5ac6203, 4aa68b2

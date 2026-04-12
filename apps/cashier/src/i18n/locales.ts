@@ -113,6 +113,10 @@ type TranslationKeys = {
   pointsAbbrev: string;
   searchMoreResults: string;
   scanBarcode: string;
+  scanAdded: string;
+  scanCustomerLinked: string;
+  scanNotFound: string;
+  scanError: string;
 
   // Categories
   all: string;
@@ -369,6 +373,10 @@ const translations: Record<Locale, TranslationKeys> = {
     pointsAbbrev: "積分",
     searchMoreResults: "還有{count}個",
     scanBarcode: "掃描條碼",
+    scanAdded: "已加入：{name}",
+    scanCustomerLinked: "已連結會員：{name}",
+    scanNotFound: "找不到條碼：{code}",
+    scanError: "掃描失敗：{code}",
     all: "全部",
     beverages: "飲品",
     snacks: "零食",
@@ -601,6 +609,10 @@ const translations: Record<Locale, TranslationKeys> = {
     pointsAbbrev: "积分",
     searchMoreResults: "还有{count}个",
     scanBarcode: "扫描条码",
+    scanAdded: "已加入：{name}",
+    scanCustomerLinked: "已链接会员：{name}",
+    scanNotFound: "找不到条码：{code}",
+    scanError: "扫描失败：{code}",
     all: "全部",
     beverages: "饮品",
     snacks: "零食",
@@ -833,6 +845,10 @@ const translations: Record<Locale, TranslationKeys> = {
     pointsAbbrev: "pts",
     searchMoreResults: "+{count} more",
     scanBarcode: "Scan Barcode",
+    scanAdded: "Added: {name}",
+    scanCustomerLinked: "Customer linked: {name}",
+    scanNotFound: "Not found: {code}",
+    scanError: "Scan failed: {code}",
     all: "All",
     beverages: "Drinks",
     snacks: "Snacks",
@@ -1065,6 +1081,10 @@ const translations: Record<Locale, TranslationKeys> = {
     pointsAbbrev: "pts",
     searchMoreResults: "+{count} mais",
     scanBarcode: "Ler Código",
+    scanAdded: "Adicionado: {name}",
+    scanCustomerLinked: "Cliente vinculado: {name}",
+    scanNotFound: "Não encontrado: {code}",
+    scanError: "Falha na leitura: {code}",
     all: "Todos",
     beverages: "Bebidas",
     snacks: "Lanches",
@@ -1297,6 +1317,10 @@ const translations: Record<Locale, TranslationKeys> = {
     pointsAbbrev: "ポイント",
     searchMoreResults: "他{count}件",
     scanBarcode: "バーコードスキャン",
+    scanAdded: "追加：{name}",
+    scanCustomerLinked: "会員リンク：{name}",
+    scanNotFound: "見つかりません：{code}",
+    scanError: "読取失敗：{code}",
     all: "すべて",
     beverages: "ドリンク",
     snacks: "スナック",
