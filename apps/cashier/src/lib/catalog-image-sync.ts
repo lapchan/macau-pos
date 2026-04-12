@@ -5,7 +5,6 @@
 
 import {
   type CatalogProduct,
-  getCachedImage,
   putImage,
   deleteImage,
   getAllImages,
@@ -59,18 +58,36 @@ type ProgressCallback = (progress: ImageSyncProgress) => void;
 /**
  * Sync images for a list of products.
  * Skips already-cached images, fetches missing ones in batches.
+ *
+ * URL ordering: for each product we emit the main image followed by that
+ * product's variant images, so every batch loads a full product before
+ * moving on. This means tapping any already-synced card shows its variant
+ * swatches without a network round-trip, even if sync is still in progress.
  */
 export async function syncImages(
   products: CatalogProduct[],
   onProgress?: ProgressCallback,
   signal?: AbortSignal,
-  extraImageUrls?: string[]
+  variantsByProduct?: Map<string, string[]>
 ): Promise<void> {
-  // Collect unique image URLs (products + variants + extras)
-  const imageUrls = [...new Set([
-    ...products.map((p) => p.image).filter(Boolean) as string[],
-    ...(extraImageUrls || []),
-  ])];
+  const imageUrls: string[] = [];
+  const seen = new Set<string>();
+  const push = (url: string | null | undefined) => {
+    if (!url || seen.has(url)) return;
+    seen.add(url);
+    imageUrls.push(url);
+  };
+  for (const p of products) {
+    push(p.image);
+    const vars = variantsByProduct?.get(p.id);
+    if (vars) for (const v of vars) push(v);
+  }
+  if (variantsByProduct) {
+    // Orphan variant URLs (variants whose parent product isn't in the list)
+    for (const vars of variantsByProduct.values()) {
+      for (const v of vars) push(v);
+    }
+  }
 
   if (imageUrls.length === 0) { console.log("[ImageSync] No image URLs to sync"); return; }
 
@@ -131,11 +148,20 @@ async function fetchAndStoreImage(url: string, signal?: AbortSignal): Promise<vo
 
 // ─── Image Cleanup ───────────────────────────────────────
 
-/** Remove cached images that are no longer referenced by any product */
-export async function cleanupOrphanedImages(currentProducts: CatalogProduct[]): Promise<void> {
-  const activeUrls = new Set(
-    currentProducts.map((p) => p.image).filter(Boolean) as string[]
-  );
+/** Remove cached images that are no longer referenced by any product or variant */
+export async function cleanupOrphanedImages(
+  currentProducts: CatalogProduct[],
+  variantsByProduct?: Map<string, string[]>
+): Promise<void> {
+  const activeUrls = new Set<string>();
+  for (const p of currentProducts) {
+    if (p.image) activeUrls.add(p.image);
+  }
+  if (variantsByProduct) {
+    for (const vars of variantsByProduct.values()) {
+      for (const v of vars) activeUrls.add(v);
+    }
+  }
 
   const cachedUrls = await getAllImageUrls();
 
@@ -149,26 +175,6 @@ export async function cleanupOrphanedImages(currentProducts: CatalogProduct[]): 
       }
       // Delete from IndexedDB
       await deleteImage(url);
-    }
-  }
-}
-
-/** Handle image URL changes for specific products */
-export async function syncChangedImages(
-  changedProducts: CatalogProduct[],
-  signal?: AbortSignal
-): Promise<void> {
-  for (const product of changedProducts) {
-    if (!product.image) continue;
-
-    const existing = await getCachedImage(product.image);
-    if (existing) continue; // Already cached at this URL
-
-    // New or changed image — fetch it
-    try {
-      await fetchAndStoreImage(product.image, signal);
-    } catch {
-      // Failed — will use network fallback
     }
   }
 }

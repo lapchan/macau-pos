@@ -182,7 +182,10 @@ export async function getCachedVariants(productId: string) {
 
 // ─── Variant Image URLs ──────────────────────────────────
 
-export async function getVariantImageUrls(): Promise<string[]> {
+/** Returns variant image URLs grouped by parent productId so callers can
+ *  interleave them with product thumbnails when batching image fetches. */
+export async function getVariantImageUrlsByProduct(): Promise<Map<string, string[]>> {
+  const result = new Map<string, string[]>();
   try {
     const db = await import("./catalog-db").then(m => m.openCatalogDB());
     const tx = db.transaction("variants", "readonly");
@@ -191,16 +194,21 @@ export async function getVariantImageUrls(): Promise<string[]> {
       req.onsuccess = () => resolve(req.result);
       req.onerror = () => reject(req.error);
     });
-    const urls: string[] = [];
     for (const entry of all) {
+      const urls: string[] = [];
+      const seen = new Set<string>();
       for (const v of entry.variants) {
-        if (v.image) urls.push(v.image);
+        if (v.image && !seen.has(v.image)) {
+          seen.add(v.image);
+          urls.push(v.image);
+        }
       }
+      if (urls.length) result.set(entry.productId, urls);
     }
-    return [...new Set(urls)];
   } catch {
-    return [];
+    // Return whatever we've collected (likely empty)
   }
+  return result;
 }
 
 // ─── Reset ───────────────────────────────────────────────

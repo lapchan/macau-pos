@@ -9,13 +9,12 @@ import {
   checkSyncNeeded,
   performFullSync,
   performDeltaSync,
-  getVariantImageUrls,
+  getVariantImageUrlsByProduct,
 } from "./catalog-sync";
 import {
   initImageCache,
   syncImages,
   cleanupOrphanedImages,
-  syncChangedImages,
   type ImageSyncProgress,
 } from "./catalog-image-sync";
 
@@ -133,9 +132,10 @@ export function useCatalogSync(
     if (showProgress) setSyncStatus("images");
 
     try {
-      // Collect variant image URLs
-      let variantUrls: string[] = [];
-      try { variantUrls = await getVariantImageUrls(); } catch { /* ignore */ }
+      // Group variant image URLs by parent productId so syncImages can
+      // interleave them with the main product thumbnails.
+      let variantsByProduct = new Map<string, string[]>();
+      try { variantsByProduct = await getVariantImageUrlsByProduct(); } catch { /* ignore */ }
 
       await syncImages(catalogProducts, (progress) => {
         if (!mountedRef.current) return;
@@ -146,9 +146,9 @@ export function useCatalogSync(
             total: progress.total,
           });
         }
-      }, signal, variantUrls);
+      }, signal, variantsByProduct);
 
-      try { await cleanupOrphanedImages(catalogProducts); } catch { /* ignore */ }
+      try { await cleanupOrphanedImages(catalogProducts, variantsByProduct); } catch { /* ignore */ }
     } catch (e) {
       console.error("Image sync error:", e);
     }
@@ -195,9 +195,10 @@ export function useCatalogSync(
       const result = await performDeltaSync();
       applySyncResult(result.products, result.categories);
 
-      // Sync changed images in background
-      await syncChangedImages(result.products);
       if (mountedRef.current) setSyncStatus("idle");
+      // syncImages dedupes against the blob cache, so passing the full list
+      // only fetches genuinely-new product and variant images.
+      doImageSync(result.products, false);
     } catch {
       // Offline or error — stay on cached data
       if (mountedRef.current) setSyncStatus("idle");
