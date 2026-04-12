@@ -582,7 +582,7 @@ function HumanMadeHeader({
       )}
 
       {/* Header */}
-      <header className={`relative z-10 bg-white ${minimal ? "border-b border-[#121212]/10" : ""}`}>
+      <header className={`relative z-10 bg-white ${minimal ? "border-b border-[#121212]/20" : ""}`}>
         {/* Top icon bar — h-6 (48px) */}
         <div className="flex h-12 items-center justify-between px-2 sm:px-3 lg:px-4">
           {/* Left: locale dropdown + hamburger (mobile) */}
