@@ -10,7 +10,10 @@ type Props = {
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { locale, slug } = await params;
+  const { locale, slug: rawSlug } = await params;
+  // Next.js 16 sometimes leaves percent-encoded bytes in the slug for
+  // non-ASCII characters — decode defensively so DB lookups still match.
+  const slug = safeDecode(rawSlug);
   const tenant = await resolveTenant();
   if (!tenant) return {};
 
@@ -35,8 +38,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
+function safeDecode(s: string): string {
+  try {
+    return decodeURIComponent(s);
+  } catch {
+    return s;
+  }
+}
+
 export default async function ProductDetailPage({ params }: Props) {
-  const { locale, slug } = await params;
+  const { locale, slug: rawSlug } = await params;
+  const slug = safeDecode(rawSlug);
   const tenant = await resolveTenant();
   if (!tenant) notFound();
 
