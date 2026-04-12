@@ -5,20 +5,31 @@ import { XMarkIcon } from "@heroicons/react/24/outline";
 
 const STORAGE_KEY = "sf_cookie_consent";
 
-type Props = { locale: string };
+type Props = { locale: string; themeId?: string };
+type Status = "pending" | "rejected" | "accepted";
 
 const t = (locale: string, tc: string, en: string, pt: string, ja: string) => {
   const m: Record<string, string> = { tc, sc: tc, en, pt, ja };
   return m[locale] || en;
 };
 
-export default function CookieBanner({ locale }: Props) {
+export default function CookieBanner({ locale, themeId }: Props) {
+  const [status, setStatus] = useState<Status>("accepted");
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
     try {
-      if (!localStorage.getItem(STORAGE_KEY)) setOpen(true);
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        setStatus("pending");
+        setOpen(true);
+        return;
+      }
+      const parsed = JSON.parse(raw) as { value?: string };
+      if (parsed?.value === "accepted") setStatus("accepted");
+      else setStatus("rejected");
     } catch {
+      setStatus("pending");
       setOpen(true);
     }
   }, []);
@@ -27,34 +38,70 @@ export default function CookieBanner({ locale }: Props) {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({ value, ts: Date.now() }));
     } catch {}
+    setStatus(value);
     setOpen(false);
   };
 
-  if (!open) return null;
+  const isHumanMade = themeId === "humanmade";
+  const rounded = isHumanMade ? "rounded-none" : "rounded-2xl";
+  const roundedTop = isHumanMade ? "rounded-none" : "rounded-t-2xl sm:rounded-2xl";
+  const btnRadius = isHumanMade ? "rounded-none" : "rounded-lg";
+  const headingFont = isHumanMade
+    ? "text-[13px] font-normal tracking-[0.12em] uppercase text-[#121212]"
+    : "text-base font-semibold text-gray-900";
+  const subheadingFont = isHumanMade
+    ? "text-[12px] font-normal tracking-[0.1em] uppercase text-[#121212]"
+    : "text-sm font-semibold text-gray-900";
+  const bodyFont = isHumanMade
+    ? "text-[12px] leading-[1.8] tracking-[0.03em] text-[#121212]/80"
+    : "text-sm leading-relaxed text-gray-600";
+  const rejectBtn = isHumanMade
+    ? "flex-1 border border-[#121212] bg-white px-4 py-3 text-[11px] font-normal uppercase tracking-[0.1em] text-[#121212] hover:bg-[#f5f5f5]"
+    : "flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50";
+  const acceptBtn = isHumanMade
+    ? "flex-1 border border-[#121212] bg-[#121212] px-4 py-3 text-[11px] font-normal uppercase tracking-[0.1em] text-white hover:bg-[#333]"
+    : "flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90";
+  const acceptStyle = isHumanMade ? undefined : { backgroundColor: "var(--tenant-accent, #111)" };
 
-  return (
-    <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center p-0 sm:p-4" role="dialog" aria-modal="true" aria-labelledby="cookie-banner-title">
-      <div className="fixed inset-0 bg-gray-500/75 transition-opacity" onClick={() => persist("rejected")} />
+  const labels = {
+    title: t(locale, "Cookie 政策", "Cookie Policy", "Política de Cookies", "Cookie ポリシー"),
+    reject: t(locale, "拒絕", "Reject", "Rejeitar", "拒絶"),
+    accept: t(locale, "接受", "Accept", "Aceitar", "接受"),
+    review: t(locale, "查看 Cookie 政策", "Review cookie policy", "Rever política de cookies", "Cookie ポリシーを確認"),
+    notice: t(
+      locale,
+      "您尚未接受 Cookie 政策。",
+      "You haven't accepted our cookie policy yet.",
+      "Ainda não aceitou a nossa política de cookies.",
+      "Cookie ポリシーに同意していません。"
+    ),
+    close: t(locale, "關閉", "Close", "Fechar", "閉じる"),
+  };
 
-      <div className="relative w-full sm:max-w-xl transform overflow-hidden rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl transition-all">
+  const Modal = (
+    <div
+      className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center p-0 sm:p-4"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cookie-banner-title"
+    >
+      <div className="fixed inset-0 bg-black/60 transition-opacity" onClick={() => setOpen(false)} />
+
+      <div className={`relative w-full sm:max-w-xl transform overflow-hidden ${roundedTop} bg-white shadow-2xl transition-all`}>
         <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4">
-          <h2 id="cookie-banner-title" className="text-base font-semibold text-gray-900">
-            {t(locale, "Cookie政策", "Cookie Policy", "Política de Cookies", "Cookie政策")}
-          </h2>
+          <h2 id="cookie-banner-title" className={headingFont}>{labels.title}</h2>
           <button
             type="button"
-            onClick={() => persist("rejected")}
+            onClick={() => setOpen(false)}
             className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
-            aria-label={t(locale, "關閉", "Close", "Fechar", "閉じる")}
+            aria-label={labels.close}
           >
             <XMarkIcon className="size-5" aria-hidden="true" />
           </button>
         </div>
 
-        <div className="max-h-[55vh] overflow-y-auto px-6 py-5 text-sm leading-relaxed text-gray-600">
-          <h3 className="mb-3 text-sm font-semibold text-gray-900">
-            {t(locale, "Cookie 政策", "Cookie Policy", "Política de Cookies", "Cookieポリシー")}
-          </h3>
+        <div className={`max-h-[55vh] overflow-y-auto px-6 py-5 ${bodyFont}`}>
+          <h3 className={`mb-3 ${subheadingFont}`}>{labels.title}</h3>
 
           <p className="mb-3">
             {t(
@@ -88,23 +135,58 @@ export default function CookieBanner({ locale }: Props) {
         </div>
 
         <div className="flex gap-3 border-t border-gray-100 px-6 py-4">
-          <button
-            type="button"
-            onClick={() => persist("rejected")}
-            className="flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            {t(locale, "拒絕", "Reject", "Rejeitar", "拒絶")}
+          <button type="button" onClick={() => persist("rejected")} className={rejectBtn}>
+            {labels.reject}
           </button>
-          <button
-            type="button"
-            onClick={() => persist("accepted")}
-            className="flex-1 rounded-lg px-4 py-2.5 text-sm font-semibold text-white hover:opacity-90"
-            style={{ backgroundColor: "var(--tenant-accent, #111)" }}
-          >
-            {t(locale, "接受", "Accept", "Aceitar", "接受")}
+          <button type="button" onClick={() => persist("accepted")} className={acceptBtn} style={acceptStyle}>
+            {labels.accept}
           </button>
         </div>
       </div>
     </div>
+  );
+
+  const StickyBar = (
+    <div className={`fixed inset-x-0 top-0 z-[55] border-b ${isHumanMade ? "border-[#121212] bg-[#121212] text-white" : "border-gray-800 bg-gray-900 text-white"}`}>
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:px-8">
+        <p className={isHumanMade ? "text-[11px] tracking-[0.1em] uppercase" : "text-xs sm:text-sm"}>
+          {labels.notice}
+        </p>
+        <div className="flex shrink-0 gap-2">
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className={
+              isHumanMade
+                ? "border border-white/40 px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] text-white hover:bg-white/10"
+                : `${btnRadius} border border-white/30 px-3 py-1.5 text-xs font-medium text-white hover:bg-white/10`
+            }
+          >
+            {labels.review}
+          </button>
+          <button
+            type="button"
+            onClick={() => persist("accepted")}
+            className={
+              isHumanMade
+                ? "border border-white bg-white px-3 py-1.5 text-[10px] uppercase tracking-[0.1em] text-[#121212] hover:bg-white/90"
+                : `${btnRadius} px-3 py-1.5 text-xs font-semibold text-gray-900 hover:opacity-90`
+            }
+            style={isHumanMade ? undefined : { backgroundColor: "#fff" }}
+          >
+            {labels.accept}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (status === "accepted") return null;
+
+  return (
+    <>
+      {status === "rejected" && !open && StickyBar}
+      {open && Modal}
+    </>
   );
 }

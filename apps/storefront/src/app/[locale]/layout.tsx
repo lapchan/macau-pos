@@ -167,7 +167,7 @@ export default async function LocaleLayout({
         themeId={themeId}
       />
 
-      <CookieBanner locale={locale} />
+      <CookieBanner locale={locale} themeId={themeId} />
     </div>
   );
 }
