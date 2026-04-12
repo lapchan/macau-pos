@@ -93,9 +93,8 @@ export default function CheckoutSplit({
   const total = subtotal + (isFreeShipping ? 0 : shippingFee);
 
   // Theme tokens
-  const pageBg = isHumanMade ? "bg-white" : "bg-white";
-  const summaryBg = isHumanMade ? "lg:bg-[#fafafa]" : "lg:bg-gray-50";
-  const summaryBorder = isHumanMade ? "lg:border-l lg:border-[#121212]/10" : "lg:border-l lg:border-gray-200";
+  const summaryPanelBg = isHumanMade ? "bg-[#fafafa]" : "bg-gray-50";
+  const summaryPanelBorder = isHumanMade ? "border-l border-[#121212]/10" : "border-l border-gray-200";
 
   const sectionHeading = isHumanMade
     ? "text-[13px] font-normal uppercase tracking-[0.12em] text-[#121212]"
@@ -157,14 +156,20 @@ export default function CheckoutSplit({
     : "text-base";
 
   return (
-    <div className={pageBg}>
-      <div className={`relative mx-auto grid max-w-7xl grid-cols-1 gap-x-16 lg:grid-cols-2 lg:px-8 lg:pt-12 ${summaryBg} ${summaryBorder}`.trim()}>
+    <div className="bg-white">
+      {/* Full-width split: right half gets off-white panel bg on lg+ */}
+      <div className="relative">
+        <div aria-hidden="true" className="absolute inset-0 hidden lg:block pointer-events-none">
+          <div className={`ml-auto h-full w-1/2 ${summaryPanelBg} ${summaryPanelBorder}`} />
+        </div>
+
+        <div className="relative mx-auto grid max-w-7xl grid-cols-1 gap-x-16 lg:grid-cols-2 lg:px-8 lg:pt-12">
         <h1 className="sr-only">Checkout</h1>
 
         {/* Right: Order summary */}
         <section
           aria-labelledby="summary-heading"
-          className={`${isHumanMade ? "bg-[#fafafa]" : "bg-gray-50"} py-12 md:px-10 lg:col-start-2 lg:row-start-1 lg:mx-auto lg:w-full lg:max-w-lg lg:bg-transparent lg:px-0 lg:pt-0 lg:pb-24 ${summaryText}`}
+          className={`${summaryPanelBg} py-12 md:px-10 lg:col-start-2 lg:row-start-1 lg:mx-auto lg:w-full lg:max-w-lg lg:bg-transparent lg:px-0 lg:pt-0 lg:pb-24 ${summaryText}`}
         >
           <div className="mx-auto max-w-2xl px-4 lg:max-w-none lg:px-0">
             <h2 id="summary-heading" className={isHumanMade ? sectionHeading + " mb-6" : "sr-only"}>
@@ -526,6 +531,7 @@ export default function CheckoutSplit({
             </div>
           </form>
         </section>
+        </div>
       </div>
     </div>
   );
