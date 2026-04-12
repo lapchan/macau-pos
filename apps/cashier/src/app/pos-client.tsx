@@ -28,10 +28,12 @@ import DiscountPopover from "@/components/pos/discount-popover";
 import dynamic from "next/dynamic";
 const CameraScanner = dynamic(() => import("@/components/scanner/camera-scanner"), { ssr: false });
 import ScanFeedback, { type ScanFeedbackState } from "@/components/scanner/scan-feedback";
+import TempProductPriceModal from "@/components/pos/temp-product-price-modal";
+import { getLookupProvider } from "@/lib/barcode-providers";
 import CustomerSearchSpotlight from "@/components/customer/customer-search-spotlight";
 import CustomerDetailSheet, { type LinkedCustomer } from "@/components/customer/customer-detail-sheet";
 import ProductSearchSpotlight from "@/components/search/product-search-spotlight";
-import { fetchProductVariants, lookupBarcode, type OrderDiscount } from "@/lib/actions";
+import { fetchProductVariants, lookupBarcode, lookupBarcodePlus, type OrderDiscount } from "@/lib/actions";
 import { useBarcodeScanner, wasRecentBarcodeScan } from "@/lib/use-barcode-scanner";
 import { useCatalogSync } from "@/lib/use-catalog-sync";
 import { resolveImageSrc } from "@/lib/catalog-image-sync";
@@ -341,6 +343,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
   const [showCameraScanner, setShowCameraScanner] = useState(false);
   const [scanFeedback, setScanFeedback] = useState<ScanFeedbackState>(null);
+  const [tempProductDraft, setTempProductDraft] = useState<{ name: string; barcode: string } | null>(null);
   const [showCustomerDetail, setShowCustomerDetail] = useState(false);
   const [linkedCustomer, setLinkedCustomer] = useState<LinkedCustomer | null>(null);
   const [showShiftClose, setShowShiftClose] = useState(false);
@@ -700,7 +703,38 @@ export default function POSClient({ initialProducts, initialCategories, userName
       return;
     }
     if (!result.found) {
-      showScanFeedback("not-found", t(locale, "scanNotFound").replace("{code}", code), code);
+      const provider = getLookupProvider(code);
+      const message = t(locale, "scanNotFound").replace("{code}", code);
+      // Show the not-found modal immediately. If we have a provider for this
+      // GS1 prefix, fire the lookup in the background and patch the lookup
+      // field on the existing feedback state when it returns.
+      setScanFeedback({
+        kind: "not-found",
+        message,
+        code,
+        nonce: Date.now(),
+        lookup: provider ? { state: "loading" } : undefined,
+      });
+      if (provider?.id === "barcodeplus") {
+        lookupBarcodePlus(code, locale).then((found) => {
+          setScanFeedback((prev) => {
+            if (!prev || prev.code !== code || prev.kind !== "not-found") return prev;
+            return {
+              ...prev,
+              lookup: found
+                ? {
+                    state: "found",
+                    name: found.name,
+                    brand: found.brand,
+                    company: found.company,
+                    category: found.category,
+                    origin: found.origin,
+                  }
+                : { state: "miss" },
+            };
+          });
+        });
+      }
       return;
     }
 
@@ -1733,7 +1767,39 @@ export default function POSClient({ initialProducts, initialCategories, userName
       )}
 
       {/* ============ SCAN FEEDBACK BANNER ============ */}
-      <ScanFeedback state={scanFeedback} onDone={() => setScanFeedback(null)} locale={locale} />
+      <ScanFeedback
+        state={scanFeedback}
+        onDone={() => setScanFeedback(null)}
+        onCreateTempProduct={(name, code) => setTempProductDraft({ name, barcode: code })}
+        locale={locale}
+      />
+
+      {/* ============ TEMP PRODUCT PRICE MODAL ============ */}
+      <TempProductPriceModal
+        open={!!tempProductDraft}
+        productName={tempProductDraft?.name || ""}
+        sourceLabel={t(locale, "tempProductFromGs1Hk")}
+        currency={currency}
+        locale={locale}
+        onCancel={() => setTempProductDraft(null)}
+        onConfirm={(price) => {
+          if (!tempProductDraft) return;
+          const customId = `custom_${Date.now()}`;
+          const customProduct: Product = {
+            id: customId,
+            name: tempProductDraft.name,
+            price,
+            category: "custom",
+            inStock: true,
+          };
+          addToCart(customProduct);
+          showScanFeedback(
+            "success",
+            t(locale, "scanAdded").replace("{name}", tempProductDraft.name)
+          );
+          setTempProductDraft(null);
+        }}
+      />
 
       {/* ============ CUSTOMER SEARCH SPOTLIGHT ============ */}
       {showCustomerSearch && (

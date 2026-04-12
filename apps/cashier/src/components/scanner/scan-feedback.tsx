@@ -1,16 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, X, AlertTriangle, ScanLine, ExternalLink } from "lucide-react";
+import { Check, X, AlertTriangle, ScanLine, ExternalLink, Loader2, Plus } from "lucide-react";
 import { type Locale, t } from "@/i18n/locales";
 
 export type ScanFeedbackKind = "success" | "not-found" | "error";
+
+export type LookupState =
+  | { state: "loading" }
+  | {
+      state: "found";
+      name: string;
+      brand?: string;
+      company?: string;
+      category?: string;
+      origin?: string;
+    }
+  | { state: "miss" };
 
 export type ScanFeedbackState = {
   kind: ScanFeedbackKind;
   message: string;
   // Original scanned code — used to build the "search online" link for not-found
   code?: string;
+  // External lookup status (BarcodePlus / GS1 HK) — only for not-found
+  lookup?: LookupState;
   // Bumped on every new scan so identical messages still re-trigger the animation
   nonce: number;
 } | null;
@@ -18,6 +32,7 @@ export type ScanFeedbackState = {
 type Props = {
   state: ScanFeedbackState;
   onDone: () => void;
+  onCreateTempProduct?: (name: string, code: string) => void;
   locale: Locale;
   durationMs?: number;
 };
@@ -46,7 +61,13 @@ const STYLES: Record<
   },
 };
 
-export default function ScanFeedback({ state, onDone, locale, durationMs = 1800 }: Props) {
+export default function ScanFeedback({
+  state,
+  onDone,
+  onCreateTempProduct,
+  locale,
+  durationMs = 1800,
+}: Props) {
   const [closing, setClosing] = useState(false);
 
   // not-found is persistent (user must dismiss or scan again), success/error auto-dismiss
@@ -76,6 +97,15 @@ export default function ScanFeedback({ state, onDone, locale, durationMs = 1800 
   const searchUrl = state.code
     ? `https://www.google.com/search?q=${encodeURIComponent(`barcode ${state.code}`)}`
     : null;
+
+  const lookup = state.lookup;
+  const lookupFound = lookup?.state === "found" ? lookup : null;
+
+  const handleAddTempProduct = () => {
+    if (!lookupFound || !state.code || !onCreateTempProduct) return;
+    onCreateTempProduct(lookupFound.name, state.code);
+    handleDismiss();
+  };
 
   return (
     <div
@@ -108,26 +138,92 @@ export default function ScanFeedback({ state, onDone, locale, durationMs = 1800 
           </div>
         </div>
 
-        {state.kind === "not-found" && searchUrl && (
-          <div className="flex items-center gap-2 px-5 pb-5 pt-1">
+        {state.kind === "not-found" && lookup?.state === "loading" && (
+          <div className="flex items-center gap-3 px-6 pb-5 pt-1 text-pos-text-secondary">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-[13px]">{t(locale, "scanLookupSearching")}</span>
+          </div>
+        )}
+
+        {state.kind === "not-found" && lookupFound && (
+          <div className="px-6 pb-2 pt-1">
+            <div className="rounded-xl bg-pos-bg p-4">
+              <div className="text-[10px] font-semibold uppercase tracking-wider text-pos-text-muted mb-1.5">
+                {t(locale, "scanLookupFoundFrom")}
+              </div>
+              <p className="text-[15px] font-semibold text-pos-text leading-snug mb-2">
+                {lookupFound.name}
+              </p>
+              <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-[12px]">
+                {lookupFound.brand && (
+                  <>
+                    <dt className="text-pos-text-muted">
+                      {t(locale, "scanLookupBrand")}
+                    </dt>
+                    <dd className="text-pos-text-secondary">{lookupFound.brand}</dd>
+                  </>
+                )}
+                {lookupFound.category && (
+                  <>
+                    <dt className="text-pos-text-muted">
+                      {t(locale, "scanLookupCategory")}
+                    </dt>
+                    <dd className="text-pos-text-secondary">{lookupFound.category}</dd>
+                  </>
+                )}
+                {lookupFound.origin && (
+                  <>
+                    <dt className="text-pos-text-muted">
+                      {t(locale, "scanLookupOrigin")}
+                    </dt>
+                    <dd className="text-pos-text-secondary">{lookupFound.origin}</dd>
+                  </>
+                )}
+              </dl>
+            </div>
+          </div>
+        )}
+
+        {state.kind === "not-found" && lookupFound && (
+          <div className="flex items-center gap-2 px-5 pb-5 pt-3">
             <button
               onClick={handleDismiss}
               className="h-11 px-4 text-[14px] font-medium text-pos-text-secondary border border-pos-border rounded-[var(--radius-md)] hover:bg-pos-surface-hover transition-colors"
             >
               {t(locale, "scanDismiss")}
             </button>
-            <a
-              href={searchUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={handleDismiss}
+            <button
+              onClick={handleAddTempProduct}
               className="flex-1 h-11 inline-flex items-center justify-center gap-2 text-[14px] font-semibold text-white bg-pos-accent hover:bg-pos-accent/90 rounded-[var(--radius-md)] transition-colors"
             >
-              <ExternalLink className="h-4 w-4" />
-              {t(locale, "scanSearchOnline")}
-            </a>
+              <Plus className="h-4 w-4" />
+              {t(locale, "scanAddToCart")}
+            </button>
           </div>
         )}
+
+        {state.kind === "not-found" &&
+          (!lookup || lookup.state === "miss") &&
+          searchUrl && (
+            <div className="flex items-center gap-2 px-5 pb-5 pt-1">
+              <button
+                onClick={handleDismiss}
+                className="h-11 px-4 text-[14px] font-medium text-pos-text-secondary border border-pos-border rounded-[var(--radius-md)] hover:bg-pos-surface-hover transition-colors"
+              >
+                {t(locale, "scanDismiss")}
+              </button>
+              <a
+                href={searchUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={handleDismiss}
+                className="flex-1 h-11 inline-flex items-center justify-center gap-2 text-[14px] font-semibold text-white bg-pos-accent hover:bg-pos-accent/90 rounded-[var(--radius-md)] transition-colors"
+              >
+                <ExternalLink className="h-4 w-4" />
+                {t(locale, "scanSearchOnline")}
+              </a>
+            </div>
+          )}
       </div>
     </div>
   );

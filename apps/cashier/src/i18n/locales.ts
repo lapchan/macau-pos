@@ -119,6 +119,14 @@ type TranslationKeys = {
   scanError: string;
   scanSearchOnline: string;
   scanDismiss: string;
+  scanLookupSearching: string;
+  scanLookupFoundFrom: string;
+  scanLookupBrand: string;
+  scanLookupCategory: string;
+  scanLookupOrigin: string;
+  scanAddToCart: string;
+  tempProductTitle: string;
+  tempProductFromGs1Hk: string;
 
   // Categories
   all: string;
@@ -381,6 +389,14 @@ const translations: Record<Locale, TranslationKeys> = {
     scanError: "掃描失敗：{code}",
     scanSearchOnline: "上網搜尋",
     scanDismiss: "關閉",
+    scanLookupSearching: "正在查詢 GS1 香港…",
+    scanLookupFoundFrom: "來自 GS1 香港",
+    scanLookupBrand: "品牌",
+    scanLookupCategory: "類別",
+    scanLookupOrigin: "產地",
+    scanAddToCart: "加入購物車",
+    tempProductTitle: "輸入售價",
+    tempProductFromGs1Hk: "來自 GS1 香港",
     all: "全部",
     beverages: "飲品",
     snacks: "零食",
@@ -619,6 +635,14 @@ const translations: Record<Locale, TranslationKeys> = {
     scanError: "扫描失败：{code}",
     scanSearchOnline: "在线搜索",
     scanDismiss: "关闭",
+    scanLookupSearching: "正在查询 GS1 香港…",
+    scanLookupFoundFrom: "来自 GS1 香港",
+    scanLookupBrand: "品牌",
+    scanLookupCategory: "类别",
+    scanLookupOrigin: "产地",
+    scanAddToCart: "加入购物车",
+    tempProductTitle: "输入售价",
+    tempProductFromGs1Hk: "来自 GS1 香港",
     all: "全部",
     beverages: "饮品",
     snacks: "零食",
@@ -857,6 +881,14 @@ const translations: Record<Locale, TranslationKeys> = {
     scanError: "Scan failed: {code}",
     scanSearchOnline: "Search online",
     scanDismiss: "Dismiss",
+    scanLookupSearching: "Looking up GS1 Hong Kong…",
+    scanLookupFoundFrom: "From GS1 Hong Kong",
+    scanLookupBrand: "Brand",
+    scanLookupCategory: "Category",
+    scanLookupOrigin: "Origin",
+    scanAddToCart: "Add to cart",
+    tempProductTitle: "Enter price",
+    tempProductFromGs1Hk: "From GS1 Hong Kong",
     all: "All",
     beverages: "Drinks",
     snacks: "Snacks",
@@ -1095,6 +1127,14 @@ const translations: Record<Locale, TranslationKeys> = {
     scanError: "Falha na leitura: {code}",
     scanSearchOnline: "Pesquisar online",
     scanDismiss: "Fechar",
+    scanLookupSearching: "Consultando GS1 Hong Kong…",
+    scanLookupFoundFrom: "De GS1 Hong Kong",
+    scanLookupBrand: "Marca",
+    scanLookupCategory: "Categoria",
+    scanLookupOrigin: "Origem",
+    scanAddToCart: "Adicionar ao carrinho",
+    tempProductTitle: "Inserir preço",
+    tempProductFromGs1Hk: "De GS1 Hong Kong",
     all: "Todos",
     beverages: "Bebidas",
     snacks: "Lanches",
@@ -1333,6 +1373,14 @@ const translations: Record<Locale, TranslationKeys> = {
     scanError: "読取失敗：{code}",
     scanSearchOnline: "オンライン検索",
     scanDismiss: "閉じる",
+    scanLookupSearching: "GS1 香港を検索中…",
+    scanLookupFoundFrom: "GS1 香港より",
+    scanLookupBrand: "ブランド",
+    scanLookupCategory: "カテゴリ",
+    scanLookupOrigin: "原産地",
+    scanAddToCart: "カートに追加",
+    tempProductTitle: "価格を入力",
+    tempProductFromGs1Hk: "GS1 香港より",
     all: "すべて",
     beverages: "ドリンク",
     snacks: "スナック",

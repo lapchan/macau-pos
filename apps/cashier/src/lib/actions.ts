@@ -343,6 +343,114 @@ export async function lookupBarcode(barcode: string): Promise<BarcodeLookupResul
   return { found: false };
 }
 
+// ─── External Barcode Lookup (BarcodePlus / GS1 HK) ─────────
+// Free public JSON service exposed by GS1 Hong Kong's BarcodePlus
+// platform. No auth, no captcha. Use only as a fallback when a
+// scanned barcode is missing from the local catalog.
+
+export type ExternalBarcodeResult = {
+  source: "gs1hk";
+  gtin: string;
+  name: string;
+  brand?: string;
+  company?: string;
+  category?: string;
+  origin?: string;
+};
+
+const BARCODEPLUS_URL =
+  "https://www.barcodeplus.com.hk/eid/resource/jsonservice";
+
+function localeToBarcodePlusLang(locale: string): "en" | "tw" | "cn" {
+  if (locale === "tc") return "tw";
+  if (locale === "sc") return "cn";
+  return "en";
+}
+
+async function bcpFetch<T = unknown>(payload: object, signal: AbortSignal): Promise<T | null> {
+  const url = `${BARCODEPLUS_URL}?data=${encodeURIComponent(JSON.stringify(payload))}`;
+  try {
+    const res = await fetch(url, {
+      signal,
+      headers: { "User-Agent": "Mozilla/5.0 macau-pos" },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as { result?: Array<{ data?: T[] }> };
+    const data = json?.result?.[0]?.data;
+    if (!Array.isArray(data) || data.length === 0) return null;
+    return data[0] as T;
+  } catch {
+    return null;
+  }
+}
+
+export async function lookupBarcodePlus(
+  gtin: string,
+  locale: string = "en"
+): Promise<ExternalBarcodeResult | null> {
+  if (!/^\d{13}$/.test(gtin)) return null;
+  const langid = localeToBarcodePlusLang(locale);
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const summary = await bcpFetch<{
+      pdid?: string;
+      pdname?: string;
+      cmpyname?: string;
+    }>(
+      {
+        appCode: "EIDM",
+        method: "getSearchProductInfo",
+        gtin,
+        pdname: gtin,
+        isdraft: "N",
+        nonpubind: "1",
+        langid,
+      },
+      ctrl.signal
+    );
+    if (!summary?.pdid || !summary?.pdname) return null;
+
+    // Enrich with brand / category / origin (best-effort)
+    const details = await bcpFetch<{
+      pdbrndname?: string;
+      pdcntyoforgn?: string;
+      productcat_en?: string;
+      productcat_tw?: string;
+      productcat_cn?: string;
+    }>(
+      {
+        appCode: "EIDM",
+        method: "getProductDetailsById",
+        pdid: summary.pdid,
+        langid,
+      },
+      ctrl.signal
+    );
+
+    const category =
+      langid === "tw"
+        ? details?.productcat_tw
+        : langid === "cn"
+          ? details?.productcat_cn
+          : details?.productcat_en;
+
+    return {
+      source: "gs1hk",
+      gtin,
+      name: summary.pdname,
+      brand: details?.pdbrndname || undefined,
+      company: summary.cmpyname || undefined,
+      category: category || undefined,
+      origin: details?.pdcntyoforgn || undefined,
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 // ─── Get Product Variants (for cashier variant picker) ─────
 export async function fetchProductVariants(productId: string) {
   const { getProductVariantsForCashier } = await import("./queries");
