@@ -6,6 +6,7 @@ import { getCurrentCustomer } from "@/lib/actions/auth";
 import { getDisplayName } from "@macau-pos/database";
 import StoreHeader from "@/components/layout/store-header";
 import StoreFooter from "@/components/layout/store-footer";
+import CookieBanner from "@/components/layout/cookie-banner";
 import { notFound } from "next/navigation";
 
 const VALID_LOCALES = ["tc", "sc", "en", "pt", "ja"];
@@ -165,6 +166,8 @@ export default async function LocaleLayout({
         accentColor={accentColor}
         themeId={themeId}
       />
+
+      <CookieBanner locale={locale} />
     </div>
   );
 }
