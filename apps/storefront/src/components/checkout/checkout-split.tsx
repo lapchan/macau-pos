@@ -158,7 +158,7 @@ export default function CheckoutSplit({
   return (
     <div className="bg-white">
       {/* Full-width split: right half gets off-white panel bg on lg+ */}
-      <div className="relative">
+      <div className="relative lg:min-h-[calc(100vh-140px)]">
         <div aria-hidden="true" className="absolute inset-0 hidden lg:block pointer-events-none">
           <div className={`ml-auto h-full w-1/2 ${summaryPanelBg} ${summaryPanelBorder}`} />
         </div>
@@ -184,19 +184,28 @@ export default function CheckoutSplit({
             <ul role="list" className={`divide-y ${isHumanMade ? "divide-[#121212]/10" : "divide-gray-200"} text-sm font-medium`}>
               {items.map((item) => (
                 <li key={item.id} className="flex items-start space-x-4 py-6">
-                  <div className={`relative size-20 shrink-0 overflow-hidden ${isHumanMade ? "" : "rounded-md"} bg-[#f5f5f5]`}>
-                    {item.image ? (
-                      <StoreThumb src={item.image} alt={item.name} fill sizes="80px" className="object-contain object-center" />
-                    ) : (
-                      <div className="size-full flex items-center justify-center text-[#121212]/30 text-xs font-bold">
-                        {item.name.charAt(0)}
-                      </div>
+                  <div className="relative shrink-0">
+                    <div className={`relative size-20 overflow-hidden ${isHumanMade ? "" : "rounded-md"} bg-[#f5f5f5]`}>
+                      {item.image ? (
+                        <StoreThumb src={item.image} alt={item.name} fill sizes="80px" className="object-contain object-center" />
+                      ) : (
+                        <div className="size-full flex items-center justify-center text-[#121212]/30 text-xs font-bold">
+                          {item.name.charAt(0)}
+                        </div>
+                      )}
+                    </div>
+                    {item.quantity > 1 && (
+                      <span
+                        aria-label={`Quantity ${item.quantity}`}
+                        className={`absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center ${isHumanMade ? "" : "rounded-full"} bg-[#121212] px-1.5 text-[12px] font-medium tabular-nums text-white shadow-sm`}
+                      >
+                        {item.quantity}
+                      </span>
                     )}
                   </div>
                   <div className="flex-auto space-y-1">
                     <h3 className={itemNameCls}>{item.name}</h3>
                     {item.variant && <p className={itemMetaCls}>{item.variant}</p>}
-                    {item.quantity > 1 && <p className={itemMetaCls}>x{item.quantity}</p>}
                   </div>
                   <p className={itemPriceCls}>{currency} {(item.price * item.quantity).toFixed(2)}</p>
                 </li>
