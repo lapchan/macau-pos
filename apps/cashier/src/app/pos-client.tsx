@@ -684,8 +684,8 @@ export default function POSClient({ initialProducts, initialCategories, userName
 
   // ─── Barcode scanner ───────────────────────────────────────
   const showScanFeedback = useCallback(
-    (kind: "success" | "not-found" | "error", message: string) => {
-      setScanFeedback({ kind, message, nonce: Date.now() });
+    (kind: "success" | "not-found" | "error", message: string, code?: string) => {
+      setScanFeedback({ kind, message, code, nonce: Date.now() });
     },
     []
   );
@@ -696,11 +696,11 @@ export default function POSClient({ initialProducts, initialCategories, userName
     try {
       result = await lookupBarcode(code);
     } catch {
-      showScanFeedback("error", t(locale, "scanError").replace("{code}", code));
+      showScanFeedback("error", t(locale, "scanError").replace("{code}", code), code);
       return;
     }
     if (!result.found) {
-      showScanFeedback("not-found", t(locale, "scanNotFound").replace("{code}", code));
+      showScanFeedback("not-found", t(locale, "scanNotFound").replace("{code}", code), code);
       return;
     }
 
@@ -1733,7 +1733,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
       )}
 
       {/* ============ SCAN FEEDBACK BANNER ============ */}
-      <ScanFeedback state={scanFeedback} onDone={() => setScanFeedback(null)} />
+      <ScanFeedback state={scanFeedback} onDone={() => setScanFeedback(null)} locale={locale} />
 
       {/* ============ CUSTOMER SEARCH SPOTLIGHT ============ */}
       {showCustomerSearch && (

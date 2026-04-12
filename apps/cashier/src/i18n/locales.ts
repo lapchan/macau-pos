@@ -117,6 +117,8 @@ type TranslationKeys = {
   scanCustomerLinked: string;
   scanNotFound: string;
   scanError: string;
+  scanSearchOnline: string;
+  scanDismiss: string;
 
   // Categories
   all: string;
@@ -377,6 +379,8 @@ const translations: Record<Locale, TranslationKeys> = {
     scanCustomerLinked: "已連結會員：{name}",
     scanNotFound: "找不到條碼：{code}",
     scanError: "掃描失敗：{code}",
+    scanSearchOnline: "上網搜尋",
+    scanDismiss: "關閉",
     all: "全部",
     beverages: "飲品",
     snacks: "零食",
@@ -613,6 +617,8 @@ const translations: Record<Locale, TranslationKeys> = {
     scanCustomerLinked: "已链接会员：{name}",
     scanNotFound: "找不到条码：{code}",
     scanError: "扫描失败：{code}",
+    scanSearchOnline: "在线搜索",
+    scanDismiss: "关闭",
     all: "全部",
     beverages: "饮品",
     snacks: "零食",
@@ -849,6 +855,8 @@ const translations: Record<Locale, TranslationKeys> = {
     scanCustomerLinked: "Customer linked: {name}",
     scanNotFound: "Not found: {code}",
     scanError: "Scan failed: {code}",
+    scanSearchOnline: "Search online",
+    scanDismiss: "Dismiss",
     all: "All",
     beverages: "Drinks",
     snacks: "Snacks",
@@ -1085,6 +1093,8 @@ const translations: Record<Locale, TranslationKeys> = {
     scanCustomerLinked: "Cliente vinculado: {name}",
     scanNotFound: "Não encontrado: {code}",
     scanError: "Falha na leitura: {code}",
+    scanSearchOnline: "Pesquisar online",
+    scanDismiss: "Fechar",
     all: "Todos",
     beverages: "Bebidas",
     snacks: "Lanches",
@@ -1321,6 +1331,8 @@ const translations: Record<Locale, TranslationKeys> = {
     scanCustomerLinked: "会員リンク：{name}",
     scanNotFound: "見つかりません：{code}",
     scanError: "読取失敗：{code}",
+    scanSearchOnline: "オンライン検索",
+    scanDismiss: "閉じる",
     all: "すべて",
     beverages: "ドリンク",
     snacks: "スナック",

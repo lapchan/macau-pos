@@ -1,13 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Check, X, AlertTriangle, ScanLine } from "lucide-react";
+import { Check, X, AlertTriangle, ScanLine, ExternalLink } from "lucide-react";
+import { type Locale, t } from "@/i18n/locales";
 
 export type ScanFeedbackKind = "success" | "not-found" | "error";
 
 export type ScanFeedbackState = {
   kind: ScanFeedbackKind;
   message: string;
+  // Original scanned code — used to build the "search online" link for not-found
+  code?: string;
   // Bumped on every new scan so identical messages still re-trigger the animation
   nonce: number;
 } | null;
@@ -15,6 +18,7 @@ export type ScanFeedbackState = {
 type Props = {
   state: ScanFeedbackState;
   onDone: () => void;
+  locale: Locale;
   durationMs?: number;
 };
 
@@ -42,28 +46,42 @@ const STYLES: Record<
   },
 };
 
-export default function ScanFeedback({ state, onDone, durationMs = 1800 }: Props) {
+export default function ScanFeedback({ state, onDone, locale, durationMs = 1800 }: Props) {
   const [closing, setClosing] = useState(false);
+
+  // not-found is persistent (user must dismiss or scan again), success/error auto-dismiss
+  const isPersistent = state?.kind === "not-found";
 
   useEffect(() => {
     if (!state) return;
     setClosing(false);
+    if (isPersistent) return;
     const closeTimer = setTimeout(() => setClosing(true), durationMs);
     const doneTimer = setTimeout(onDone, durationMs + 220);
     return () => {
       clearTimeout(closeTimer);
       clearTimeout(doneTimer);
     };
-  }, [state, durationMs, onDone]);
+  }, [state, durationMs, onDone, isPersistent]);
+
+  const handleDismiss = () => {
+    setClosing(true);
+    setTimeout(onDone, 220);
+  };
 
   if (!state) return null;
 
   const style = STYLES[state.kind];
   const Icon = style.icon;
+  const searchUrl = state.code
+    ? `https://www.google.com/search?q=${encodeURIComponent(`barcode ${state.code}`)}`
+    : null;
 
   return (
     <div
-      className={`pointer-events-none fixed inset-x-0 top-0 z-[60] flex justify-center pt-[8vh] px-4 transition-all duration-200 ${
+      className={`fixed inset-x-0 top-0 z-[60] flex justify-center pt-[8vh] px-4 transition-all duration-200 ${
+        isPersistent ? "pointer-events-auto" : "pointer-events-none"
+      } ${
         closing
           ? "opacity-0 -translate-y-4"
           : "animate-[spotlightOpen_0.25s_cubic-bezier(0.16,1,0.3,1)]"
@@ -89,6 +107,27 @@ export default function ScanFeedback({ state, onDone, durationMs = 1800 }: Props
             </p>
           </div>
         </div>
+
+        {state.kind === "not-found" && searchUrl && (
+          <div className="flex items-center gap-2 px-5 pb-5 pt-1">
+            <button
+              onClick={handleDismiss}
+              className="h-11 px-4 text-[14px] font-medium text-pos-text-secondary border border-pos-border rounded-[var(--radius-md)] hover:bg-pos-surface-hover transition-colors"
+            >
+              {t(locale, "scanDismiss")}
+            </button>
+            <a
+              href={searchUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={handleDismiss}
+              className="flex-1 h-11 inline-flex items-center justify-center gap-2 text-[14px] font-semibold text-white bg-pos-accent hover:bg-pos-accent/90 rounded-[var(--radius-md)] transition-colors"
+            >
+              <ExternalLink className="h-4 w-4" />
+              {t(locale, "scanSearchOnline")}
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
