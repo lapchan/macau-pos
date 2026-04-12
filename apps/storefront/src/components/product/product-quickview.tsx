@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { XMarkIcon, StarIcon } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolidIcon } from "@heroicons/react/24/solid";
+import { resolveStorefrontImage } from "@/lib/resolve-image";
 
 type Product = {
   id: string;
@@ -63,7 +64,7 @@ export default function ProductQuickview({ product, locale, open, onClose, curre
             <div className="relative aspect-square bg-gray-100">
               {images.length > 0 ? (
                 <img
-                  src={images[selectedImage]?.url}
+                  src={resolveStorefrontImage(images[selectedImage]?.url)}
                   alt={images[selectedImage]?.alt || product.name}
                   className="size-full object-cover object-center"
                 />

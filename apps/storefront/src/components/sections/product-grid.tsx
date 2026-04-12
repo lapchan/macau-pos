@@ -1,4 +1,4 @@
-import Image from "next/image";
+import Image from "@/components/shared/store-image";
 import { getDisplayName } from "@macau-pos/database";
 import { getStorefrontProducts } from "@/lib/storefront-queries";
 

@@ -3,7 +3,7 @@ import { resolveTenant } from "@/lib/tenant-resolver";
 import { getStorefrontProducts, getStorefrontCategories, getStorefrontConfig } from "@/lib/storefront-queries";
 import { getDisplayName } from "@macau-pos/database";
 import { notFound } from "next/navigation";
-import Image from "next/image";
+import Image from "@/components/shared/store-image";
 import ProductCard from "@/components/product/product-card";
 import ProductFilters from "./filters";
 

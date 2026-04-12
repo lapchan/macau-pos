@@ -15,7 +15,7 @@
  *  - "humanmade"      : HUMAN MADE-inspired minimal card (1:1 sharp image, uppercase name, yen-style price)
  */
 
-import Image from "next/image";
+import Image from "@/components/shared/store-image";
 
 type Product = {
   id: string;

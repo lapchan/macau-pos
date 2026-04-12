@@ -11,7 +11,7 @@
  */
 
 import { useState } from "react";
-import Image from "next/image";
+import Image from "@/components/shared/store-image";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { StarIcon as StarSolidIcon } from "@heroicons/react/24/solid";
 

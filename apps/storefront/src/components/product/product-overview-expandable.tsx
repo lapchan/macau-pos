@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef, type CSSProperties } from "react";
-import Image from "next/image";
+import Image from "@/components/shared/store-image";
 import { StarIcon as StarSolidIcon } from "@heroicons/react/24/solid";
 import { StarIcon, HeartIcon, PlusIcon, MinusIcon } from "@heroicons/react/24/outline";
 
