@@ -163,7 +163,7 @@ export default function CheckoutSplit({
           <div className={`ml-auto h-full w-1/2 ${summaryPanelBg} ${summaryPanelBorder}`} />
         </div>
 
-        <div className="relative mx-auto grid max-w-7xl grid-cols-1 gap-x-16 lg:grid-cols-2 lg:px-8 lg:pt-12">
+        <div className="relative mx-auto grid max-w-7xl grid-cols-1 lg:grid-cols-2 lg:px-8 lg:pt-12">
         <h1 className="sr-only">Checkout</h1>
 
         {/* Right: Order summary */}
