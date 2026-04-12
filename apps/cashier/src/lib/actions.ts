@@ -358,94 +358,77 @@ export type ExternalBarcodeResult = {
   origin?: string;
 };
 
+// Direct GTIN → product lookup. Discovered by reverse-engineering the
+// product detail page (/eid/view/product.html). The /eid/... search
+// endpoint is text-based and does NOT index by GTIN, so we use the
+// MCC2 endpoint that the product page itself calls.
 const BARCODEPLUS_URL =
-  "https://www.barcodeplus.com.hk/eid/resource/jsonservice";
+  "https://www.barcodeplus.com.hk/app/resource/jsonservice";
 
-function localeToBarcodePlusLang(locale: string): "en" | "tw" | "cn" {
-  if (locale === "tc") return "tw";
-  if (locale === "sc") return "cn";
+function localeToBarcodePlusLang(locale: string): "en" | "zh_TW" | "zh_CN" {
+  if (locale === "tc") return "zh_TW";
+  if (locale === "sc") return "zh_CN";
   return "en";
 }
 
-async function bcpFetch<T = unknown>(payload: object, signal: AbortSignal): Promise<T | null> {
-  const url = `${BARCODEPLUS_URL}?data=${encodeURIComponent(JSON.stringify(payload))}`;
-  try {
-    const res = await fetch(url, {
-      signal,
-      headers: { "User-Agent": "Mozilla/5.0 macau-pos" },
-      cache: "no-store",
-    });
-    if (!res.ok) return null;
-    const json = (await res.json()) as { result?: Array<{ data?: T[] }> };
-    const data = json?.result?.[0]?.data;
-    if (!Array.isArray(data) || data.length === 0) return null;
-    return data[0] as T;
-  } catch {
-    return null;
-  }
-}
+type BcpProduct = {
+  prodName?: string;
+  prodDesc?: string;
+  brandName?: string;
+  prodbrandName?: string;
+  country?: string;
+  netWeight?: string;
+};
+type BcpCompany = { name?: string };
+type BcpDataItem = {
+  product?: BcpProduct;
+  company?: BcpCompany;
+};
 
 export async function lookupBarcodePlus(
   gtin: string,
   locale: string = "en"
 ): Promise<ExternalBarcodeResult | null> {
   if (!/^\d{13}$/.test(gtin)) return null;
-  const langid = localeToBarcodePlusLang(locale);
+  const langId = localeToBarcodePlusLang(locale);
+
+  const payload = {
+    appCode: "MCC2",
+    method: "getProdDetailsByGTIN",
+    gtin,
+    langId,
+  };
+  const url = `${BARCODEPLUS_URL}?data=${encodeURIComponent(JSON.stringify(payload))}`;
 
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 5000);
   try {
-    const summary = await bcpFetch<{
-      pdid?: string;
-      pdname?: string;
-      cmpyname?: string;
-    }>(
-      {
-        appCode: "EIDM",
-        method: "getSearchProductInfo",
-        gtin,
-        pdname: gtin,
-        isdraft: "N",
-        nonpubind: "1",
-        langid,
-      },
-      ctrl.signal
-    );
-    if (!summary?.pdid || !summary?.pdname) return null;
-
-    // Enrich with brand / category / origin (best-effort)
-    const details = await bcpFetch<{
-      pdbrndname?: string;
-      pdcntyoforgn?: string;
-      productcat_en?: string;
-      productcat_tw?: string;
-      productcat_cn?: string;
-    }>(
-      {
-        appCode: "EIDM",
-        method: "getProductDetailsById",
-        pdid: summary.pdid,
-        langid,
-      },
-      ctrl.signal
-    );
-
-    const category =
-      langid === "tw"
-        ? details?.productcat_tw
-        : langid === "cn"
-          ? details?.productcat_cn
-          : details?.productcat_en;
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      headers: { "User-Agent": "Mozilla/5.0 macau-pos" },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      result?: Array<{ data?: BcpDataItem[] }>;
+      errors?: unknown;
+    };
+    if (json?.errors) return null;
+    const item = json?.result?.[0]?.data?.[0];
+    const product = item?.product;
+    if (!product?.prodName) return null;
 
     return {
       source: "gs1hk",
       gtin,
-      name: summary.pdname,
-      brand: details?.pdbrndname || undefined,
-      company: summary.cmpyname || undefined,
-      category: category || undefined,
-      origin: details?.pdcntyoforgn || undefined,
+      name: product.prodName,
+      brand: product.brandName || product.prodbrandName || undefined,
+      company: item?.company?.name || undefined,
+      category: undefined,
+      origin: product.country || undefined,
     };
+  } catch {
+    return null;
   } finally {
     clearTimeout(timer);
   }
