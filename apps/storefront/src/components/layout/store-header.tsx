@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import {
   Bars3Icon,
   XMarkIcon,
@@ -61,6 +61,8 @@ export default function StoreHeader({ locale, tenantName, tenantLogo, accentColo
   const [searchQuery, setSearchQuery] = useState("");
   const searchInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
+  const isCheckoutPage = /\/(checkout|cart)(\/|$)/.test(pathname || "");
 
   // Focus search input when modal opens
   useEffect(() => {
@@ -145,6 +147,7 @@ export default function StoreHeader({ locale, tenantName, tenantLogo, accentColo
         mobileMenuOpen={mobileMenuOpen}
         setMobileMenuOpen={setMobileMenuOpen}
         categories={categories}
+        minimal={isCheckoutPage}
       />
     );
   }
@@ -339,6 +342,7 @@ export default function StoreHeader({ locale, tenantName, tenantLogo, accentColo
                   </div>
 
                   {/* Nav links (lg+) */}
+                  {!isCheckoutPage && (
                   <div className="hidden h-full lg:flex">
                     <div className="inset-x-0 bottom-0 px-4">
                       <div className="flex h-full justify-center space-x-8">
@@ -374,9 +378,11 @@ export default function StoreHeader({ locale, tenantName, tenantLogo, accentColo
                       </div>
                     </div>
                   </div>
+                  )}
 
                   {/* Mobile menu + search (lg-) */}
                   <div className="flex flex-1 items-center lg:hidden">
+                    {!isCheckoutPage && (
                     <button
                       type="button"
                       onClick={() => setMobileMenuOpen(true)}
@@ -385,6 +391,7 @@ export default function StoreHeader({ locale, tenantName, tenantLogo, accentColo
                       <span className="sr-only">Open menu</span>
                       <Bars3Icon className="size-6" aria-hidden="true" />
                     </button>
+                    )}
 
                     <button
                       type="button"
@@ -472,6 +479,7 @@ function HumanMadeHeader({
   mobileMenuOpen,
   setMobileMenuOpen,
   categories,
+  minimal = false,
 }: {
   locale: string;
   tenantName: string;
@@ -490,6 +498,7 @@ function HumanMadeHeader({
   mobileMenuOpen: boolean;
   setMobileMenuOpen: (v: boolean) => void;
   categories: Category[];
+  minimal?: boolean;
 }) {
   const [shopMenuOpen, setShopMenuOpen] = useState(false);
   const shopMenuTimeout = useRef<NodeJS.Timeout | null>(null);
@@ -579,9 +588,11 @@ function HumanMadeHeader({
           {/* Left: locale dropdown + hamburger (mobile) */}
           <div className="flex items-center gap-2">
             {/* Hamburger — mobile */}
-            <button type="button" onClick={() => setMobileMenuOpen(true)} className="p-1 text-[#121212] md:hidden">
-              <Bars3Icon className="size-5" />
-            </button>
+            {!minimal && (
+              <button type="button" onClick={() => setMobileMenuOpen(true)} className="p-1 text-[#121212] md:hidden">
+                <Bars3Icon className="size-5" />
+              </button>
+            )}
 
             {/* Locale dropdown */}
             <div className="relative inline-grid grid-cols-1">
@@ -623,9 +634,11 @@ function HumanMadeHeader({
               themeId="humanmade"
             />
             {/* Hamburger — desktop (HUMAN MADE has it on both) */}
-            <button type="button" onClick={() => setMobileMenuOpen(true)} className="hidden p-1 text-[#121212] md:block">
-              <Bars3Icon className="size-5" />
-            </button>
+            {!minimal && (
+              <button type="button" onClick={() => setMobileMenuOpen(true)} className="hidden p-1 text-[#121212] md:block">
+                <Bars3Icon className="size-5" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -648,6 +661,7 @@ function HumanMadeHeader({
         </div>
 
         {/* Nav — SHOP / NEWS / ABOUT — centered, fs-xs, 180px each, hidden on mobile */}
+        {!minimal && (
         <nav className="hidden pb-3 md:block" aria-label="Main navigation">
           <ul className="flex items-center justify-center m-0 p-0 list-none">
             {hmNavLinks.map((link, i) => {
@@ -676,6 +690,7 @@ function HumanMadeHeader({
             })}
           </ul>
         </nav>
+        )}
 
         {/* Mega menu dropdown */}
         {shopMenuOpen && (
