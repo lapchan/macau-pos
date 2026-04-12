@@ -349,7 +349,7 @@ export async function lookupBarcode(barcode: string): Promise<BarcodeLookupResul
 // scanned barcode is missing from the local catalog.
 
 export type ExternalBarcodeResult = {
-  source: "gs1hk";
+  source: "gs1hk" | "gs1cn";
   gtin: string;
   name: string;
   brand?: string;
@@ -426,6 +426,80 @@ export async function lookupBarcodePlus(
       company: item?.company?.name || undefined,
       category: undefined,
       origin: product.country || undefined,
+    };
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// ─── External Barcode Lookup (GDS / GS1 China / ANCC) ──────
+// Member-account-only API behind passport.gds.org.cn OIDC. We use a
+// long-lived refresh_token (provisioned out-of-band, see lib/gds-token.ts)
+// to mint short-lived access tokens, then call the BFF endpoint that the
+// gds.org.cn web app itself uses.
+
+const GDS_LOOKUP_URL =
+  "https://bff.gds.org.cn/gds/searching-api/ProductService/ProductListByGTIN";
+
+type GdsItem = {
+  RegulatedProductName?: string;
+  keyword?: string;
+  brandcn?: string;
+  firm_name?: string;
+  gpcname?: string;
+  specification?: string;
+};
+
+export async function lookupGdsCn(
+  gtin: string,
+  _locale: string = "en"
+): Promise<ExternalBarcodeResult | null> {
+  if (!/^\d{13}$/.test(gtin)) return null;
+
+  const { getGdsAccessToken } = await import("./gds-token");
+  const token = await getGdsAccessToken();
+  if (!token) return null;
+
+  // GDS expects GTIN-14 — pad EAN-13 with a leading zero.
+  const gtin14 = "0" + gtin;
+  const url = `${GDS_LOOKUP_URL}?PageSize=1&PageIndex=1&SearchItem=${gtin14}`;
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+        Origin: "https://www.gds.org.cn",
+        currentRole: "Mine",
+      },
+      cache: "no-store",
+    });
+    if (!res.ok) return null;
+    const json = (await res.json()) as {
+      Code?: number;
+      Data?: { Items?: GdsItem[] };
+    };
+    if (json?.Code !== 1) return null;
+    const item = json?.Data?.Items?.[0];
+    if (!item) return null;
+
+    const name =
+      item.RegulatedProductName?.trim() || item.keyword?.trim() || null;
+    if (!name) return null;
+
+    return {
+      source: "gs1cn",
+      gtin,
+      name,
+      brand: item.brandcn?.trim() || undefined,
+      company: item.firm_name?.trim() || undefined,
+      category: item.gpcname?.trim() || undefined,
+      origin: "中國",
     };
   } catch {
     return null;

@@ -51,6 +51,7 @@ services:
       - DATABASE_URL=postgresql://${DB_USER:-pos_prod}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-macau_pos}
       - AUTH_SECRET=${AUTH_SECRET}
       - NODE_ENV=production
+      - GDS_REFRESH_TOKEN=${GDS_REFRESH_TOKEN:-}
     depends_on:
       postgres:
         condition: service_healthy

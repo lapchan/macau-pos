@@ -33,7 +33,7 @@ import { getLookupProvider } from "@/lib/barcode-providers";
 import CustomerSearchSpotlight from "@/components/customer/customer-search-spotlight";
 import CustomerDetailSheet, { type LinkedCustomer } from "@/components/customer/customer-detail-sheet";
 import ProductSearchSpotlight from "@/components/search/product-search-spotlight";
-import { fetchProductVariants, lookupBarcode, lookupBarcodePlus, type OrderDiscount } from "@/lib/actions";
+import { fetchProductVariants, lookupBarcode, lookupBarcodePlus, lookupGdsCn, type OrderDiscount } from "@/lib/actions";
 import { useBarcodeScanner, wasRecentBarcodeScan } from "@/lib/use-barcode-scanner";
 import { useCatalogSync } from "@/lib/use-catalog-sync";
 import { resolveImageSrc } from "@/lib/catalog-image-sync";
@@ -720,11 +720,15 @@ export default function POSClient({ initialProducts, initialCategories, userName
         nonce: Date.now(),
         lookup: provider ? { state: "loading" } : undefined,
       });
-      if (provider?.id === "barcodeplus") {
-        console.log("[scan] calling lookupBarcodePlus", { code, locale });
-        lookupBarcodePlus(code, locale)
+      const lookupFn =
+        provider?.id === "barcodeplus" ? lookupBarcodePlus
+        : provider?.id === "gdscn" ? lookupGdsCn
+        : null;
+      if (lookupFn) {
+        console.log("[scan] calling external lookup", { provider: provider?.id, code, locale });
+        lookupFn(code, locale)
           .then((found) => {
-            console.log("[scan] lookupBarcodePlus returned", found);
+            console.log("[scan] external lookup returned", found);
             setScanFeedback((prev) => {
               if (!prev || prev.code !== code || prev.kind !== "not-found") {
                 console.log("[scan] state was reset before lookup returned, ignoring");
@@ -746,7 +750,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
             });
           })
           .catch((err) => {
-            console.log("[scan] lookupBarcodePlus threw", err);
+            console.log("[scan] external lookup threw", err);
             setScanFeedback((prev) =>
               prev && prev.code === code && prev.kind === "not-found"
                 ? { ...prev, lookup: { state: "miss" } }

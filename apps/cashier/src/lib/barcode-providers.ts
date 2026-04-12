@@ -5,13 +5,14 @@
 // V1: only Hong Kong (489 → BarcodePlus). Add new rows as we onboard
 // more national GS1 chapters or commercial APIs.
 
-export type LookupProvider = {
-  id: "barcodeplus";
-  country: "HK";
-};
+export type LookupProvider =
+  | { id: "barcodeplus"; country: "HK" }
+  | { id: "gdscn"; country: "CN" };
 
 const PROVIDER_BY_PREFIX: Array<[RegExp, LookupProvider]> = [
   [/^489/, { id: "barcodeplus", country: "HK" }],
+  // GS1 China prefix range 690–699 → gds.org.cn (ANCC)
+  [/^69[0-9]/, { id: "gdscn", country: "CN" }],
 ];
 
 /**
