@@ -343,7 +343,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
   const [showCameraScanner, setShowCameraScanner] = useState(false);
   const [scanFeedback, setScanFeedback] = useState<ScanFeedbackState>(null);
-  const [tempProductDraft, setTempProductDraft] = useState<{ name: string; barcode: string } | null>(null);
+  const [tempProductDraft, setTempProductDraft] = useState<{ name: string; barcode: string; source: "gs1hk" | "gs1cn" } | null>(null);
   const [showCustomerDetail, setShowCustomerDetail] = useState(false);
   const [linkedCustomer, setLinkedCustomer] = useState<LinkedCustomer | null>(null);
   const [showShiftClose, setShowShiftClose] = useState(false);
@@ -739,6 +739,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
                 lookup: found
                   ? {
                       state: "found",
+                      source: found.source,
                       name: found.name,
                       brand: found.brand,
                       company: found.company,
@@ -1793,7 +1794,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
       <ScanFeedback
         state={scanFeedback}
         onDone={() => setScanFeedback(null)}
-        onCreateTempProduct={(name, code) => setTempProductDraft({ name, barcode: code })}
+        onCreateTempProduct={(name, code, source) => setTempProductDraft({ name, barcode: code, source })}
         locale={locale}
       />
 
@@ -1801,7 +1802,12 @@ export default function POSClient({ initialProducts, initialCategories, userName
       <TempProductPriceModal
         open={!!tempProductDraft}
         productName={tempProductDraft?.name || ""}
-        sourceLabel={t(locale, "tempProductFromGs1Hk")}
+        sourceLabel={t(
+          locale,
+          tempProductDraft?.source === "gs1cn"
+            ? "tempProductFromGs1Cn"
+            : "tempProductFromGs1Hk"
+        )}
         currency={currency}
         locale={locale}
         onCancel={() => setTempProductDraft(null)}

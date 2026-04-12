@@ -6,10 +6,13 @@ import { type Locale, t } from "@/i18n/locales";
 
 export type ScanFeedbackKind = "success" | "not-found" | "error";
 
+export type LookupSource = "gs1hk" | "gs1cn";
+
 export type LookupState =
   | { state: "loading" }
   | {
       state: "found";
+      source: LookupSource;
       name: string;
       brand?: string;
       company?: string;
@@ -32,7 +35,7 @@ export type ScanFeedbackState = {
 type Props = {
   state: ScanFeedbackState;
   onDone: () => void;
-  onCreateTempProduct?: (name: string, code: string) => void;
+  onCreateTempProduct?: (name: string, code: string, source: LookupSource) => void;
   locale: Locale;
   durationMs?: number;
 };
@@ -103,7 +106,7 @@ export default function ScanFeedback({
 
   const handleAddTempProduct = () => {
     if (!lookupFound || !state.code || !onCreateTempProduct) return;
-    onCreateTempProduct(lookupFound.name, state.code);
+    onCreateTempProduct(lookupFound.name, state.code, lookupFound.source);
     handleDismiss();
   };
 
@@ -149,7 +152,12 @@ export default function ScanFeedback({
           <div className="px-6 pb-2 pt-1">
             <div className="rounded-xl bg-pos-bg p-4">
               <div className="text-[10px] font-semibold uppercase tracking-wider text-pos-text-muted mb-1.5">
-                {t(locale, "scanLookupFoundFrom")}
+                {t(
+                  locale,
+                  lookupFound.source === "gs1cn"
+                    ? "scanLookupFoundFromCn"
+                    : "scanLookupFoundFrom"
+                )}
               </div>
               <p className="text-[15px] font-semibold text-pos-text leading-snug mb-2">
                 {lookupFound.name}
