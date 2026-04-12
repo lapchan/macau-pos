@@ -197,7 +197,7 @@ export default function CheckoutSplit({
                     {item.quantity > 1 && (
                       <span
                         aria-label={`Quantity ${item.quantity}`}
-                        className={`absolute -right-2 -top-2 flex h-6 min-w-6 items-center justify-center ${isHumanMade ? "" : "rounded-full"} bg-[#121212] px-1.5 text-[12px] font-medium tabular-nums text-white shadow-sm`}
+                        className="absolute -right-2 -top-2 flex size-6 items-center justify-center rounded-full bg-[#121212] text-[12px] font-medium tabular-nums text-white shadow-sm"
                       >
                         {item.quantity}
                       </span>
