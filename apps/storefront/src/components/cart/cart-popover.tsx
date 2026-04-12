@@ -42,9 +42,14 @@ export default function CartPopover({
   themeId,
 }: Props) {
   const [open, setOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [localItems, setLocalItems] = useState(items);
+  const [, startTransition] = useTransition();
   const popoverRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    setLocalItems(items);
+  }, [items]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -77,23 +82,21 @@ export default function CartPopover({
 
   const handleQty = (id: string, next: number) => {
     if (next < 1) {
-      startTransition(() => {
-        removeCartItem(id);
-      });
+      setLocalItems((prev) => prev.filter((i) => i.id !== id));
+      startTransition(() => { removeCartItem(id); });
       return;
     }
-    startTransition(() => {
-      updateCartItemQuantity(id, next);
-    });
+    setLocalItems((prev) => prev.map((i) => (i.id === id ? { ...i, quantity: next } : i)));
+    startTransition(() => { updateCartItemQuantity(id, next); });
   };
 
   const handleRemove = (id: string) => {
-    startTransition(() => {
-      removeCartItem(id);
-    });
+    setLocalItems((prev) => prev.filter((i) => i.id !== id));
+    startTransition(() => { removeCartItem(id); });
   };
 
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const subtotal = localItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const localItemCount = localItems.reduce((sum, i) => sum + i.quantity, 0);
 
   // Theme tokens
   const panelBg = "bg-white";
@@ -119,13 +122,16 @@ export default function CartPopover({
     ? "block w-full border border-[#121212] bg-[#121212] px-4 py-3 text-center text-[11px] font-normal uppercase tracking-[0.1em] text-white hover:bg-[#333] transition-colors"
     : "block w-full rounded-lg px-4 py-2.5 text-center text-sm font-semibold text-white hover:opacity-90 transition-opacity";
   const filledStyle = isHumanMade ? undefined : { backgroundColor: "var(--tenant-accent, #111)" };
-  const stepBtn = isHumanMade
-    ? "flex size-8 items-center justify-center border border-[#121212] text-[#121212] hover:bg-[#f5f5f5] disabled:opacity-30"
-    : "flex size-8 items-center justify-center rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-30";
-  const qtyBox = isHumanMade
-    ? "min-w-10 border-y border-[#121212] py-1 text-center text-[13px] tabular-nums"
-    : "min-w-10 border-y border-gray-300 py-1 text-center text-sm tabular-nums";
-  const trashBtn = "ml-3 text-[#121212]/60 hover:text-[#121212] disabled:opacity-30";
+  const stepperWrap = isHumanMade
+    ? "inline-flex h-9 items-stretch border border-[#121212] select-none"
+    : "inline-flex h-9 items-stretch rounded-md border border-gray-300 select-none overflow-hidden";
+  const stepBtnCls = isHumanMade
+    ? "flex w-9 items-center justify-center text-[#121212] hover:bg-[#f5f5f5] active:bg-[#ececec]"
+    : "flex w-9 items-center justify-center text-gray-700 hover:bg-gray-50 active:bg-gray-100";
+  const qtyCell = isHumanMade
+    ? "flex w-10 items-center justify-center border-x border-[#121212] text-[13px] tabular-nums text-[#121212]"
+    : "flex w-10 items-center justify-center border-x border-gray-300 text-sm tabular-nums text-gray-900";
+  const trashBtn = "ml-3 flex h-9 items-center text-[#121212]/50 hover:text-[#121212]";
 
   return (
     <div className="relative">
@@ -142,13 +148,13 @@ export default function CartPopover({
           aria-hidden="true"
         />
         {isHumanMade ? (
-          itemCount > 0 && (
+          localItemCount > 0 && (
             <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#121212] text-[8px] text-white">
-              {itemCount}
+              {localItemCount}
             </span>
           )
         ) : (
-          <span className={`ml-2 text-sm font-medium ${isDark ? "text-white" : "text-gray-700"}`}>{itemCount}</span>
+          <span className={`ml-2 text-sm font-medium ${isDark ? "text-white" : "text-gray-700"}`}>{localItemCount}</span>
         )}
       </button>
 
@@ -173,8 +179,8 @@ export default function CartPopover({
             </button>
           </div>
 
-          {items.length === 0 ? (
-            <div className="px-5 py-10 text-center">
+          {localItems.length === 0 ? (
+            <div className="px-6 py-12 text-center">
               <ShoppingBagIcon className="mx-auto size-10 text-[#121212]/20" />
               <p className={`mt-3 ${secondaryFont}`}>
                 {t(locale, "購物車是空的", "Your cart is empty", "Carrinho vazio", "カートは空です")}
@@ -190,12 +196,12 @@ export default function CartPopover({
           ) : (
             <>
               {/* Items */}
-              <ul role="list" className="max-h-[45vh] overflow-y-auto px-5">
-                {items.map((item) => (
-                  <li key={item.id} className="py-4">
-                    <div className="flex gap-3">
+              <ul role="list" className={`max-h-[50vh] overflow-y-auto divide-y ${isHumanMade ? "divide-[#121212]/10" : "divide-gray-100"}`}>
+                {localItems.map((item) => (
+                  <li key={item.id} className="px-6 py-5">
+                    <div className="flex gap-4">
                       {/* Image */}
-                      <div className={`relative size-20 shrink-0 overflow-hidden ${isHumanMade ? "" : "rounded-md"} border border-[#121212]/10 bg-[#f5f5f5]`}>
+                      <div className={`relative size-20 shrink-0 overflow-hidden ${isHumanMade ? "" : "rounded-md"} bg-[#f5f5f5]`}>
                         {item.image ? (
                           <Image
                             src={item.image}
@@ -213,8 +219,8 @@ export default function CartPopover({
 
                       {/* Info */}
                       <div className="flex min-w-0 flex-1 flex-col">
-                        <div className="flex justify-between gap-2">
-                          <h3 className={`${labelFont} line-clamp-2`}>
+                        <div className="flex items-start gap-3">
+                          <h3 className={`${labelFont} line-clamp-2 flex-1`}>
                             {item.slug ? (
                               <a href={`/${locale}/products/${item.slug}`} onClick={() => setOpen(false)}>
                                 {item.name}
@@ -223,35 +229,31 @@ export default function CartPopover({
                               item.name
                             )}
                           </h3>
-                          <p className={`${priceFont} shrink-0`}>
+                          <p className={`${priceFont} shrink-0 tabular-nums text-right min-w-[88px]`}>
                             {formatPrice(currency, item.price * item.quantity)}
                           </p>
                         </div>
-                        <p className={`mt-1 ${secondaryFont}`}>{formatPrice(currency, item.price)}</p>
-                        {item.variant && (
-                          <p className={`${secondaryFont}`}>{item.variant}</p>
-                        )}
+                        <p className={`mt-1 ${secondaryFont} tabular-nums`}>{formatPrice(currency, item.price)}</p>
+                        {item.variant && <p className={secondaryFont}>{item.variant}</p>}
                       </div>
                     </div>
 
                     {/* Quantity + trash */}
-                    <div className="mt-3 flex items-center">
-                      <div className="flex items-center">
+                    <div className="mt-4 flex items-center">
+                      <div className={stepperWrap}>
                         <button
                           type="button"
                           onClick={() => handleQty(item.id, item.quantity - 1)}
-                          disabled={isPending}
-                          className={stepBtn}
+                          className={stepBtnCls}
                           aria-label={t(locale, "減少", "Decrease", "Diminuir", "減らす")}
                         >
                           <MinusIcon className="size-3.5" />
                         </button>
-                        <span className={qtyBox}>{item.quantity}</span>
+                        <span className={qtyCell}>{item.quantity}</span>
                         <button
                           type="button"
                           onClick={() => handleQty(item.id, item.quantity + 1)}
-                          disabled={isPending}
-                          className={stepBtn}
+                          className={stepBtnCls}
                           aria-label={t(locale, "增加", "Increase", "Aumentar", "増やす")}
                         >
                           <PlusIcon className="size-3.5" />
@@ -260,11 +262,10 @@ export default function CartPopover({
                       <button
                         type="button"
                         onClick={() => handleRemove(item.id)}
-                        disabled={isPending}
                         className={trashBtn}
                         aria-label={t(locale, "移除", "Remove", "Remover", "削除")}
                       >
-                        <TrashIcon className="size-5" />
+                        <TrashIcon className="size-[18px]" />
                       </button>
                     </div>
                   </li>
@@ -272,39 +273,43 @@ export default function CartPopover({
               </ul>
 
               {/* Totals */}
-              <div className={`border-t ${isHumanMade ? "border-[#121212]/15" : "border-gray-200"} px-5 py-4 space-y-2`}>
-                <div className="flex justify-between">
-                  <span className={labelFont}>
-                    {t(locale, "小計", "Subtotal", "Subtotal", "小計")} ({itemCount})
-                  </span>
-                  <span className={priceFont}>{formatPrice(currency, subtotal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className={labelFont}>
-                    {t(locale, "運費", "Shipping Fee", "Envio", "送料")}
-                  </span>
-                  <span className={secondaryFont}>
-                    {t(locale, "結帳時計算", "Calculated at checkout", "Calc. no checkout", "チェックアウト時")}
-                  </span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className={isHumanMade ? "text-[13px] font-normal uppercase tracking-[0.08em] text-[#121212]" : "text-base font-semibold text-gray-900"}>
-                    {t(locale, "總計", "Total", "Total", "合計")}
-                  </span>
-                  <span className={isHumanMade ? "text-[15px] text-[#121212]" : "text-base font-semibold text-gray-900"}>
-                    {formatPrice(currency, subtotal)}
-                  </span>
-                </div>
+              <div className={`border-t ${isHumanMade ? "border-[#121212]/15" : "border-gray-200"} px-6 py-5`}>
+                <dl className="space-y-2">
+                  <div className="flex items-baseline justify-between gap-4">
+                    <dt className={labelFont}>
+                      {t(locale, "小計", "Subtotal", "Subtotal", "小計")} ({localItemCount})
+                    </dt>
+                    <dd className={`${priceFont} tabular-nums text-right min-w-[88px]`}>
+                      {formatPrice(currency, subtotal)}
+                    </dd>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-4">
+                    <dt className={labelFont}>
+                      {t(locale, "運費", "Shipping Fee", "Envio", "送料")}
+                    </dt>
+                    <dd className={`${secondaryFont} text-right`}>
+                      {t(locale, "結帳時計算", "Calculated at checkout", "Calc. no checkout", "チェックアウト時")}
+                    </dd>
+                  </div>
+                  <div className={`flex items-baseline justify-between gap-4 pt-2 border-t ${isHumanMade ? "border-[#121212]/10" : "border-gray-100"}`}>
+                    <dt className={isHumanMade ? "text-[13px] font-normal uppercase tracking-[0.12em] text-[#121212]" : "text-base font-semibold text-gray-900"}>
+                      {t(locale, "總計", "Total", "Total", "合計")}
+                    </dt>
+                    <dd className={`tabular-nums text-right min-w-[88px] ${isHumanMade ? "text-[15px] text-[#121212]" : "text-base font-semibold text-gray-900"}`}>
+                      {formatPrice(currency, subtotal)}
+                    </dd>
+                  </div>
+                </dl>
               </div>
 
               {/* Actions */}
-              <div className="space-y-3 px-5 pb-5">
+              <div className="space-y-3 px-6 pb-6">
                 <a
                   href={`/${locale}/cart`}
                   onClick={() => setOpen(false)}
                   className={`${outlinedBtn} block text-center`}
                 >
-                  {t(locale, "查看購物車", "VIEW CART", "VER CARRINHO", "カートを見る")} ({itemCount})
+                  {t(locale, "查看購物車", "VIEW CART", "VER CARRINHO", "カートを見る")} ({localItemCount})
                 </a>
                 <a
                   href={`/${locale}/checkout`}
