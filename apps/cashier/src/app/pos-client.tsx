@@ -32,7 +32,7 @@ import CustomerSearchSpotlight from "@/components/customer/customer-search-spotl
 import CustomerDetailSheet, { type LinkedCustomer } from "@/components/customer/customer-detail-sheet";
 import ProductSearchSpotlight from "@/components/search/product-search-spotlight";
 import { fetchProductVariants, lookupBarcode, type OrderDiscount } from "@/lib/actions";
-import { useBarcodeScanner } from "@/lib/use-barcode-scanner";
+import { useBarcodeScanner, wasRecentBarcodeScan } from "@/lib/use-barcode-scanner";
 import { useCatalogSync } from "@/lib/use-catalog-sync";
 import { resolveImageSrc } from "@/lib/catalog-image-sync";
 import { getCachedVariants } from "@/lib/catalog-sync";
@@ -802,7 +802,9 @@ export default function POSClient({ initialProducts, initialCategories, userName
       if (tag === "INPUT" || tag === "TEXTAREA") return;
 
       // Enter → open checkout (when cart has items)
+      // Skip if Enter came from a barcode scanner (scanner emits Enter as terminator)
       if (e.key === "Enter" && cart.length > 0 && activeTab === "cashier") {
+        if (wasRecentBarcodeScan()) return;
         e.preventDefault();
         setShowCheckout(true);
       }
