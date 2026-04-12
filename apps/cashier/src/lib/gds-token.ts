@@ -12,6 +12,7 @@
 const TOKEN_URL = "https://passport.gds.org.cn/connect/token";
 const DEFAULT_CLIENT_ID = "vuejs_code_client";
 const REFRESH_SAFETY_MS = 60_000;
+const TOKEN_FETCH_TIMEOUT_MS = 5_000;
 
 let cached: { value: string; expiresAt: number } | null = null;
 let inflight: Promise<string | null> | null = null;
@@ -28,6 +29,8 @@ export async function getGdsAccessToken(): Promise<string | null> {
     if (!refreshToken) return null;
     const clientId = process.env.GDS_CLIENT_ID || DEFAULT_CLIENT_ID;
 
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), TOKEN_FETCH_TIMEOUT_MS);
     try {
       const res = await fetch(TOKEN_URL, {
         method: "POST",
@@ -38,6 +41,7 @@ export async function getGdsAccessToken(): Promise<string | null> {
           refresh_token: refreshToken,
         }),
         cache: "no-store",
+        signal: ctrl.signal,
       });
       if (!res.ok) return null;
       const json = (await res.json()) as {
@@ -53,6 +57,7 @@ export async function getGdsAccessToken(): Promise<string | null> {
     } catch {
       return null;
     } finally {
+      clearTimeout(timer);
       inflight = null;
     }
   })();
