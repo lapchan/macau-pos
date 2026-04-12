@@ -1,3 +1,7 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+
 type Props = {
   locale: string;
   tenantName: string;
@@ -12,6 +16,9 @@ const t = (locale: string, tc: string, en: string, pt: string, ja: string) => {
 };
 
 export default function StoreFooter({ locale, tenantName, categories, accentColor = "#4f46e5", themeId }: Props) {
+  const pathname = usePathname();
+  const isCheckoutPage = /\/(checkout|cart)(\/|$)/.test(pathname || "");
+  const topMargin = isCheckoutPage ? "" : "mt-10 md:mt-14";
   const footerNav = {
     shop: categories.slice(0, 5).map((cat) => ({
       name: (cat.translations as Record<string, string>)?.[locale] || cat.name,
@@ -71,7 +78,7 @@ export default function StoreFooter({ locale, tenantName, categories, accentColo
     ];
 
     return (
-      <footer className="mt-10 md:mt-14 border-t border-[#121212]/8 bg-white text-[#121212]/60" style={{ fontSize: "12px", letterSpacing: "0.05em", lineHeight: "1.2" }}>
+      <footer className={`${topMargin} border-t border-[#121212]/8 bg-white text-[#121212]/60`} style={{ fontSize: "12px", letterSpacing: "0.05em", lineHeight: "1.2" }}>
         <div className="py-8 md:py-12">
           <div className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8">
             {/* Link columns */}
