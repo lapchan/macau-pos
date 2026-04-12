@@ -20,13 +20,14 @@ type Props = {
   items: { id: string; name: string; price: number; quantity: number; image?: string | null }[];
   deliveryZones: { id: string; name: string; fee: number; freeAbove?: number | null }[];
   locale: string;
+  themeId?: string;
   customerEmail?: string;
   customerPhone?: string;
   customerName?: string;
   savedAddresses?: SavedAddress[];
 };
 
-export default function CheckoutClient({ items, deliveryZones, locale, customerEmail, customerPhone, customerName, savedAddresses = [] }: Props) {
+export default function CheckoutClient({ items, deliveryZones, locale, themeId, customerEmail, customerPhone, customerName, savedAddresses = [] }: Props) {
   const router = useRouter();
 
   return (
@@ -34,6 +35,7 @@ export default function CheckoutClient({ items, deliveryZones, locale, customerE
       items={items}
       deliveryZones={deliveryZones}
       locale={locale}
+      themeId={themeId}
       customerEmail={customerEmail}
       customerPhone={customerPhone}
       customerName={customerName}

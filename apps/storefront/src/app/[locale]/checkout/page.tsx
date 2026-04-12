@@ -25,12 +25,13 @@ export default async function CheckoutPage({
     redirect(`/${locale}/cart`);
   }
 
+  const config = await getStorefrontConfig(tenant.id);
+  const branding = config.branding as Record<string, unknown>;
+  const themeId = (branding?.themeId as string) || "modern";
+
   // Gate: require login choice unless already logged in or explicitly continuing as guest
   const customer = await getCurrentCustomer();
   if (!customer && guest !== "1") {
-    const config = await getStorefrontConfig(tenant.id);
-    const branding = config.branding as Record<string, unknown>;
-    const themeId = (branding?.themeId as string) || "modern";
     return <CheckoutGate locale={locale} themeId={themeId} />;
   }
 
@@ -68,6 +69,7 @@ export default async function CheckoutPage({
       items={items}
       deliveryZones={zones}
       locale={locale}
+      themeId={themeId}
       customerEmail={customer?.email || undefined}
       customerPhone={customer?.phone || undefined}
       customerName={customer?.name || undefined}
