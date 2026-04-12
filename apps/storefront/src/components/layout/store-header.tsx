@@ -8,7 +8,6 @@ import {
   MagnifyingGlassIcon,
   QuestionMarkCircleIcon,
   UserIcon,
-  ShoppingBagIcon,
 } from "@heroicons/react/24/outline";
 import CartPopover from "@/components/cart/cart-popover";
 
@@ -135,6 +134,7 @@ export default function StoreHeader({ locale, tenantName, tenantLogo, accentColo
         hmNavLinks={hmNavLinks}
         megaCols={megaCols}
         cartCount={cartCount}
+        cartItems={cartItems}
         customer={customer}
         searchOpen={searchOpen}
         setSearchOpen={setSearchOpen}
@@ -438,6 +438,7 @@ export default function StoreHeader({ locale, tenantName, tenantLogo, accentColo
                           itemCount={cartCount}
                           locale={locale}
                           isDark={isDark}
+                          themeId={themeId}
                         />
                       </div>
                     </div>
@@ -460,6 +461,7 @@ function HumanMadeHeader({
   hmNavLinks,
   megaCols,
   cartCount,
+  cartItems,
   customer,
   searchOpen,
   setSearchOpen,
@@ -477,6 +479,7 @@ function HumanMadeHeader({
   hmNavLinks: NavLink[];
   megaCols: { label: string; href: string }[][];
   cartCount: number;
+  cartItems: CartItem[];
   customer?: { name: string } | null;
   searchOpen: boolean;
   setSearchOpen: (v: boolean) => void;
@@ -613,14 +616,12 @@ function HumanMadeHeader({
             <button type="button" onClick={() => setSearchOpen(true)} className="p-1 text-[#121212]">
               <MagnifyingGlassIcon className="size-5" />
             </button>
-            <a href={`/${locale}/cart`} className="relative p-1 text-[#121212]">
-              <ShoppingBagIcon className="size-5" />
-              {cartCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#121212] text-[8px] text-white">
-                  {cartCount}
-                </span>
-              )}
-            </a>
+            <CartPopover
+              items={cartItems}
+              itemCount={cartCount}
+              locale={locale}
+              themeId="humanmade"
+            />
             {/* Hamburger — desktop (HUMAN MADE has it on both) */}
             <button type="button" onClick={() => setMobileMenuOpen(true)} className="hidden p-1 text-[#121212] md:block">
               <Bars3Icon className="size-5" />
