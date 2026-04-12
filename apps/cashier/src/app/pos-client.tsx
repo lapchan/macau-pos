@@ -386,6 +386,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
       if (saved) setFavoriteIds(new Set(JSON.parse(saved)));
     } catch { /* ignore */ }
     setMounted(true);
+    console.log("[pos] mounted, build:", process.env.NEXT_PUBLIC_BUILD_ID);
   }, []);
 
   // Auto-sync pending orders when coming back online
@@ -695,15 +696,19 @@ export default function POSClient({ initialProducts, initialCategories, userName
 
   const handleBarcodeScan = useCallback(async (barcode: string) => {
     const code = barcode.trim();
+    console.log("[scan] start", { code, build: process.env.NEXT_PUBLIC_BUILD_ID });
     let result;
     try {
       result = await lookupBarcode(code);
-    } catch {
+    } catch (err) {
+      console.log("[scan] lookupBarcode threw", err);
       showScanFeedback("error", t(locale, "scanError").replace("{code}", code), code);
       return;
     }
+    console.log("[scan] lookupBarcode result", result);
     if (!result.found) {
       const provider = getLookupProvider(code);
+      console.log("[scan] not found → provider =", provider);
       const message = t(locale, "scanNotFound").replace("{code}", code);
       // Show the not-found modal immediately. If we have a provider for this
       // GS1 prefix, fire the lookup in the background and patch the lookup
@@ -716,24 +721,38 @@ export default function POSClient({ initialProducts, initialCategories, userName
         lookup: provider ? { state: "loading" } : undefined,
       });
       if (provider?.id === "barcodeplus") {
-        lookupBarcodePlus(code, locale).then((found) => {
-          setScanFeedback((prev) => {
-            if (!prev || prev.code !== code || prev.kind !== "not-found") return prev;
-            return {
-              ...prev,
-              lookup: found
-                ? {
-                    state: "found",
-                    name: found.name,
-                    brand: found.brand,
-                    company: found.company,
-                    category: found.category,
-                    origin: found.origin,
-                  }
-                : { state: "miss" },
-            };
+        console.log("[scan] calling lookupBarcodePlus", { code, locale });
+        lookupBarcodePlus(code, locale)
+          .then((found) => {
+            console.log("[scan] lookupBarcodePlus returned", found);
+            setScanFeedback((prev) => {
+              if (!prev || prev.code !== code || prev.kind !== "not-found") {
+                console.log("[scan] state was reset before lookup returned, ignoring");
+                return prev;
+              }
+              return {
+                ...prev,
+                lookup: found
+                  ? {
+                      state: "found",
+                      name: found.name,
+                      brand: found.brand,
+                      company: found.company,
+                      category: found.category,
+                      origin: found.origin,
+                    }
+                  : { state: "miss" },
+              };
+            });
+          })
+          .catch((err) => {
+            console.log("[scan] lookupBarcodePlus threw", err);
+            setScanFeedback((prev) =>
+              prev && prev.code === code && prev.kind === "not-found"
+                ? { ...prev, lookup: { state: "miss" } }
+                : prev
+            );
           });
-        });
       }
       return;
     }
