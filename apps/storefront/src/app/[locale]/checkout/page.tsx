@@ -1,24 +1,37 @@
 import { resolveTenant } from "@/lib/tenant-resolver";
-import { getDeliveryZonesForCheckout } from "@/lib/storefront-queries";
+import { getDeliveryZonesForCheckout, getStorefrontConfig } from "@/lib/storefront-queries";
 import { getCart } from "@/lib/actions/cart";
 import { getCurrentCustomer } from "@/lib/actions/auth";
 import { getAddresses } from "@/lib/actions/account";
 import { notFound, redirect } from "next/navigation";
 import { db, locations, eq, getDisplayName } from "@macau-pos/database";
 import CheckoutClient from "./client";
+import CheckoutGate from "./gate";
 
 export default async function CheckoutPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: string }>;
+  searchParams: Promise<{ guest?: string }>;
 }) {
   const { locale } = await params;
+  const { guest } = await searchParams;
   const tenant = await resolveTenant();
   if (!tenant) notFound();
 
   const cart = await getCart();
   if (!cart || cart.items.length === 0) {
     redirect(`/${locale}/cart`);
+  }
+
+  // Gate: require login choice unless already logged in or explicitly continuing as guest
+  const customer = await getCurrentCustomer();
+  if (!customer && guest !== "1") {
+    const config = await getStorefrontConfig(tenant.id);
+    const branding = config.branding as Record<string, unknown>;
+    const themeId = (branding?.themeId as string) || "modern";
+    return <CheckoutGate locale={locale} themeId={themeId} />;
   }
 
   // Load delivery zones
@@ -47,8 +60,7 @@ export default async function CheckoutPage({
     image: item.image,
   }));
 
-  // Load customer data + saved addresses (if logged in)
-  const customer = await getCurrentCustomer();
+  // Load saved addresses (if logged in)
   const savedAddresses = customer ? await getAddresses() : [];
 
   return (

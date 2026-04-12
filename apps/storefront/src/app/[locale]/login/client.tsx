@@ -9,6 +9,7 @@ type Props = {
   tenantName: string;
   accentColor: string;
   themeId?: string;
+  nextUrl?: string;
 };
 
 const t = (locale: string, tc: string, en: string, pt: string, ja: string) => {
@@ -16,7 +17,7 @@ const t = (locale: string, tc: string, en: string, pt: string, ja: string) => {
   return m[locale] || en;
 };
 
-export default function LoginPageClient({ locale, tenantName, accentColor, themeId }: Props) {
+export default function LoginPageClient({ locale, tenantName, accentColor, themeId, nextUrl }: Props) {
   const router = useRouter();
   const [step, setStep] = useState<"contact" | "verify">("contact");
   const [method, setMethod] = useState<"phone" | "email">("phone");
@@ -58,7 +59,7 @@ export default function LoginPageClient({ locale, tenantName, accentColor, theme
     if (result.error) {
       setError(result.error);
     } else {
-      router.push(`/${locale}/account`);
+      router.push(nextUrl || `/${locale}/account`);
       router.refresh();
     }
   };
