@@ -92,7 +92,7 @@ export default function ProductOverview({ product, locale, currency = "MOP", onA
                     onClick={() => setSelectedImage(i)}
                     className={`relative aspect-square overflow-hidden rounded-lg bg-gray-100 ${i === selectedImage ? "ring-2 ring-indigo-500" : "ring-1 ring-gray-200 hover:ring-gray-300"}`}
                   >
-                    <Image src={img.url} alt={img.alt || ""} fill sizes="100px" className="object-cover object-center" />
+                    <Image src={img.url} alt={img.alt || ""} fill unoptimized sizes="100px" className="object-cover object-center" />
                   </button>
                 ))}
               </div>
@@ -105,6 +105,7 @@ export default function ProductOverview({ product, locale, currency = "MOP", onA
                   src={images[selectedImage]?.url}
                   alt={images[selectedImage]?.alt || name}
                   fill
+                  unoptimized
                   sizes="(max-width: 1024px) 100vw, 50vw"
                   priority
                   className="object-cover object-center"

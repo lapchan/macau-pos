@@ -88,7 +88,7 @@ export default function ProductCard({ product, locale, variant = "simple", showC
   const ProductImage = ({ aspect = "aspect-square", rounded = "rounded-lg" }: { aspect?: string; rounded?: string }) => (
     <div className={`relative ${aspect} w-full overflow-hidden ${rounded} bg-gray-100 group-hover:opacity-75 transition-opacity`}>
       {product.image ? (
-        <Image src={product.image} alt={name} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover object-center" />
+        <Image src={product.image} alt={name} fill unoptimized sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover object-center" />
       ) : (
         <ImagePlaceholder />
       )}
@@ -109,7 +109,7 @@ export default function ProductCard({ product, locale, variant = "simple", showC
       <a href={href} className="group flex gap-4">
         <div className="relative h-32 w-32 shrink-0 overflow-hidden rounded-lg bg-gray-100">
           {product.image ? (
-            <Image src={product.image} alt={name} fill sizes="128px" className="object-cover object-center group-hover:opacity-75 transition-opacity" />
+            <Image src={product.image} alt={name} fill unoptimized sizes="128px" className="object-cover object-center group-hover:opacity-75 transition-opacity" />
           ) : (
             <ImagePlaceholder />
           )}
@@ -139,7 +139,7 @@ export default function ProductCard({ product, locale, variant = "simple", showC
           <a href={href} className="group">
             <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-100">
               {product.image ? (
-                <Image src={product.image} alt={name} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover object-center group-hover:opacity-75 transition-opacity" />
+                <Image src={product.image} alt={name} fill unoptimized sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover object-center group-hover:opacity-75 transition-opacity" />
               ) : (
                 <ImagePlaceholder />
               )}
@@ -213,7 +213,7 @@ export default function ProductCard({ product, locale, variant = "simple", showC
       <a href={href} className="group rounded-lg border border-gray-200 p-4 transition-colors hover:border-gray-300">
         <div className="relative aspect-square w-full overflow-hidden rounded-md bg-gray-100">
           {product.image ? (
-            <Image src={product.image} alt={name} fill sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover object-center group-hover:opacity-75 transition-opacity" />
+            <Image src={product.image} alt={name} fill unoptimized sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover object-center group-hover:opacity-75 transition-opacity" />
           ) : (
             <ImagePlaceholder />
           )}
@@ -294,6 +294,7 @@ export default function ProductCard({ product, locale, variant = "simple", showC
               src={product.image}
               alt={name}
               fill
+              unoptimized
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               className="object-contain object-center transition-transform duration-500 ease-in-out group-hover:scale-105"
             />

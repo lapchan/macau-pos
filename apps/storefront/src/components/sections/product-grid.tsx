@@ -66,6 +66,7 @@ export default async function ProductGrid({ data, locale, tenantId, themeId }: P
                         src={product.image}
                         alt={name}
                         fill
+                        unoptimized
                         sizes="(max-width: 640px) 50vw, 25vw"
                         className="object-contain object-center transition-transform duration-500 ease-in-out group-hover:scale-[1.03]"
                       />
