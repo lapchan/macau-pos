@@ -643,7 +643,7 @@ function HumanMadeHeader({
         </div>
 
         {/* Center: logo */}
-        <div className="flex items-center justify-center pb-3 pt-2 md:pt-4 md:pb-4">
+        <div className={`flex items-center justify-center pt-2 md:pt-4 ${minimal ? "pb-2 md:pb-2" : "pb-3 md:pb-4"}`}>
           <a href={`/${locale}`} className="block transition-transform duration-300 hover:scale-105">
             {tenantLogo ? (
               <img src={tenantLogo} alt={tenantName} className="h-12 w-auto md:h-16" />
