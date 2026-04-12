@@ -22,9 +22,11 @@ RUN pnpm install --frozen-lockfile
 # --------------- Builder ---------------
 FROM base AS builder
 ARG APP
+ARG BUILD_ID=dev
 COPY --from=deps /app/ ./
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
+ENV BUILD_ID=${BUILD_ID}
 RUN pnpm --filter ${APP} build
 
 # --------------- Runner ---------------

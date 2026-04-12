@@ -45,6 +45,7 @@ services:
       args:
         APP: cashier
         PORT: "3200"
+        BUILD_ID: ${BUILD_ID:-dev}
     restart: unless-stopped
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-pos_prod}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-macau_pos}

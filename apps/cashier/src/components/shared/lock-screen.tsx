@@ -221,6 +221,13 @@ export default function LockScreen({
         </button>
       </div>
 
+      {/* Build ID (bottom-left) — visible confirmation of which JS bundle is running */}
+      <div className="absolute bottom-6 left-6">
+        <span className="text-[10px] font-mono text-[#86868b]/60 tabular-nums select-none">
+          build {process.env.NEXT_PUBLIC_BUILD_ID || "dev"}
+        </span>
+      </div>
+
       {/* Connection indicator (bottom-right) */}
       <div className="absolute bottom-6 right-6">
         <button
