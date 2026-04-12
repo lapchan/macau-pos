@@ -120,6 +120,9 @@ export default async function LocaleLayout({
         // eslint-disable-next-line @next/next/no-page-custom-font
         <link rel="stylesheet" href="https://use.typekit.net/fmb3drh.css" />
       )}
+
+      <CookieBanner locale={locale} themeId={themeId} />
+
       {/* Announcement bar — hidden for humanmade theme */}
       {showAnnouncement && themeId !== "humanmade" && (
         announcementLink ? (
@@ -166,8 +169,6 @@ export default async function LocaleLayout({
         accentColor={accentColor}
         themeId={themeId}
       />
-
-      <CookieBanner locale={locale} themeId={themeId} />
     </div>
   );
 }

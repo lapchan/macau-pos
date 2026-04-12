@@ -147,7 +147,7 @@ export default function CookieBanner({ locale, themeId }: Props) {
   );
 
   const StickyBar = (
-    <div className={`fixed inset-x-0 top-0 z-[55] border-b ${isHumanMade ? "border-[#121212] bg-[#121212] text-white" : "border-gray-800 bg-gray-900 text-white"}`}>
+    <div className={`relative z-[55] border-b ${isHumanMade ? "border-[#121212] bg-[#121212] text-white" : "border-gray-800 bg-gray-900 text-white"}`}>
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-2 sm:px-6 lg:px-8">
         <p className={isHumanMade ? "text-[11px] tracking-[0.1em] uppercase" : "text-xs sm:text-sm"}>
           {labels.notice}
