@@ -348,15 +348,36 @@ export async function lookupBarcode(barcode: string): Promise<BarcodeLookupResul
 // platform. No auth, no captcha. Use only as a fallback when a
 // scanned barcode is missing from the local catalog.
 
-export type ExternalBarcodeResult = {
-  source: "gs1hk" | "gs1cn";
-  gtin: string;
-  name: string;
-  brand?: string;
-  company?: string;
-  category?: string;
-  origin?: string;
-};
+export type ExternalLookupSource = "gs1hk" | "gs1cn" | "gs1jp";
+
+// Discriminated outcome from an external GS1 registry lookup.
+//  - found:      provider returned full product details
+//  - registered: provider confirms the GTIN is registered but has no metadata
+//                (GS1 HK PRD.CD015 — common for small-brand SKUs)
+//  - missing:    provider has no record of this GTIN at all
+//  - error:      lookup failed (timeout / network / auth / bad response)
+export type ExternalLookupOutcome =
+  | {
+      kind: "found";
+      source: ExternalLookupSource;
+      gtin: string;
+      name: string;
+      brand?: string;
+      company?: string;
+      category?: string;
+      origin?: string;
+    }
+  | { kind: "registered"; source: "gs1hk"; gtin: string }
+  | { kind: "missing"; source: ExternalLookupSource; gtin: string }
+  | {
+      kind: "error";
+      source: ExternalLookupSource;
+      gtin: string;
+      reason: "timeout" | "network" | "auth" | "unknown";
+    };
+
+// Back-compat alias — the "found" shape used to be the sole return type.
+export type ExternalBarcodeResult = Extract<ExternalLookupOutcome, { kind: "found" }>;
 
 // Direct GTIN → product lookup. Discovered by reverse-engineering the
 // product detail page (/eid/view/product.html). The /eid/... search
@@ -384,22 +405,28 @@ type BcpDataItem = {
   product?: BcpProduct;
   company?: BcpCompany;
 };
+type BcpErrorItem = { code?: string; message?: string; details?: string };
+type BcpResponse = {
+  result?: Array<{ data?: BcpDataItem[] }>;
+  errors?: BcpErrorItem[];
+  code?: string;
+  message?: string;
+};
 
-export async function lookupBarcodePlus(
+// "Raw" classification of a single BarcodePlus response.
+type BcpClassified =
+  | { tag: "found"; item: BcpDataItem }
+  | { tag: "registered" } // PRD.CD015 — registered, no product details
+  | { tag: "empty" } // no data, no recognisable error
+  | { tag: "retryable" } // generic Validate error — worth retrying in EN
+  | { tag: "error"; reason: "timeout" | "network" | "unknown" };
+
+async function fetchBarcodePlusOnce(
   gtin: string,
-  locale: string = "en"
-): Promise<ExternalBarcodeResult | null> {
-  if (!/^\d{13}$/.test(gtin)) return null;
-  const langId = localeToBarcodePlusLang(locale);
-
-  const payload = {
-    appCode: "MCC2",
-    method: "getProdDetailsByGTIN",
-    gtin,
-    langId,
-  };
+  langId: "en" | "zh_TW" | "zh_CN"
+): Promise<BcpClassified> {
+  const payload = { appCode: "MCC2", method: "getProdDetailsByGTIN", gtin, langId };
   const url = `${BARCODEPLUS_URL}?data=${encodeURIComponent(JSON.stringify(payload))}`;
-
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 5000);
   try {
@@ -408,29 +435,70 @@ export async function lookupBarcodePlus(
       headers: { "User-Agent": "Mozilla/5.0 macau-pos" },
       cache: "no-store",
     });
-    if (!res.ok) return null;
-    const json = (await res.json()) as {
-      result?: Array<{ data?: BcpDataItem[] }>;
-      errors?: unknown;
-    };
-    if (json?.errors) return null;
-    const item = json?.result?.[0]?.data?.[0];
-    const product = item?.product;
-    if (!product?.prodName) return null;
+    if (!res.ok) return { tag: "error", reason: "network" };
+    const json = (await res.json()) as BcpResponse;
 
-    return {
-      source: "gs1hk",
-      gtin,
-      name: product.prodName,
-      brand: product.brandName || product.prodbrandName || undefined,
-      company: item?.company?.name || undefined,
-      category: undefined,
-      origin: product.country || undefined,
-    };
-  } catch {
-    return null;
+    if (json?.errors?.length) {
+      const codes = json.errors.map((e) => e.code || "");
+      if (codes.includes("PRD.CD015")) return { tag: "registered" };
+      // Unrecognised structured error — retryable if we're in a zh locale
+      return { tag: "retryable" };
+    }
+    // zh_TW / zh_CN sometimes return { code: "Validate", message: "[ Validate ]" }
+    // at the top level instead of an errors array. Treat the same way.
+    if (json?.code && json?.code !== "OK") return { tag: "retryable" };
+
+    const item = json?.result?.[0]?.data?.[0];
+    if (!item?.product?.prodName) return { tag: "empty" };
+    return { tag: "found", item };
+  } catch (err) {
+    const name = (err as { name?: string })?.name;
+    return { tag: "error", reason: name === "AbortError" ? "timeout" : "unknown" };
   } finally {
     clearTimeout(timer);
+  }
+}
+
+export async function lookupBarcodePlus(
+  gtin: string,
+  locale: string = "en"
+): Promise<ExternalLookupOutcome> {
+  if (!/^\d{13}$/.test(gtin)) {
+    return { kind: "missing", source: "gs1hk", gtin };
+  }
+  const langId = localeToBarcodePlusLang(locale);
+
+  let classified = await fetchBarcodePlusOnce(gtin, langId);
+
+  // If zh locales returned a generic Validate error, retry once in English —
+  // the EN endpoint gives structured PRD.CDxxx codes we can distinguish.
+  if (classified.tag === "retryable" && langId !== "en") {
+    classified = await fetchBarcodePlusOnce(gtin, "en");
+  }
+
+  switch (classified.tag) {
+    case "found": {
+      const product = classified.item.product!;
+      return {
+        kind: "found",
+        source: "gs1hk",
+        gtin,
+        name: product.prodName!,
+        brand: product.brandName || product.prodbrandName || undefined,
+        company: classified.item.company?.name || undefined,
+        category: undefined,
+        origin: product.country || undefined,
+      };
+    }
+    case "registered":
+      return { kind: "registered", source: "gs1hk", gtin };
+    case "empty":
+      return { kind: "missing", source: "gs1hk", gtin };
+    case "retryable":
+      // EN retry still came back with a generic error — treat as upstream error
+      return { kind: "error", source: "gs1hk", gtin, reason: "unknown" };
+    case "error":
+      return { kind: "error", source: "gs1hk", gtin, reason: classified.reason };
   }
 }
 
@@ -455,12 +523,16 @@ type GdsItem = {
 export async function lookupGdsCn(
   gtin: string,
   _locale: string = "en"
-): Promise<ExternalBarcodeResult | null> {
-  if (!/^\d{13}$/.test(gtin)) return null;
+): Promise<ExternalLookupOutcome> {
+  if (!/^\d{13}$/.test(gtin)) {
+    return { kind: "missing", source: "gs1cn", gtin };
+  }
 
   const { getGdsAccessToken } = await import("./gds-token");
   const token = await getGdsAccessToken();
-  if (!token) return null;
+  if (!token) {
+    return { kind: "error", source: "gs1cn", gtin, reason: "auth" };
+  }
 
   // GDS expects GTIN-14 — pad EAN-13 with a leading zero.
   const gtin14 = "0" + gtin;
@@ -479,20 +551,25 @@ export async function lookupGdsCn(
       },
       cache: "no-store",
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      return { kind: "error", source: "gs1cn", gtin, reason: "network" };
+    }
     const json = (await res.json()) as {
       Code?: number;
       Data?: { Items?: GdsItem[] };
     };
-    if (json?.Code !== 1) return null;
+    if (json?.Code !== 1) {
+      return { kind: "error", source: "gs1cn", gtin, reason: "unknown" };
+    }
     const item = json?.Data?.Items?.[0];
-    if (!item) return null;
+    if (!item) return { kind: "missing", source: "gs1cn", gtin };
 
     const name =
       item.RegulatedProductName?.trim() || item.keyword?.trim() || null;
-    if (!name) return null;
+    if (!name) return { kind: "missing", source: "gs1cn", gtin };
 
     return {
+      kind: "found",
       source: "gs1cn",
       gtin,
       name,
@@ -501,11 +578,189 @@ export async function lookupGdsCn(
       category: item.gpcname?.trim() || undefined,
       origin: "中國",
     };
-  } catch {
-    return null;
+  } catch (err) {
+    const name = (err as { name?: string })?.name;
+    return {
+      kind: "error",
+      source: "gs1cn",
+      gtin,
+      reason: name === "AbortError" ? "timeout" : "unknown",
+    };
   } finally {
     clearTimeout(timer);
   }
+}
+
+// ─── External Barcode Lookup (Rakuten Ichiba + Yahoo Shopping / GS1 Japan) ──
+// GS1 Japan's JICFS/IFDB is member-only, so there is no BarcodePlus-equivalent
+// free GS1 JP endpoint. Instead we fall back to two major Japanese marketplaces
+// that index by JAN: Rakuten Ichiba (keyword search) and Yahoo! Shopping (jan_code).
+// Both require a free developer app ID.
+
+const RAKUTEN_ICHIBA_URL =
+  "https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601";
+const YAHOO_SHOPPING_URL =
+  "https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch";
+
+type RakutenItem = {
+  itemName?: string;
+  itemCaption?: string;
+  shopName?: string;
+  genreId?: number;
+};
+type RakutenItemsV2Response = {
+  Items?: RakutenItem[];
+  // Format v1 wraps each item in { Item: {...} }
+  // We request formatVersion=2 so the above is the shape we get.
+};
+type RakutenError = { error?: string; error_description?: string };
+
+type YahooHit = {
+  name?: string;
+  janCode?: string;
+  brand?: { id?: number; name?: string };
+  genreCategory?: { id?: number; name?: string };
+  seller?: { name?: string };
+};
+type YahooResponse = {
+  totalResultsAvailable?: number;
+  totalResultsReturned?: number;
+  hits?: YahooHit[];
+  // Error envelope when appid is invalid:
+  //   { "Error": { "Message": "...", "Code": "..." } }
+  Error?: { Message?: string; Code?: string };
+};
+
+async function lookupRakutenIchiba(gtin: string): Promise<ExternalLookupOutcome> {
+  const appId = process.env.RAKUTEN_APP_ID;
+  if (!appId) {
+    return { kind: "error", source: "gs1jp", gtin, reason: "auth" };
+  }
+
+  const url =
+    `${RAKUTEN_ICHIBA_URL}?applicationId=${encodeURIComponent(appId)}` +
+    `&keyword=${gtin}&hits=1&formatVersion=2`;
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+    if (res.status === 404) {
+      const json = (await res.json().catch(() => null)) as RakutenError | null;
+      if (json?.error === "not_found") {
+        return { kind: "missing", source: "gs1jp", gtin };
+      }
+      return { kind: "error", source: "gs1jp", gtin, reason: "network" };
+    }
+    if (!res.ok) {
+      return { kind: "error", source: "gs1jp", gtin, reason: "network" };
+    }
+    const json = (await res.json()) as RakutenItemsV2Response;
+    const item = json?.Items?.[0];
+    if (!item?.itemName) return { kind: "missing", source: "gs1jp", gtin };
+
+    return {
+      kind: "found",
+      source: "gs1jp",
+      gtin,
+      name: item.itemName,
+      brand: undefined,
+      company: item.shopName || undefined,
+      category: undefined,
+      origin: "日本",
+    };
+  } catch (err) {
+    const name = (err as { name?: string })?.name;
+    return {
+      kind: "error",
+      source: "gs1jp",
+      gtin,
+      reason: name === "AbortError" ? "timeout" : "unknown",
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function lookupYahooShoppingJp(gtin: string): Promise<ExternalLookupOutcome> {
+  const appId = process.env.YAHOO_JP_APP_ID;
+  if (!appId) {
+    return { kind: "error", source: "gs1jp", gtin, reason: "auth" };
+  }
+
+  const url =
+    `${YAHOO_SHOPPING_URL}?appid=${encodeURIComponent(appId)}` +
+    `&jan_code=${gtin}&results=1`;
+
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      return { kind: "error", source: "gs1jp", gtin, reason: "network" };
+    }
+    const json = (await res.json()) as YahooResponse;
+    if (json?.Error) {
+      return { kind: "error", source: "gs1jp", gtin, reason: "auth" };
+    }
+    const hit = json?.hits?.[0];
+    if (!hit?.name) return { kind: "missing", source: "gs1jp", gtin };
+
+    return {
+      kind: "found",
+      source: "gs1jp",
+      gtin,
+      name: hit.name,
+      brand: hit.brand?.name || undefined,
+      company: hit.seller?.name || undefined,
+      category: hit.genreCategory?.name || undefined,
+      origin: "日本",
+    };
+  } catch (err) {
+    const name = (err as { name?: string })?.name;
+    return {
+      kind: "error",
+      source: "gs1jp",
+      gtin,
+      reason: name === "AbortError" ? "timeout" : "unknown",
+    };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+export async function lookupJanJp(
+  gtin: string,
+  _locale: string = "en"
+): Promise<ExternalLookupOutcome> {
+  if (!/^\d{13}$/.test(gtin)) {
+    return { kind: "missing", source: "gs1jp", gtin };
+  }
+
+  // Try Rakuten first — broader catalog coverage for consumer goods.
+  const rakuten = await lookupRakutenIchiba(gtin);
+  if (rakuten.kind === "found") return rakuten;
+
+  // Fall back to Yahoo Shopping for anything Rakuten didn't surface.
+  // If Yahoo also doesn't find it, prefer the Yahoo outcome only when it
+  // carries more information (e.g. auth error); otherwise keep Rakuten's.
+  const yahoo = await lookupYahooShoppingJp(gtin);
+  if (yahoo.kind === "found") return yahoo;
+
+  // Both providers returned non-found. Prefer missing over error so the
+  // cashier can still create a temp product manually.
+  if (rakuten.kind === "missing" || yahoo.kind === "missing") {
+    return { kind: "missing", source: "gs1jp", gtin };
+  }
+  return rakuten.kind === "error" ? rakuten : yahoo;
 }
 
 // ─── Get Product Variants (for cashier variant picker) ─────

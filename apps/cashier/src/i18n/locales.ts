@@ -122,13 +122,20 @@ type TranslationKeys = {
   scanLookupSearching: string;
   scanLookupFoundFrom: string;
   scanLookupFoundFromCn: string;
+  scanLookupFoundFromJp: string;
   scanLookupBrand: string;
   scanLookupCategory: string;
   scanLookupOrigin: string;
+  scanLookupRegisteredTitle: string;
+  scanLookupRegisteredBody: string;
+  scanLookupErrorTimeout: string;
+  scanLookupErrorAuth: string;
+  scanLookupErrorGeneric: string;
   scanAddToCart: string;
   tempProductTitle: string;
   tempProductFromGs1Hk: string;
   tempProductFromGs1Cn: string;
+  tempProductFromGs1Jp: string;
 
   // Categories
   all: string;
@@ -394,13 +401,20 @@ const translations: Record<Locale, TranslationKeys> = {
     scanLookupSearching: "正在查詢條碼資料庫…",
     scanLookupFoundFrom: "來自 GS1 香港",
     scanLookupFoundFromCn: "來自 GS1 中國",
+    scanLookupFoundFromJp: "來自日本商店",
     scanLookupBrand: "品牌",
     scanLookupCategory: "類別",
     scanLookupOrigin: "產地",
+    scanLookupRegisteredTitle: "條碼已登記",
+    scanLookupRegisteredBody: "此條碼屬有效 GS1 條碼，但產品資料尚未上傳。可直接建立臨時商品。",
+    scanLookupErrorTimeout: "查詢逾時，請檢查網絡後重試。",
+    scanLookupErrorAuth: "條碼資料庫授權失效，請聯絡管理員。",
+    scanLookupErrorGeneric: "條碼資料庫暫時無法查詢。",
     scanAddToCart: "加入購物車",
     tempProductTitle: "輸入售價",
     tempProductFromGs1Hk: "來自 GS1 香港",
     tempProductFromGs1Cn: "來自 GS1 中國",
+    tempProductFromGs1Jp: "來自日本商店",
     all: "全部",
     beverages: "飲品",
     snacks: "零食",
@@ -642,13 +656,20 @@ const translations: Record<Locale, TranslationKeys> = {
     scanLookupSearching: "正在查询条码数据库…",
     scanLookupFoundFrom: "来自 GS1 香港",
     scanLookupFoundFromCn: "来自 GS1 中国",
+    scanLookupFoundFromJp: "来自日本商店",
     scanLookupBrand: "品牌",
     scanLookupCategory: "类别",
     scanLookupOrigin: "产地",
+    scanLookupRegisteredTitle: "条码已登记",
+    scanLookupRegisteredBody: "此条码是有效的 GS1 条码，但产品资料尚未上传。可直接创建临时商品。",
+    scanLookupErrorTimeout: "查询超时，请检查网络后重试。",
+    scanLookupErrorAuth: "条码数据库授权失效，请联系管理员。",
+    scanLookupErrorGeneric: "条码数据库暂时无法查询。",
     scanAddToCart: "加入购物车",
     tempProductTitle: "输入售价",
     tempProductFromGs1Hk: "来自 GS1 香港",
     tempProductFromGs1Cn: "来自 GS1 中国",
+    tempProductFromGs1Jp: "来自日本商店",
     all: "全部",
     beverages: "饮品",
     snacks: "零食",
@@ -890,13 +911,20 @@ const translations: Record<Locale, TranslationKeys> = {
     scanLookupSearching: "Looking up barcode database…",
     scanLookupFoundFrom: "From GS1 Hong Kong",
     scanLookupFoundFromCn: "From GS1 China",
+    scanLookupFoundFromJp: "From Japan marketplace",
     scanLookupBrand: "Brand",
     scanLookupCategory: "Category",
     scanLookupOrigin: "Origin",
+    scanLookupRegisteredTitle: "Registered barcode",
+    scanLookupRegisteredBody: "Valid GS1 barcode, but no product details on file. You can still create a temp product.",
+    scanLookupErrorTimeout: "Lookup timed out — check your connection and try again.",
+    scanLookupErrorAuth: "Barcode database auth expired. Contact the admin.",
+    scanLookupErrorGeneric: "Barcode database is unreachable right now.",
     scanAddToCart: "Add to cart",
     tempProductTitle: "Enter price",
     tempProductFromGs1Hk: "From GS1 Hong Kong",
     tempProductFromGs1Cn: "From GS1 China",
+    tempProductFromGs1Jp: "From Japan marketplace",
     all: "All",
     beverages: "Drinks",
     snacks: "Snacks",
@@ -1138,13 +1166,20 @@ const translations: Record<Locale, TranslationKeys> = {
     scanLookupSearching: "Consultando base de dados de códigos…",
     scanLookupFoundFrom: "De GS1 Hong Kong",
     scanLookupFoundFromCn: "De GS1 China",
+    scanLookupFoundFromJp: "De mercado japonês",
     scanLookupBrand: "Marca",
     scanLookupCategory: "Categoria",
     scanLookupOrigin: "Origem",
+    scanLookupRegisteredTitle: "Código de barras registado",
+    scanLookupRegisteredBody: "Código GS1 válido, mas sem detalhes do produto. Pode criar um produto temporário.",
+    scanLookupErrorTimeout: "Consulta expirou — verifique a ligação e tente novamente.",
+    scanLookupErrorAuth: "Autenticação da base de dados expirada. Contacte o administrador.",
+    scanLookupErrorGeneric: "Base de dados de códigos indisponível no momento.",
     scanAddToCart: "Adicionar ao carrinho",
     tempProductTitle: "Inserir preço",
     tempProductFromGs1Hk: "De GS1 Hong Kong",
     tempProductFromGs1Cn: "De GS1 China",
+    tempProductFromGs1Jp: "De mercado japonês",
     all: "Todos",
     beverages: "Bebidas",
     snacks: "Lanches",
@@ -1386,13 +1421,20 @@ const translations: Record<Locale, TranslationKeys> = {
     scanLookupSearching: "バーコードDBを検索中…",
     scanLookupFoundFrom: "GS1 香港より",
     scanLookupFoundFromCn: "GS1 中国より",
+    scanLookupFoundFromJp: "日本のマーケットプレイスより",
     scanLookupBrand: "ブランド",
     scanLookupCategory: "カテゴリ",
     scanLookupOrigin: "原産地",
+    scanLookupRegisteredTitle: "登録済みバーコード",
+    scanLookupRegisteredBody: "有効な GS1 バーコードですが、商品情報は未登録です。一時商品として追加できます。",
+    scanLookupErrorTimeout: "検索がタイムアウトしました。接続を確認して再試行してください。",
+    scanLookupErrorAuth: "バーコードDBの認証が失効しました。管理者に連絡してください。",
+    scanLookupErrorGeneric: "バーコードDBに接続できません。",
     scanAddToCart: "カートに追加",
     tempProductTitle: "価格を入力",
     tempProductFromGs1Hk: "GS1 香港より",
     tempProductFromGs1Cn: "GS1 中国より",
+    tempProductFromGs1Jp: "日本のマーケットプレイスより",
     all: "すべて",
     beverages: "ドリンク",
     snacks: "スナック",

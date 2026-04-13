@@ -27,13 +27,13 @@ import KeypadView from "@/components/pos/keypad-view";
 import DiscountPopover from "@/components/pos/discount-popover";
 import dynamic from "next/dynamic";
 const CameraScanner = dynamic(() => import("@/components/scanner/camera-scanner"), { ssr: false });
-import ScanFeedback, { type ScanFeedbackState } from "@/components/scanner/scan-feedback";
+import ScanFeedback, { type ScanFeedbackState, type LookupState } from "@/components/scanner/scan-feedback";
 import TempProductPriceModal from "@/components/pos/temp-product-price-modal";
 import { getLookupProvider } from "@/lib/barcode-providers";
 import CustomerSearchSpotlight from "@/components/customer/customer-search-spotlight";
 import CustomerDetailSheet, { type LinkedCustomer } from "@/components/customer/customer-detail-sheet";
 import ProductSearchSpotlight from "@/components/search/product-search-spotlight";
-import { fetchProductVariants, lookupBarcode, lookupBarcodePlus, lookupGdsCn, type OrderDiscount } from "@/lib/actions";
+import { fetchProductVariants, lookupBarcode, lookupBarcodePlus, lookupGdsCn, lookupJanJp, type OrderDiscount } from "@/lib/actions";
 import { useBarcodeScanner, wasRecentBarcodeScan } from "@/lib/use-barcode-scanner";
 import { useCatalogSync } from "@/lib/use-catalog-sync";
 import { resolveImageSrc } from "@/lib/catalog-image-sync";
@@ -343,7 +343,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
   const [showCameraScanner, setShowCameraScanner] = useState(false);
   const [scanFeedback, setScanFeedback] = useState<ScanFeedbackState>(null);
-  const [tempProductDraft, setTempProductDraft] = useState<{ name: string; barcode: string; source: "gs1hk" | "gs1cn" } | null>(null);
+  const [tempProductDraft, setTempProductDraft] = useState<{ name: string; barcode: string; source: "gs1hk" | "gs1cn" | "gs1jp" } | null>(null);
   const [showCustomerDetail, setShowCustomerDetail] = useState(false);
   const [linkedCustomer, setLinkedCustomer] = useState<LinkedCustomer | null>(null);
   const [showShiftClose, setShowShiftClose] = useState(false);
@@ -723,38 +723,60 @@ export default function POSClient({ initialProducts, initialCategories, userName
       const lookupFn =
         provider?.id === "barcodeplus" ? lookupBarcodePlus
         : provider?.id === "gdscn" ? lookupGdsCn
+        : provider?.id === "janjp" ? lookupJanJp
         : null;
       if (lookupFn) {
         console.log("[scan] calling external lookup", { provider: provider?.id, code, locale });
         lookupFn(code, locale)
-          .then((found) => {
-            console.log("[scan] external lookup returned", found);
+          .then((outcome) => {
+            console.log("[scan] external lookup returned", outcome);
             setScanFeedback((prev) => {
               if (!prev || prev.code !== code || prev.kind !== "not-found") {
                 console.log("[scan] state was reset before lookup returned, ignoring");
                 return prev;
               }
-              return {
-                ...prev,
-                lookup: found
-                  ? {
-                      state: "found",
-                      source: found.source,
-                      name: found.name,
-                      brand: found.brand,
-                      company: found.company,
-                      category: found.category,
-                      origin: found.origin,
-                    }
-                  : { state: "miss" },
-              };
+              let next: LookupState;
+              switch (outcome.kind) {
+                case "found":
+                  next = {
+                    state: "found",
+                    source: outcome.source,
+                    name: outcome.name,
+                    brand: outcome.brand,
+                    company: outcome.company,
+                    category: outcome.category,
+                    origin: outcome.origin,
+                  };
+                  break;
+                case "registered":
+                  next = { state: "registered", source: outcome.source };
+                  break;
+                case "error":
+                  next = { state: "error", source: outcome.source, reason: outcome.reason };
+                  break;
+                case "missing":
+                default:
+                  next = { state: "miss" };
+                  break;
+              }
+              return { ...prev, lookup: next };
             });
           })
           .catch((err) => {
             console.log("[scan] external lookup threw", err);
             setScanFeedback((prev) =>
               prev && prev.code === code && prev.kind === "not-found"
-                ? { ...prev, lookup: { state: "miss" } }
+                ? {
+                    ...prev,
+                    lookup: {
+                      state: "error",
+                      source:
+                        provider?.id === "gdscn" ? "gs1cn"
+                        : provider?.id === "janjp" ? "gs1jp"
+                        : "gs1hk",
+                      reason: "unknown",
+                    },
+                  }
                 : prev
             );
           });
@@ -1806,7 +1828,9 @@ export default function POSClient({ initialProducts, initialCategories, userName
           locale,
           tempProductDraft?.source === "gs1cn"
             ? "tempProductFromGs1Cn"
-            : "tempProductFromGs1Hk"
+            : tempProductDraft?.source === "gs1jp"
+              ? "tempProductFromGs1Jp"
+              : "tempProductFromGs1Hk"
         )}
         currency={currency}
         locale={locale}

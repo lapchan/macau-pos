@@ -7,12 +7,15 @@
 
 export type LookupProvider =
   | { id: "barcodeplus"; country: "HK" }
-  | { id: "gdscn"; country: "CN" };
+  | { id: "gdscn"; country: "CN" }
+  | { id: "janjp"; country: "JP" };
 
 const PROVIDER_BY_PREFIX: Array<[RegExp, LookupProvider]> = [
   [/^489/, { id: "barcodeplus", country: "HK" }],
   // GS1 China prefix range 690–699 → gds.org.cn (ANCC)
   [/^69[0-9]/, { id: "gdscn", country: "CN" }],
+  // GS1 Japan prefix ranges 450–459 and 490–499 → Rakuten Ichiba + Yahoo Shopping
+  [/^4[59][0-9]/, { id: "janjp", country: "JP" }],
 ];
 
 /**
