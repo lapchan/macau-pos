@@ -53,6 +53,7 @@ services:
       - NODE_ENV=production
       - GDS_REFRESH_TOKEN=${GDS_REFRESH_TOKEN:-}
       - RAKUTEN_APP_ID=${RAKUTEN_APP_ID:-}
+      - RAKUTEN_ACCESS_KEY=${RAKUTEN_ACCESS_KEY:-}
       - YAHOO_JP_APP_ID=${YAHOO_JP_APP_ID:-}
     depends_on:
       postgres:

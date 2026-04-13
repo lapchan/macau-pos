@@ -598,7 +598,7 @@ export async function lookupGdsCn(
 // Both require a free developer app ID.
 
 const RAKUTEN_ICHIBA_URL =
-  "https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601";
+  "https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401";
 const YAHOO_SHOPPING_URL =
   "https://shopping.yahooapis.jp/ShoppingWebService/V3/itemSearch";
 
@@ -613,7 +613,9 @@ type RakutenItemsV2Response = {
   // Format v1 wraps each item in { Item: {...} }
   // We request formatVersion=2 so the above is the shape we get.
 };
-type RakutenError = { error?: string; error_description?: string };
+type RakutenError = {
+  errors?: { errorCode?: number; errorMessage?: string };
+};
 
 type YahooHit = {
   name?: string;
@@ -633,12 +635,14 @@ type YahooResponse = {
 
 async function lookupRakutenIchiba(gtin: string): Promise<ExternalLookupOutcome> {
   const appId = process.env.RAKUTEN_APP_ID;
-  if (!appId) {
+  const accessKey = process.env.RAKUTEN_ACCESS_KEY;
+  if (!appId || !accessKey) {
     return { kind: "error", source: "gs1jp", gtin, reason: "auth" };
   }
 
   const url =
     `${RAKUTEN_ICHIBA_URL}?applicationId=${encodeURIComponent(appId)}` +
+    `&accessKey=${encodeURIComponent(accessKey)}` +
     `&keyword=${gtin}&hits=1&formatVersion=2`;
 
   const ctrl = new AbortController();
@@ -649,17 +653,16 @@ async function lookupRakutenIchiba(gtin: string): Promise<ExternalLookupOutcome>
       headers: { Accept: "application/json" },
       cache: "no-store",
     });
-    if (res.status === 404) {
-      const json = (await res.json().catch(() => null)) as RakutenError | null;
-      if (json?.error === "not_found") {
-        return { kind: "missing", source: "gs1jp", gtin };
-      }
-      return { kind: "error", source: "gs1jp", gtin, reason: "network" };
+    if (res.status === 401 || res.status === 403) {
+      return { kind: "error", source: "gs1jp", gtin, reason: "auth" };
     }
     if (!res.ok) {
       return { kind: "error", source: "gs1jp", gtin, reason: "network" };
     }
-    const json = (await res.json()) as RakutenItemsV2Response;
+    const json = (await res.json()) as RakutenItemsV2Response & RakutenError;
+    if (json?.errors) {
+      return { kind: "error", source: "gs1jp", gtin, reason: "unknown" };
+    }
     const item = json?.Items?.[0];
     if (!item?.itemName) return { kind: "missing", source: "gs1jp", gtin };
 
