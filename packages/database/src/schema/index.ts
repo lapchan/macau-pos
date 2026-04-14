@@ -20,6 +20,7 @@ export * from "./payments";
 export * from "./terminals";
 export * from "./terminal-cash-log";
 export * from "./tenant-payment-configs";
+export * from "./intellipay-webhook-events";
 
 // Storefront tables
 export * from "./customers";

@@ -26,6 +26,7 @@ export const paymentMethodEnum = pgEnum("payment_method", [
   "insert",
   "qr",
   "cash",
+  "online",
 ]);
 
 export const shiftStatusEnum = pgEnum("shift_status", [
