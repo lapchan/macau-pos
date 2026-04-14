@@ -125,6 +125,71 @@ export default function StoreFooter({ locale, tenantName, categories, accentColo
     );
   }
 
+  /* ─── Classic / light footer ─── */
+  if (themeId === "classic") {
+    return (
+      <footer className={`${topMargin} border-t border-gray-200 bg-white`}>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="py-12 grid grid-cols-2 gap-8 md:grid-cols-4">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">
+                {t(locale, "商品分類", "Shop", "Loja", "ショップ")}
+              </h3>
+              <ul role="list" className="mt-4 space-y-3">
+                {footerNav.shop.map((item) => (
+                  <li key={item.name} className="text-sm">
+                    <a href={item.href} className="text-gray-500 hover:text-gray-900">{item.name}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">
+                {t(locale, "關於", "About", "Sobre", "情報")}
+              </h3>
+              <ul role="list" className="mt-4 space-y-3">
+                {footerNav.company.map((item) => (
+                  <li key={item.name} className="text-sm">
+                    <a href={item.href} className="text-gray-500 hover:text-gray-900">{item.name}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">
+                {t(locale, "帳號", "Account", "Conta", "アカウント")}
+              </h3>
+              <ul role="list" className="mt-4 space-y-3">
+                {footerNav.account.map((item) => (
+                  <li key={item.name} className="text-sm">
+                    <a href={item.href} className="text-gray-500 hover:text-gray-900">{item.name}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">
+                {t(locale, "聯繫", "Connect", "Conectar", "コネクト")}
+              </h3>
+              <ul role="list" className="mt-4 space-y-3">
+                {footerNav.connect.map((item) => (
+                  <li key={item.name} className="text-sm">
+                    <a href={item.href} className="text-gray-500 hover:text-gray-900">{item.name}</a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-gray-200 py-8">
+            <p className="text-sm text-gray-400">
+              Copyright &copy; {new Date().getFullYear()} {tenantName}. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
+    );
+  }
+
   /* ─── Default footer ─── */
   return (
     <footer aria-labelledby="footer-heading" className="bg-gray-900">

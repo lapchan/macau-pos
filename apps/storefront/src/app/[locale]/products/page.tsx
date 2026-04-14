@@ -501,6 +501,7 @@ export default async function ProductsPage({ params, searchParams }: Props) {
                           product={product as any}
                           locale={locale}
                           variant={variantMap[cardView] || "with-inline"}
+                          themeId={themeId}
                           showCategory={!categorySlug}
                         />
                       );

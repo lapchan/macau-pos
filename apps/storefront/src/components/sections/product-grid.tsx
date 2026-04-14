@@ -175,14 +175,14 @@ export default async function ProductGrid({ data, locale, tenantId, themeId }: P
                 className="group"
               >
                 {/* Image */}
-                <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-100 group-hover:opacity-75 transition-opacity">
+                <div className={`relative aspect-square w-full overflow-hidden bg-gray-100 group-hover:opacity-75 transition-opacity ${themeId === "classic" ? "" : "rounded-lg"}`}>
                   {product.image ? (
                     <Image
                       src={product.image}
                       alt={name}
                       fill
                       sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                      className="object-cover object-center"
+                      className={themeId === "classic" ? "object-contain object-center p-2" : "object-cover object-center"}
                     />
                   ) : (
                     <div className="size-full flex items-center justify-center text-gray-300">

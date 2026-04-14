@@ -22,12 +22,15 @@ export async function generateMetadata(): Promise<Metadata> {
   const seoDescription = (branding?.seoDescription as string) || `Shop at ${tenant.name}`;
   const ogImage = (branding?.ogImage as string) || undefined;
 
+  const favicon = (branding?.favicon as string) || undefined;
+
   return {
     title: {
       template: `%s | ${tenant.name}`,
       default: seoTitle,
     },
     description: seoDescription,
+    ...(favicon ? { icons: { icon: favicon } } : {}),
     openGraph: {
       title: seoTitle,
       description: seoDescription,

@@ -38,7 +38,7 @@ type Props = {
   product: Product;
   locale: string;
   variant?: "simple" | "with-inline" | "with-cta" | "tall" | "wide" | "with-overlay" | "with-details" | "border-grid" | "with-swatches" | "humanmade";
-  themeId?: string;
+  themeId?: string | null;
   showCategory?: boolean;
   currency?: string;
   onAddToCart?: (productId: string) => void;
@@ -54,7 +54,7 @@ const t = (locale: string, tc: string, en: string, pt: string, ja: string) => {
   return m[locale] || en;
 };
 
-export default function ProductCard({ product, locale, variant = "simple", showCategory = false, currency = "MOP", onAddToCart }: Props) {
+export default function ProductCard({ product, locale, variant = "simple", themeId, showCategory = false, currency = "MOP", onAddToCart }: Props) {
   const name = getDisplayName(product.name, product.translations as Record<string, string>, locale);
   const price = parseFloat(String(product.sellingPrice));
   const originalPrice = product.originalPrice ? parseFloat(String(product.originalPrice)) : null;
@@ -86,9 +86,9 @@ export default function ProductCard({ product, locale, variant = "simple", showC
   );
 
   const ProductImage = ({ aspect = "aspect-square", rounded = "rounded-lg" }: { aspect?: string; rounded?: string }) => (
-    <div className={`relative ${aspect} w-full overflow-hidden ${rounded} bg-gray-100 group-hover:opacity-75 transition-opacity`}>
+    <div className={`relative ${aspect} w-full overflow-hidden ${themeId === "classic" ? "" : rounded} bg-gray-100 group-hover:opacity-75 transition-opacity`}>
       {product.image ? (
-        <Image src={product.image} alt={name} fill unoptimized sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className="object-cover object-center" />
+        <Image src={product.image} alt={name} fill unoptimized sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" className={themeId === "classic" ? "object-contain object-center p-2" : "object-cover object-center"} />
       ) : (
         <ImagePlaceholder />
       )}
