@@ -5,16 +5,21 @@ import { Check, X, AlertTriangle, ScanLine, ExternalLink, Loader2, Plus, WifiOff
 import { type Locale, t } from "@/i18n/locales";
 
 function sourceLabelKey(
-  source: "gs1hk" | "gs1cn" | "gs1jp"
-): "scanLookupFoundFrom" | "scanLookupFoundFromCn" | "scanLookupFoundFromJp" {
+  source: "gs1hk" | "gs1cn" | "gs1jp" | "gs1us"
+):
+  | "scanLookupFoundFrom"
+  | "scanLookupFoundFromCn"
+  | "scanLookupFoundFromJp"
+  | "scanLookupFoundFromUs" {
   if (source === "gs1cn") return "scanLookupFoundFromCn";
   if (source === "gs1jp") return "scanLookupFoundFromJp";
+  if (source === "gs1us") return "scanLookupFoundFromUs";
   return "scanLookupFoundFrom";
 }
 
 export type ScanFeedbackKind = "success" | "not-found" | "error";
 
-export type LookupSource = "gs1hk" | "gs1cn" | "gs1jp";
+export type LookupSource = "gs1hk" | "gs1cn" | "gs1jp" | "gs1us";
 
 export type LookupErrorReason = "timeout" | "network" | "auth" | "unknown";
 

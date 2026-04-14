@@ -8,7 +8,8 @@
 export type LookupProvider =
   | { id: "barcodeplus"; country: "HK" }
   | { id: "gdscn"; country: "CN" }
-  | { id: "janjp"; country: "JP" };
+  | { id: "janjp"; country: "JP" }
+  | { id: "upcitemdb"; country: "US" };
 
 const PROVIDER_BY_PREFIX: Array<[RegExp, LookupProvider]> = [
   [/^489/, { id: "barcodeplus", country: "HK" }],
@@ -16,6 +17,9 @@ const PROVIDER_BY_PREFIX: Array<[RegExp, LookupProvider]> = [
   [/^69[0-9]/, { id: "gdscn", country: "CN" }],
   // GS1 Japan prefix ranges 450–459 and 490–499 → Rakuten Ichiba + Yahoo Shopping
   [/^4[59][0-9]/, { id: "janjp", country: "JP" }],
+  // GS1 US/CA prefix ranges 000–139 → UPCItemDB (3rd-party aggregator; no
+  // first-party GS1 US API exists). 200–299 is in-store/reserved, skip.
+  [/^(0[0-9]|1[0-3])/, { id: "upcitemdb", country: "US" }],
 ];
 
 /**

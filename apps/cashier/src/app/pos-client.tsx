@@ -33,7 +33,7 @@ import { getLookupProvider } from "@/lib/barcode-providers";
 import CustomerSearchSpotlight from "@/components/customer/customer-search-spotlight";
 import CustomerDetailSheet, { type LinkedCustomer } from "@/components/customer/customer-detail-sheet";
 import ProductSearchSpotlight from "@/components/search/product-search-spotlight";
-import { fetchProductVariants, lookupBarcode, lookupBarcodePlus, lookupGdsCn, lookupJanJp, type OrderDiscount } from "@/lib/actions";
+import { fetchProductVariants, lookupBarcode, lookupBarcodePlus, lookupGdsCn, lookupJanJp, lookupUpcItemDb, type OrderDiscount } from "@/lib/actions";
 import { useBarcodeScanner, wasRecentBarcodeScan } from "@/lib/use-barcode-scanner";
 import { useCatalogSync } from "@/lib/use-catalog-sync";
 import { resolveImageSrc } from "@/lib/catalog-image-sync";
@@ -343,7 +343,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
   const [showCustomerSearch, setShowCustomerSearch] = useState(false);
   const [showCameraScanner, setShowCameraScanner] = useState(false);
   const [scanFeedback, setScanFeedback] = useState<ScanFeedbackState>(null);
-  const [tempProductDraft, setTempProductDraft] = useState<{ name: string; barcode: string; source: "gs1hk" | "gs1cn" | "gs1jp" } | null>(null);
+  const [tempProductDraft, setTempProductDraft] = useState<{ name: string; barcode: string; source: "gs1hk" | "gs1cn" | "gs1jp" | "gs1us" } | null>(null);
   const [showCustomerDetail, setShowCustomerDetail] = useState(false);
   const [linkedCustomer, setLinkedCustomer] = useState<LinkedCustomer | null>(null);
   const [showShiftClose, setShowShiftClose] = useState(false);
@@ -724,6 +724,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
         provider?.id === "barcodeplus" ? lookupBarcodePlus
         : provider?.id === "gdscn" ? lookupGdsCn
         : provider?.id === "janjp" ? lookupJanJp
+        : provider?.id === "upcitemdb" ? lookupUpcItemDb
         : null;
       if (lookupFn) {
         console.log("[scan] calling external lookup", { provider: provider?.id, code, locale });
@@ -773,6 +774,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
                       source:
                         provider?.id === "gdscn" ? "gs1cn"
                         : provider?.id === "janjp" ? "gs1jp"
+                        : provider?.id === "upcitemdb" ? "gs1us"
                         : "gs1hk",
                       reason: "unknown",
                     },
@@ -1830,7 +1832,9 @@ export default function POSClient({ initialProducts, initialCategories, userName
             ? "tempProductFromGs1Cn"
             : tempProductDraft?.source === "gs1jp"
               ? "tempProductFromGs1Jp"
-              : "tempProductFromGs1Hk"
+              : tempProductDraft?.source === "gs1us"
+                ? "tempProductFromGs1Us"
+                : "tempProductFromGs1Hk"
         )}
         currency={currency}
         locale={locale}

@@ -123,6 +123,7 @@ type TranslationKeys = {
   scanLookupFoundFrom: string;
   scanLookupFoundFromCn: string;
   scanLookupFoundFromJp: string;
+  scanLookupFoundFromUs: string;
   scanLookupBrand: string;
   scanLookupCategory: string;
   scanLookupOrigin: string;
@@ -136,6 +137,7 @@ type TranslationKeys = {
   tempProductFromGs1Hk: string;
   tempProductFromGs1Cn: string;
   tempProductFromGs1Jp: string;
+  tempProductFromGs1Us: string;
 
   // Categories
   all: string;
@@ -406,6 +408,7 @@ const translations: Record<Locale, TranslationKeys> = {
     scanLookupFoundFrom: "來自 GS1 香港",
     scanLookupFoundFromCn: "來自 GS1 中國",
     scanLookupFoundFromJp: "來自日本商店",
+    scanLookupFoundFromUs: "來自 UPCItemDB",
     scanLookupBrand: "品牌",
     scanLookupCategory: "類別",
     scanLookupOrigin: "產地",
@@ -419,6 +422,7 @@ const translations: Record<Locale, TranslationKeys> = {
     tempProductFromGs1Hk: "來自 GS1 香港",
     tempProductFromGs1Cn: "來自 GS1 中國",
     tempProductFromGs1Jp: "來自日本商店",
+    tempProductFromGs1Us: "來自 UPCItemDB",
     all: "全部",
     beverages: "飲品",
     snacks: "零食",
@@ -665,6 +669,7 @@ const translations: Record<Locale, TranslationKeys> = {
     scanLookupFoundFrom: "来自 GS1 香港",
     scanLookupFoundFromCn: "来自 GS1 中国",
     scanLookupFoundFromJp: "来自日本商店",
+    scanLookupFoundFromUs: "来自 UPCItemDB",
     scanLookupBrand: "品牌",
     scanLookupCategory: "类别",
     scanLookupOrigin: "产地",
@@ -678,6 +683,7 @@ const translations: Record<Locale, TranslationKeys> = {
     tempProductFromGs1Hk: "来自 GS1 香港",
     tempProductFromGs1Cn: "来自 GS1 中国",
     tempProductFromGs1Jp: "来自日本商店",
+    tempProductFromGs1Us: "来自 UPCItemDB",
     all: "全部",
     beverages: "饮品",
     snacks: "零食",
@@ -924,6 +930,7 @@ const translations: Record<Locale, TranslationKeys> = {
     scanLookupFoundFrom: "From GS1 Hong Kong",
     scanLookupFoundFromCn: "From GS1 China",
     scanLookupFoundFromJp: "From Japan marketplace",
+    scanLookupFoundFromUs: "From UPCItemDB",
     scanLookupBrand: "Brand",
     scanLookupCategory: "Category",
     scanLookupOrigin: "Origin",
@@ -937,6 +944,7 @@ const translations: Record<Locale, TranslationKeys> = {
     tempProductFromGs1Hk: "From GS1 Hong Kong",
     tempProductFromGs1Cn: "From GS1 China",
     tempProductFromGs1Jp: "From Japan marketplace",
+    tempProductFromGs1Us: "From UPCItemDB",
     all: "All",
     beverages: "Drinks",
     snacks: "Snacks",
@@ -1183,6 +1191,7 @@ const translations: Record<Locale, TranslationKeys> = {
     scanLookupFoundFrom: "De GS1 Hong Kong",
     scanLookupFoundFromCn: "De GS1 China",
     scanLookupFoundFromJp: "De mercado japonês",
+    scanLookupFoundFromUs: "De UPCItemDB",
     scanLookupBrand: "Marca",
     scanLookupCategory: "Categoria",
     scanLookupOrigin: "Origem",
@@ -1196,6 +1205,7 @@ const translations: Record<Locale, TranslationKeys> = {
     tempProductFromGs1Hk: "De GS1 Hong Kong",
     tempProductFromGs1Cn: "De GS1 China",
     tempProductFromGs1Jp: "De mercado japonês",
+    tempProductFromGs1Us: "De UPCItemDB",
     all: "Todos",
     beverages: "Bebidas",
     snacks: "Lanches",
@@ -1442,6 +1452,7 @@ const translations: Record<Locale, TranslationKeys> = {
     scanLookupFoundFrom: "GS1 香港より",
     scanLookupFoundFromCn: "GS1 中国より",
     scanLookupFoundFromJp: "日本のマーケットプレイスより",
+    scanLookupFoundFromUs: "UPCItemDB より",
     scanLookupBrand: "ブランド",
     scanLookupCategory: "カテゴリ",
     scanLookupOrigin: "原産地",
@@ -1455,6 +1466,7 @@ const translations: Record<Locale, TranslationKeys> = {
     tempProductFromGs1Hk: "GS1 香港より",
     tempProductFromGs1Cn: "GS1 中国より",
     tempProductFromGs1Jp: "日本のマーケットプレイスより",
+    tempProductFromGs1Us: "UPCItemDB より",
     all: "すべて",
     beverages: "ドリンク",
     snacks: "スナック",

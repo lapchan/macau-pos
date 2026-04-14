@@ -348,7 +348,7 @@ export async function lookupBarcode(barcode: string): Promise<BarcodeLookupResul
 // platform. No auth, no captcha. Use only as a fallback when a
 // scanned barcode is missing from the local catalog.
 
-export type ExternalLookupSource = "gs1hk" | "gs1cn" | "gs1jp";
+export type ExternalLookupSource = "gs1hk" | "gs1cn" | "gs1jp" | "gs1us";
 
 // Discriminated outcome from an external GS1 registry lookup.
 //  - found:      provider returned full product details
@@ -440,8 +440,14 @@ async function fetchBarcodePlusOnce(
 
     if (json?.errors?.length) {
       const codes = json.errors.map((e) => e.code || "");
-      if (codes.includes("PRD.CD015")) return { tag: "registered" };
-      // Unrecognised structured error — retryable if we're in a zh locale
+      // PRD.CD006 = "Registered BarCode, product information not available"
+      // PRD.CD015 = same semantics (different code path in their backend)
+      // Both mean: valid GS1 HK GTIN, no metadata — treat as `registered`
+      // so the cashier gets the "create temp product" UI instead of the
+      // misleading "database unreachable" error.
+      if (codes.includes("PRD.CD015") || codes.includes("PRD.CD006")) {
+        return { tag: "registered" };
+      }
       return { tag: "retryable" };
     }
     // zh_TW / zh_CN sometimes return { code: "Validate", message: "[ Validate ]" }
@@ -764,6 +770,78 @@ export async function lookupJanJp(
     return { kind: "missing", source: "gs1jp", gtin };
   }
   return rakuten.kind === "error" ? rakuten : yahoo;
+}
+
+// ─── External Barcode Lookup (UPCItemDB / GS1 US + CA) ─────
+// Free trial endpoint (api.upcitemdb.com/prod/trial/lookup) — 100 req/day
+// per IP, no API key required. Covers US/Canada UPC-A (padded to EAN-13
+// with a leading "0") and most UK/AU consumer products. No GS1 US public
+// lookup exists; this third-party aggregator is the pragmatic fallback.
+type UpcItemDbItem = {
+  ean?: string;
+  title?: string;
+  brand?: string;
+  category?: string;
+  description?: string;
+  model?: string;
+  size?: string;
+  color?: string;
+};
+type UpcItemDbResponse = {
+  code?: string;
+  total?: number;
+  items?: UpcItemDbItem[];
+};
+const UPCITEMDB_URL = "https://api.upcitemdb.com/prod/trial/lookup";
+
+export async function lookupUpcItemDb(
+  gtin: string,
+  _locale: string = "en",
+): Promise<ExternalLookupOutcome> {
+  if (!/^\d{12,13}$/.test(gtin)) {
+    return { kind: "missing", source: "gs1us", gtin };
+  }
+  const url = `${UPCITEMDB_URL}?upc=${encodeURIComponent(gtin)}`;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 5000);
+  try {
+    const res = await fetch(url, {
+      signal: ctrl.signal,
+      headers: { "User-Agent": "Mozilla/5.0 macau-pos" },
+      cache: "no-store",
+    });
+    // Their free tier returns 429 TOO_MANY_REQUESTS when the 100/day IP
+    // budget is exhausted. Treat as missing so the cashier can still
+    // create a temp product manually instead of seeing a scary error.
+    if (res.status === 429) return { kind: "missing", source: "gs1us", gtin };
+    if (!res.ok) return { kind: "error", source: "gs1us", gtin, reason: "network" };
+    const json = (await res.json()) as UpcItemDbResponse;
+    if (json?.code && json.code !== "OK") {
+      return { kind: "missing", source: "gs1us", gtin };
+    }
+    const item = json?.items?.[0];
+    if (!item?.title) return { kind: "missing", source: "gs1us", gtin };
+    return {
+      kind: "found",
+      source: "gs1us",
+      gtin,
+      name: item.title,
+      brand: item.brand || undefined,
+      company: item.brand || undefined,
+      category: item.category || undefined,
+      origin: undefined,
+    };
+  } catch (err) {
+    const name = (err as { name?: string })?.name;
+    return {
+      kind: "error",
+      source: "gs1us",
+      gtin,
+      reason: name === "AbortError" ? "timeout" : "unknown",
+    };
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // ─── Get Product Variants (for cashier variant picker) ─────
