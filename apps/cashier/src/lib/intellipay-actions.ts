@@ -527,6 +527,7 @@ export async function createCpmPayment(
         order_amount: amountCents,
         order_currency: session.tenantCurrency || "MOP",
         subject: `Order ${dbResult.orderNumber}`,
+        payment_service: input.paymentService || "simplepay",
         auth_code: input.authCode.trim(),
         terminal_id: terminalRow.code,
         webhook_url: webhookUrl,

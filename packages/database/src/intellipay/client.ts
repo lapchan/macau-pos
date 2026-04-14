@@ -408,6 +408,11 @@ export interface CreateCpmPaymentInput {
   order_amount: number;
   order_currency: string;
   subject: string;
+  // Intellipay rejects cp-mode/create with "Required parameter is missing"
+  // when payment_service is absent, even though the wallet type could in
+  // theory be inferred from the auth_code prefix. Match MPM and pass
+  // "simplepay" so the gateway auto-routes to the correct channel.
+  payment_service: string;
   auth_code: string;
   terminal_id: string;
   webhook_url: string;
