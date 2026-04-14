@@ -408,10 +408,6 @@ export interface CreateCpmPaymentInput {
   order_amount: number;
   order_currency: string;
   subject: string;
-  // Intellipay rejects cp-mode/create with "Required parameter is missing"
-  // when payment_service is absent, even though the wallet type could in
-  // theory be inferred from the auth_code prefix. Match MPM and pass
-  // "simplepay" so the gateway auto-routes to the correct channel.
   payment_service: string;
   auth_code: string;
   terminal_id: string;
@@ -438,12 +434,13 @@ export async function createCpmPayment(
   body: CreateCpmPaymentInput,
   opts?: CallIntellipayOptions,
 ): Promise<IntellipayCallResult<CreateCpmPaymentResponse>> {
+  // Upstream field is `payment_authorization_code`, not `auth_code`.
+  const { auth_code, webhook_url, ...rest } = body;
   const upstreamBody: Record<string, unknown> = {
-    ...body,
-    payment_type: "terminalc2b",
-    notify_url: body.webhook_url,
+    ...rest,
+    payment_authorization_code: auth_code,
+    notify_url: webhook_url,
   };
-  delete upstreamBody.webhook_url;
 
   const res = await callIntellipay<{ payment: UpstreamPayment }>(
     credentials,
