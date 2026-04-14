@@ -202,8 +202,8 @@ export function fetchMerchantInfo(
 interface UpstreamPayment {
   payment_id: string;
   payment_token?: string;
-  payment_provider_redirect_url?: string | null;
-  payment_provider_redirect_url_qr_code?: string | null;
+  payment_url?: string | null;
+  payment_provider_qr_code?: string | null;
   payment_universal_qr_code?: string | null;
   status?: number;
   status_desc?: string;
@@ -211,11 +211,11 @@ interface UpstreamPayment {
   order_id?: string;
   order_amount?: number;
   order_currency?: string;
-  payment_service?: string | null;
+  payment_service_code?: number | null;
   payment_channel?: string | null;
-  payment_channel_transaction_id?: string | null;
+  channel_trans_id?: string | null;
   terminal_id?: string | null;
-  provider_code?: string | null;
+  payment_provider_code?: number | null;
 }
 
 interface UpstreamRefund {
@@ -323,10 +323,10 @@ export async function createOnlinePayment(
       order_id: p.order_id,
       status: p.status,
       status_desc: p.status_desc,
-      payment_url: p.payment_provider_redirect_url ?? "",
-      qr_code_url: p.payment_provider_redirect_url_qr_code ?? null,
-      provider_code: p.provider_code ?? null,
-      payment_service: p.payment_service ?? null,
+      payment_url: p.payment_url ?? "",
+      qr_code_url: p.payment_provider_qr_code ?? null,
+      provider_code: p.payment_provider_code != null ? String(p.payment_provider_code) : null,
+      payment_service: p.payment_service_code != null ? String(p.payment_service_code) : null,
       terminal_id: p.terminal_id ?? null,
       order_amount: p.order_amount,
       order_currency: p.order_currency,
@@ -391,10 +391,10 @@ export async function createMpqrPayment(
       order_id: p.order_id,
       status: p.status,
       status_desc: p.status_desc,
-      qr_code_url: p.payment_provider_redirect_url_qr_code ?? null,
+      qr_code_url: p.payment_provider_qr_code ?? p.payment_url ?? null,
       qr_code_content: p.payment_universal_qr_code ?? null,
-      provider_code: p.provider_code ?? null,
-      payment_service: p.payment_service ?? null,
+      provider_code: p.payment_provider_code != null ? String(p.payment_provider_code) : null,
+      payment_service: p.payment_service_code != null ? String(p.payment_service_code) : null,
       terminal_id: p.terminal_id ?? null,
       expires_at: null,
       order_amount: p.order_amount,
@@ -457,8 +457,8 @@ export async function createCpmPayment(
       order_id: p.order_id,
       status: p.status,
       status_desc: p.status_desc,
-      provider_code: p.provider_code ?? null,
-      payment_service: p.payment_service ?? null,
+      provider_code: p.payment_provider_code != null ? String(p.payment_provider_code) : null,
+      payment_service: p.payment_service_code != null ? String(p.payment_service_code) : null,
       terminal_id: p.terminal_id ?? null,
       order_amount: p.order_amount,
       order_currency: p.order_currency,
