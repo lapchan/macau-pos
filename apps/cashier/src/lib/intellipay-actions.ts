@@ -12,6 +12,7 @@ import {
   createMpqrPayment,
   createCpmPayment as ipCreateCpmPayment,
   cancelPayment,
+  queryPayment,
   eq,
   and,
   sql,
@@ -617,6 +618,31 @@ export type MpmPaymentStatus = {
   lastEventId: string | null;
 };
 
+// Map intellipay status codes → local order status. Same table as the webhook
+// route (spec §5.10) — kept in sync manually because they live in different
+// packages.
+function mapIpStatusToOrderStatus(
+  status: number | null | undefined,
+): "completed" | "refunded" | "voided" | null {
+  if (status == null) return null;
+  switch (status) {
+    case 2:
+    case 3:
+    case 4:
+      return "completed";
+    case 10:
+    case 11:
+      return "refunded";
+    case 5:
+    case 6:
+    case 8:
+    case 13:
+      return "voided";
+    default:
+      return null;
+  }
+}
+
 export async function getMpmPaymentStatus(
   paymentId: string,
 ): Promise<{ success: true; data: MpmPaymentStatus } | { success: false; error: string }> {
@@ -624,9 +650,12 @@ export async function getMpmPaymentStatus(
   if (!session?.tenantId) {
     return { success: false, error: "No active session." };
   }
+  const tenantId = session.tenantId;
 
   const [row] = await db
     .select({
+      orderId: payments.orderId,
+      intellipayPaymentId: payments.intellipayPaymentId,
       orderStatus: orders.status,
       intellipayStatus: payments.intellipayStatus,
       intellipayStatusDesc: payments.intellipayStatusDesc,
@@ -639,16 +668,109 @@ export async function getMpmPaymentStatus(
     .limit(1);
 
   if (!row) return { success: false, error: "Payment not found." };
-  if (row.tenantId !== session.tenantId) {
+  if (row.tenantId !== tenantId) {
     return { success: false, error: "Payment not found." };
   }
+
+  // Fast path: terminal order status means the webhook already landed (or a
+  // prior poll already synced). Nothing to do upstream.
+  if (row.orderStatus !== "pending" || !row.intellipayPaymentId) {
+    return {
+      success: true,
+      data: {
+        orderStatus: row.orderStatus as MpmPaymentStatus["orderStatus"],
+        intellipayStatus: row.intellipayStatus,
+        intellipayStatusDesc: row.intellipayStatusDesc,
+        lastEventId: row.lastEventId,
+      },
+    };
+  }
+
+  // Fallback path: order is still pending. Poll intellipay directly in case
+  // the webhook never fires (sandbox delivery queue issues, network blips,
+  // etc.). Webhook remains the fast path; this is an at-most-every-2s belt-
+  // and-suspenders so the cashier never hangs.
+  const [paymentConfig] = await db
+    .select()
+    .from(tenantPaymentConfigs)
+    .where(eq(tenantPaymentConfigs.tenantId, tenantId))
+    .limit(1);
+  if (!paymentConfig?.accessKeyId || !paymentConfig.privateKeyPemEncrypted) {
+    return {
+      success: true,
+      data: {
+        orderStatus: row.orderStatus as MpmPaymentStatus["orderStatus"],
+        intellipayStatus: row.intellipayStatus,
+        intellipayStatusDesc: row.intellipayStatusDesc,
+        lastEventId: row.lastEventId,
+      },
+    };
+  }
+
+  const ipRes = await queryPayment(
+    {
+      accessKeyId: paymentConfig.accessKeyId,
+      privateKeyPemEncrypted: paymentConfig.privateKeyPemEncrypted,
+    },
+    row.intellipayPaymentId,
+    { timeoutMs: 5_000 },
+  );
+
+  if (!ipRes.ok) {
+    // Network/upstream blip — keep polling, don't surface an error.
+    console.warn(
+      `[getMpmPaymentStatus] query failed: ${ipRes.errorCode} ${ipRes.message}`,
+    );
+    return {
+      success: true,
+      data: {
+        orderStatus: row.orderStatus as MpmPaymentStatus["orderStatus"],
+        intellipayStatus: row.intellipayStatus,
+        intellipayStatusDesc: row.intellipayStatusDesc,
+        lastEventId: row.lastEventId,
+      },
+    };
+  }
+
+  const ipStatus = ipRes.data.status ?? null;
+  const mapped = mapIpStatusToOrderStatus(ipStatus);
+  if (!mapped) {
+    // Still pending upstream (status 1) or unknown status — return as-is.
+    return {
+      success: true,
+      data: {
+        orderStatus: row.orderStatus as MpmPaymentStatus["orderStatus"],
+        intellipayStatus: ipStatus,
+        intellipayStatusDesc: ipRes.data.status_desc ?? row.intellipayStatusDesc,
+        lastEventId: row.lastEventId,
+      },
+    };
+  }
+
+  // Terminal upstream status — mirror onto the local rows so the next poll
+  // (and any other reader) sees it, then return the fresh state.
+  await db.transaction(async (tx) => {
+    await tx
+      .update(payments)
+      .set({
+        intellipayStatus: ipStatus,
+        intellipayStatusDesc: ipRes.data.status_desc ?? null,
+        intellipayLastEventAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(payments.id, paymentId));
+    await tx
+      .update(orders)
+      .set({ status: mapped })
+      .where(and(eq(orders.id, row.orderId), eq(orders.tenantId, tenantId)));
+  });
 
   return {
     success: true,
     data: {
-      orderStatus: row.orderStatus as MpmPaymentStatus["orderStatus"],
-      intellipayStatus: row.intellipayStatus,
-      intellipayStatusDesc: row.intellipayStatusDesc,
+      orderStatus: mapped,
+      intellipayStatus: ipStatus,
+      intellipayStatusDesc: ipRes.data.status_desc ?? null,
       lastEventId: row.lastEventId,
     },
   };

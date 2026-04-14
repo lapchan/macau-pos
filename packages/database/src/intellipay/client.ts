@@ -466,6 +466,33 @@ export async function createCpmPayment(
   };
 }
 
+export interface QueryPaymentResponse {
+  payment_id: string;
+  order_id?: string;
+  status?: number;
+  status_desc?: string;
+  is_payment_paid_successfully?: boolean;
+  payment_paid_at?: string | null;
+  order_amount?: number;
+  order_currency?: string;
+  terminal_id?: string | null;
+  channel_trans_id?: string | null;
+  payment_provider_trans_id?: string | null;
+}
+
+export function queryPayment(
+  credentials: IntellipayCredentials,
+  paymentId: string,
+  opts?: CallIntellipayOptions,
+): Promise<IntellipayCallResult<QueryPaymentResponse>> {
+  return callAndUnwrapPayment<QueryPaymentResponse>(
+    credentials,
+    "/v1/retailai/payments/status",
+    { payment_id: paymentId },
+    opts,
+  );
+}
+
 export interface CancelPaymentResponse {
   payment_id: string;
   status?: number;
