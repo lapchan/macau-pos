@@ -17,7 +17,7 @@ import {
   getMpmPaymentStatus,
   cancelMpmPayment,
 } from "@/lib/intellipay-actions";
-import { useBarcodeScanner } from "@/lib/use-barcode-scanner";
+import { useBarcodeScanner, isWalletAuthCode } from "@/lib/use-barcode-scanner";
 import { enqueueOrder } from "@/lib/offline-queue";
 import PrintReceipt from "@/components/receipt/print-receipt";
 import type { ReceiptData } from "@/lib/receipt-queries";
@@ -285,6 +285,20 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
   useBarcodeScanner({
     enabled: state === "cpqr" && !cpqrScanning,
     onScan: handleCpmScan,
+  });
+
+  // Auto-detect wallet QR during review — a scanned CPM auth code
+  // (16–24 digit numeric, unreachable by any product barcode) jumps
+  // straight into CPM processing without requiring the cashier to press F5.
+  const handleReviewScan = useCallback(
+    (code: string) => {
+      if (isWalletAuthCode(code)) handleCpmScan(code);
+    },
+    [handleCpmScan],
+  );
+  useBarcodeScanner({
+    enabled: state === "review" && !cpqrScanning,
+    onScan: handleReviewScan,
   });
 
   // Keyboard shortcuts

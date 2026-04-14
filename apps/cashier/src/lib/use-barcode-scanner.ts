@@ -16,6 +16,14 @@ export function wasRecentBarcodeScan(): boolean {
   return Date.now() - lastScanSubmitAt < RECENT_SCAN_WINDOW;
 }
 
+// Detects a customer-wallet CPM auth code (Alipay / WeChat Pay / UnionPay).
+// These are 16–24 digit numeric codes — strictly longer than any product
+// barcode (EAN-8/12/13, GTIN-14 max 14 digits), so the length check alone
+// is enough to avoid false positives on product scans.
+export function isWalletAuthCode(code: string): boolean {
+  return /^\d{16,24}$/.test(code.trim());
+}
+
 type Options = {
   onScan: (barcode: string) => void;
   enabled?: boolean;
