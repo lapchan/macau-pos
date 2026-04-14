@@ -261,17 +261,17 @@ export async function createMpmPayment(
       };
     }
 
-    // Render the QR content as a data URL so the client can <img src={}> it.
-    // Intellipay may return either qr_code_url (pre-rendered image) or just
-    // qr_code_content (raw string we render ourselves).
+    // Intellipay returns either qr_code_content (EMVCo raw string) or
+    // qr_code_url (a deep-link URL like https://aas.bocmacau.com/w/d?q=...).
+    // Both are data to be encoded *into* a QR image — never an image URL —
+    // so always render server-side via the qrcode lib into a data URL the
+    // client can drop into <img src={}>.
     const qrContent = ipResult.data.qr_code_content ?? ipResult.data.qr_code_url ?? "";
     if (!qrContent) {
       await voidOrderAndRestoreStock(dbResult.orderId, input.cart);
       return { success: false, error: "Intellipay returned no QR content." };
     }
-    const qrCodeDataUrl = ipResult.data.qr_code_url
-      ? ipResult.data.qr_code_url
-      : await QRCode.toDataURL(qrContent, { width: 384, margin: 1 });
+    const qrCodeDataUrl = await QRCode.toDataURL(qrContent, { width: 384, margin: 1 });
 
     const [payment] = await db
       .insert(payments)
