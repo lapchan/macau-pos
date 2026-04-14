@@ -543,6 +543,7 @@ export async function createCpmPayment(
         type: ipResult.errorType,
         message: ipResult.message,
         requestId: ipResult.requestId,
+        raw: ipResult.raw,
       });
       await voidOrderAndRestoreStock(dbResult.orderId, input.cart);
       return {
