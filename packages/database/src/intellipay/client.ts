@@ -195,6 +195,77 @@ export function fetchMerchantInfo(
   );
 }
 
+// Upstream returns `{ payment: { ... } }` for creates/query/cancel and
+// `{ refund: { ... } }` for refund. Everything below unwraps to the inner
+// object so callers can keep using flat `ipResult.data.payment_id` access.
+
+interface UpstreamPayment {
+  payment_id: string;
+  payment_token?: string;
+  payment_provider_redirect_url?: string | null;
+  payment_provider_redirect_url_qr_code?: string | null;
+  payment_universal_qr_code?: string | null;
+  status?: number;
+  status_desc?: string;
+  is_payment_paid_successfully?: boolean;
+  order_id?: string;
+  order_amount?: number;
+  order_currency?: string;
+  payment_service?: string | null;
+  payment_channel?: string | null;
+  payment_channel_transaction_id?: string | null;
+  terminal_id?: string | null;
+  provider_code?: string | null;
+}
+
+interface UpstreamRefund {
+  refund_id?: string;
+  payment_id: string;
+  refund_amount?: number;
+  refund_currency?: string;
+  is_payment_refunded_successfully?: boolean;
+  is_payment_fully_refunded?: boolean;
+  payment_provider_refund_id?: string;
+  refund_result_code?: string;
+  refund_result_message?: string;
+  status?: number;
+  status_desc?: string;
+}
+
+async function callAndUnwrapPayment<T>(
+  credentials: IntellipayCredentials,
+  path: string,
+  body: Record<string, unknown>,
+  opts?: CallIntellipayOptions,
+): Promise<IntellipayCallResult<T>> {
+  const res = await callIntellipay<{ payment: UpstreamPayment }>(
+    credentials,
+    path,
+    body,
+    opts,
+  );
+  if (!res.ok) return res;
+  const inner = (res.data?.payment ?? {}) as unknown as T;
+  return { ok: true, status: res.status, data: inner, requestId: res.requestId };
+}
+
+async function callAndUnwrapRefund<T>(
+  credentials: IntellipayCredentials,
+  path: string,
+  body: Record<string, unknown>,
+  opts?: CallIntellipayOptions,
+): Promise<IntellipayCallResult<T>> {
+  const res = await callIntellipay<{ refund: UpstreamRefund }>(
+    credentials,
+    path,
+    body,
+    opts,
+  );
+  if (!res.ok) return res;
+  const inner = (res.data?.refund ?? {}) as unknown as T;
+  return { ok: true, status: res.status, data: inner, requestId: res.requestId };
+}
+
 export interface CreateOnlinePaymentInput {
   order_id: string;
   order_amount: number;
@@ -210,8 +281,8 @@ export interface CreateOnlinePaymentInput {
 
 export interface CreateOnlinePaymentResponse {
   payment_id: string;
-  order_id: string;
-  status: number;
+  order_id?: string;
+  status?: number;
   status_desc?: string;
   payment_url: string;
   qr_code_url?: string | null;
@@ -222,17 +293,45 @@ export interface CreateOnlinePaymentResponse {
   order_currency?: string;
 }
 
-export function createOnlinePayment(
+export async function createOnlinePayment(
   credentials: IntellipayCredentials,
   body: CreateOnlinePaymentInput,
   opts?: CallIntellipayOptions,
 ): Promise<IntellipayCallResult<CreateOnlinePaymentResponse>> {
-  return callIntellipay<CreateOnlinePaymentResponse>(
+  // Map our { webhook_url, callback_url } onto upstream { notify_url, callback_url }.
+  const upstreamBody: Record<string, unknown> = {
+    ...body,
+    payment_type: "web",
+    notify_url: body.webhook_url,
+  };
+  delete upstreamBody.webhook_url;
+
+  const res = await callIntellipay<{ payment: UpstreamPayment }>(
     credentials,
     "/v1/retailai/payments/online/create",
-    body as unknown as Record<string, unknown>,
+    upstreamBody,
     opts,
   );
+  if (!res.ok) return res as IntellipayCallResult<CreateOnlinePaymentResponse>;
+  const p = res.data?.payment ?? ({} as UpstreamPayment);
+  return {
+    ok: true,
+    status: res.status,
+    requestId: res.requestId,
+    data: {
+      payment_id: p.payment_id,
+      order_id: p.order_id,
+      status: p.status,
+      status_desc: p.status_desc,
+      payment_url: p.payment_provider_redirect_url ?? "",
+      qr_code_url: p.payment_provider_redirect_url_qr_code ?? null,
+      provider_code: p.provider_code ?? null,
+      payment_service: p.payment_service ?? null,
+      terminal_id: p.terminal_id ?? null,
+      order_amount: p.order_amount,
+      order_currency: p.order_currency,
+    },
+  };
 }
 
 export interface CreateMpqrPaymentInput {
@@ -250,8 +349,8 @@ export interface CreateMpqrPaymentInput {
 
 export interface CreateMpqrPaymentResponse {
   payment_id: string;
-  order_id: string;
-  status: number;
+  order_id?: string;
+  status?: number;
   status_desc?: string;
   qr_code_url?: string | null;
   qr_code_content?: string | null;
@@ -263,17 +362,45 @@ export interface CreateMpqrPaymentResponse {
   order_currency?: string;
 }
 
-export function createMpqrPayment(
+export async function createMpqrPayment(
   credentials: IntellipayCredentials,
   body: CreateMpqrPaymentInput,
   opts?: CallIntellipayOptions,
 ): Promise<IntellipayCallResult<CreateMpqrPaymentResponse>> {
-  return callIntellipay<CreateMpqrPaymentResponse>(
+  const upstreamBody: Record<string, unknown> = {
+    ...body,
+    payment_type: "terminal",
+    notify_url: body.webhook_url,
+  };
+  delete upstreamBody.webhook_url;
+
+  const res = await callIntellipay<{ payment: UpstreamPayment }>(
     credentials,
-    "/v1/retailai/payments/mpqr/create",
-    body as unknown as Record<string, unknown>,
+    "/v1/retailai/payments/qr-code/create",
+    upstreamBody,
     opts,
   );
+  if (!res.ok) return res as IntellipayCallResult<CreateMpqrPaymentResponse>;
+  const p = res.data?.payment ?? ({} as UpstreamPayment);
+  return {
+    ok: true,
+    status: res.status,
+    requestId: res.requestId,
+    data: {
+      payment_id: p.payment_id,
+      order_id: p.order_id,
+      status: p.status,
+      status_desc: p.status_desc,
+      qr_code_url: p.payment_provider_redirect_url_qr_code ?? null,
+      qr_code_content: p.payment_universal_qr_code ?? null,
+      provider_code: p.provider_code ?? null,
+      payment_service: p.payment_service ?? null,
+      terminal_id: p.terminal_id ?? null,
+      expires_at: null,
+      order_amount: p.order_amount,
+      order_currency: p.order_currency,
+    },
+  };
 }
 
 export interface CreateCpmPaymentInput {
@@ -291,8 +418,8 @@ export interface CreateCpmPaymentInput {
 
 export interface CreateCpmPaymentResponse {
   payment_id: string;
-  order_id: string;
-  status: number;
+  order_id?: string;
+  status?: number;
   status_desc?: string;
   provider_code?: string | null;
   payment_service?: string | null;
@@ -301,22 +428,47 @@ export interface CreateCpmPaymentResponse {
   order_currency?: string;
 }
 
-export function createCpmPayment(
+export async function createCpmPayment(
   credentials: IntellipayCredentials,
   body: CreateCpmPaymentInput,
   opts?: CallIntellipayOptions,
 ): Promise<IntellipayCallResult<CreateCpmPaymentResponse>> {
-  return callIntellipay<CreateCpmPaymentResponse>(
+  const upstreamBody: Record<string, unknown> = {
+    ...body,
+    payment_type: "terminalc2b",
+    notify_url: body.webhook_url,
+  };
+  delete upstreamBody.webhook_url;
+
+  const res = await callIntellipay<{ payment: UpstreamPayment }>(
     credentials,
-    "/v1/retailai/payments/cpqr/create",
-    body as unknown as Record<string, unknown>,
+    "/v1/retailai/payments/cp-mode/create",
+    upstreamBody,
     opts,
   );
+  if (!res.ok) return res as IntellipayCallResult<CreateCpmPaymentResponse>;
+  const p = res.data?.payment ?? ({} as UpstreamPayment);
+  return {
+    ok: true,
+    status: res.status,
+    requestId: res.requestId,
+    data: {
+      payment_id: p.payment_id,
+      order_id: p.order_id,
+      status: p.status,
+      status_desc: p.status_desc,
+      provider_code: p.provider_code ?? null,
+      payment_service: p.payment_service ?? null,
+      terminal_id: p.terminal_id ?? null,
+      order_amount: p.order_amount,
+      order_currency: p.order_currency,
+    },
+  };
 }
 
 export interface CancelPaymentResponse {
   payment_id: string;
-  status: number;
+  status?: number;
   status_desc?: string;
 }
 
@@ -325,10 +477,10 @@ export function cancelPayment(
   paymentId: string,
   opts?: CallIntellipayOptions,
 ): Promise<IntellipayCallResult<CancelPaymentResponse>> {
-  return callIntellipay<CancelPaymentResponse>(
+  return callAndUnwrapPayment<CancelPaymentResponse>(
     credentials,
-    `/v1/retailai/payments/${encodeURIComponent(paymentId)}/cancel`,
-    {},
+    "/v1/retailai/payments/cancel",
+    { payment_id: paymentId },
     opts,
   );
 }
@@ -344,22 +496,45 @@ export interface RefundPaymentInput {
 export interface RefundPaymentResponse {
   payment_id: string;
   refund_id?: string;
-  status: number;
+  status?: number;
   status_desc?: string;
   refunded_amount?: number;
   order_currency?: string;
 }
 
-export function refundPayment(
+export async function refundPayment(
   credentials: IntellipayCredentials,
   paymentId: string,
   body: RefundPaymentInput,
   opts?: CallIntellipayOptions,
 ): Promise<IntellipayCallResult<RefundPaymentResponse>> {
-  return callIntellipay<RefundPaymentResponse>(
+  const upstreamBody: Record<string, unknown> = {
+    payment_id: paymentId,
+    refund_amount: body.refund_amount,
+    refund_reason: body.reason,
+    ...(body.merchant_id ? { merchant_id: body.merchant_id } : {}),
+    ...(body.operator_id ? { operator_id: body.operator_id } : {}),
+  };
+
+  const res = await callAndUnwrapRefund<UpstreamRefund>(
     credentials,
-    `/v1/retailai/payments/${encodeURIComponent(paymentId)}/refund`,
-    body as unknown as Record<string, unknown>,
+    "/v1/retailai/payments/refund",
+    upstreamBody,
     opts,
   );
+  if (!res.ok) return res as IntellipayCallResult<RefundPaymentResponse>;
+  const r = res.data;
+  return {
+    ok: true,
+    status: res.status,
+    requestId: res.requestId,
+    data: {
+      payment_id: r.payment_id,
+      refund_id: r.refund_id,
+      status: r.status,
+      status_desc: r.status_desc,
+      refunded_amount: r.refund_amount,
+      order_currency: r.refund_currency,
+    },
+  };
 }
