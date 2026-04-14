@@ -28,13 +28,7 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Dev: propagate ?tenant= param as header for tenant resolver
-  const tenantParam = request.nextUrl.searchParams.get("tenant");
-  const requestHeaders = new Headers(request.headers);
-  if (tenantParam) {
-    requestHeaders.set("x-tenant-slug", tenantParam);
-  }
-  const response = NextResponse.next({ request: { headers: requestHeaders } });
+  const response = NextResponse.next();
 
   // Ensure guest cart session token exists
   if (!request.cookies.has("sf_cart_session")) {

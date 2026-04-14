@@ -21,15 +21,8 @@ export async function resolveTenant(slug?: string) {
     return findBySlug(slug);
   }
 
-  // Dev override: ?tenant=slug via middleware header
-  const headersList = await headers();
-  const tenantOverride = headersList.get("x-tenant-slug");
-  if (tenantOverride) {
-    const t = await findBySlug(tenantOverride);
-    if (t) return t;
-  }
-
   // 2–3. Resolve from hostname
+  const headersList = await headers();
   const host = headersList.get("host") || "";
   const hostname = host.split(":")[0]; // strip port
 

@@ -10,8 +10,6 @@ import {
   products,
   locations,
   deliveryZones,
-  tenantPaymentConfigs,
-  createOnlinePayment,
   eq,
   and,
   sql,
@@ -20,8 +18,6 @@ import { resolveTenant } from "@/lib/tenant-resolver";
 import { getCart } from "./cart";
 import { getCurrentCustomer } from "./auth";
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
-import { randomUUID } from "node:crypto";
 
 type ShippingAddress = {
   recipientName: string;
@@ -38,9 +34,7 @@ type CreateOrderInput = {
   deliveryZoneId?: string;
   pickupLocationId?: string;
   shippingAddress?: ShippingAddress;
-  // Intellipay payment_service: simplepay | mpay | alipay | wechat_pay
-  paymentService: string;
-  locale: string;
+  paymentMethod: string;
   contactEmail?: string;
   contactPhone?: string;
   notes?: string;
@@ -101,66 +95,7 @@ export async function createOrder(input: CreateOrderInput) {
   const total = cart.subtotal + deliveryFee;
   const orderNumber = generateOrderNumber();
 
-  // Look up tenant's Intellipay config. Online checkout requires it — we call
-  // the gateway BEFORE writing any order rows so a gateway failure leaves no
-  // orphaned pending orders behind.
-  const [paymentConfig] = await db
-    .select()
-    .from(tenantPaymentConfigs)
-    .where(eq(tenantPaymentConfigs.tenantId, tenant.id))
-    .limit(1);
-
-  if (
-    !paymentConfig ||
-    !paymentConfig.intellipayEnabled ||
-    !paymentConfig.accessKeyId ||
-    !paymentConfig.privateKeyPemEncrypted ||
-    !paymentConfig.webhookSlug
-  ) {
-    return { error: "Online payment is not configured for this store." };
-  }
-
-  // Build callback (browser return) and webhook (server-to-server) URLs from
-  // the current request host so dev/prod/custom-domain all resolve correctly.
-  const h = await headers();
-  const host = h.get("host") ?? "";
-  const proto =
-    h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  const baseUrl = `${proto}://${host}`;
-  const callbackUrl = `${baseUrl}/${input.locale}/checkout/confirmation?order=${orderNumber}`;
-  const webhookUrl = `${baseUrl}/api/webhooks/intellipay/${tenant.slug}/${paymentConfig.webhookSlug}`;
-
-  const amountCents = Math.round(total * 100);
-  const result = await createOnlinePayment(
-    {
-      accessKeyId: paymentConfig.accessKeyId,
-      privateKeyPemEncrypted: paymentConfig.privateKeyPemEncrypted,
-    },
-    {
-      order_id: orderNumber,
-      order_amount: amountCents,
-      order_currency: "MOP",
-      subject: `Order ${orderNumber}`,
-      payment_service: input.paymentService || "simplepay",
-      callback_url: callbackUrl,
-      webhook_url: webhookUrl,
-      ...(paymentConfig.merchantId ? { merchant_id: paymentConfig.merchantId } : {}),
-      ...(paymentConfig.operatorId ? { operator_id: paymentConfig.operatorId } : {}),
-    },
-    { idempotencyKey: randomUUID() },
-  );
-
-  if (!result.ok) {
-    console.error("[createOrder] intellipay create failed", {
-      code: result.errorCode,
-      type: result.errorType,
-      message: result.message,
-      requestId: result.requestId,
-    });
-    return { error: `Payment gateway error: ${result.message}` };
-  }
-
-  // Gateway accepted the payment. Now persist the order, items, and payment.
+  // Create order
   const [order] = await db
     .insert(orders)
     .values({
@@ -186,6 +121,7 @@ export async function createOrder(input: CreateOrderInput) {
     })
     .returning();
 
+  // Create order items (snapshot product data at time of purchase)
   const itemValues = cart.items.map((item) => ({
     orderId: order.id,
     productId: item.productId,
@@ -199,22 +135,13 @@ export async function createOrder(input: CreateOrderInput) {
 
   await db.insert(orderItems).values(itemValues);
 
+  // Create payment record
+  // Map online payment methods to existing enum values for now
+  // The enum was extended with mpay, alipay, wechat_pay, visa, mastercard in migration
   await db.insert(payments).values({
     orderId: order.id,
-    method: "online",
+    method: input.paymentMethod as any,
     amount: String(total.toFixed(2)),
-    provider: "intellipay",
-    intellipayPaymentId: result.data.payment_id,
-    intellipayOrderId: result.data.order_id ?? orderNumber,
-    intellipayPaymentService: result.data.payment_service ?? input.paymentService ?? null,
-    intellipayTerminalId: result.data.terminal_id ?? null,
-    intellipayStatus: result.data.status ?? null,
-    intellipayStatusDesc: result.data.status_desc ?? null,
-    intellipayPaymentUrl: result.data.payment_url,
-    intellipayQrCodeUrl: result.data.qr_code_url ?? null,
-    intellipayProviderCode: result.data.provider_code ?? null,
-    intellipayWebhookUrl: webhookUrl,
-    intellipayRequestId: result.requestId,
   });
 
   // Decrease stock for each item
@@ -232,10 +159,5 @@ export async function createOrder(input: CreateOrderInput) {
   await db.delete(carts).where(eq(carts.id, cart.id));
 
   revalidatePath("/", "layout");
-  return {
-    success: true,
-    orderId: order.id,
-    orderNumber,
-    paymentUrl: result.data.payment_url,
-  };
+  return { success: true, orderId: order.id, orderNumber };
 }
