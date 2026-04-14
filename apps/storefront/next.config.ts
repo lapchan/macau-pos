@@ -17,6 +17,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "www.bbcicecream.com" },
       { protocol: "https", hostname: "edge.dis.commercecloud.salesforce.com" },
       { protocol: "https", hostname: "www.humanmade.jp" },
+      { protocol: "https", hostname: "img.shopshop.cloud" },
     ],
   },
 };

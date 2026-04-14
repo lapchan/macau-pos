@@ -1001,3 +1001,224 @@ Set up everything needed to test the USB barcode scanner on iPad. The hook (`use
 - Quantity multiplier prefix support
 
 **Commits:** f7dee61, 4b9eed0, 5ac6203, 4aa68b2
+
+## GS1 Barcode Lookup — HK (BarcodePlus) + CN (gds.org.cn) (2026-04-12)
+
+Added external barcode lookup for unknown scans, routed by EAN-13 prefix:
+- **489** → BarcodePlus (GS1 HK)
+- **690–699** → gds.org.cn (ANCC / GS1 China)
+
+### BarcodePlus integration fix
+- Old endpoint `/eid/resource/jsonservice` with `getSearchProductInfoTotal` is text-search, not GTIN-indexed → returned empty for valid 489 codes
+- Reverse-engineered correct endpoint by inspecting the product detail page HTML:
+  - URL: `https://www.barcodeplus.com.hk/app/resource/jsonservice`
+  - Body: `appCode:MCC2`, `method:getProdDetailsByGTIN`, `langId` (capital I — lowercase fails silently)
+- Verified end-to-end against `4894222082885`
+
+### GS1 China integration (new)
+- API: `https://bff.gds.org.cn/gds/searching-api/ProductService/ProductListByGTIN?PageSize=1&PageIndex=1&SearchItem=<14digit>`
+- Requires Bearer token via OIDC `passport.gds.org.cn/connect/token`
+- **OIDC findings:**
+  - `vuejs_code_client` SPA client does NOT allow `password` grant (`unauthorized_client`)
+  - `refresh_token` grant DOES work; refresh tokens do NOT rotate (verified — same value comes back)
+  - Access token TTL: 21600s (6h)
+- **Token cache** (`apps/cashier/src/lib/gds-token.ts`): in-process cache + single-flight promise mutex (no Redis needed for single container). Refreshes 60s before expiry.
+- Refresh token stored in `/opt/macau-pos/.env.production` as `GDS_REFRESH_TOKEN`, threaded to cashier container via `docker-compose.production.yml`
+- API requires China-specific headers: `Origin: https://www.gds.org.cn`, `currentRole: Mine`
+- 13-digit EAN must be padded with leading `0` to GTIN-14 for the API
+- Field mapping: `RegulatedProductName` → name, `brandcn` → brand, `firm_name` → company, `gpcname` → category, origin hardcoded `中國`
+
+### Source label discrimination
+- `LookupSource = "gs1hk" | "gs1cn"` discriminated union threaded through:
+  - `ExternalBarcodeResult.source` (server actions)
+  - `LookupState.found.source` (scan-feedback state)
+  - `onCreateTempProduct(name, code, source)` callback
+  - `tempProductDraft.source` (pos-client state)
+  - `<TempProductPriceModal sourceLabel>`
+- Added i18n keys: `scanLookupFoundFromCn`, `tempProductFromGs1Cn` for all 5 locales
+- Genericized `scanLookupSearching` from "正在查詢 GS1 香港…" → "正在查詢條碼資料庫…" (and equivalents)
+
+### Files
+- `apps/cashier/src/lib/actions.ts` — `lookupBarcodePlus` rewrite + new `lookupGdsCn`
+- `apps/cashier/src/lib/gds-token.ts` — NEW: in-process OIDC refresh-token cache
+- `apps/cashier/src/lib/barcode-providers.ts` — prefix → provider routing
+- `apps/cashier/src/components/scanner/scan-feedback.tsx` — `LookupSource` type, source field
+- `apps/cashier/src/app/pos-client.tsx` — provider dispatch + source threading
+- `apps/cashier/src/i18n/locales.ts` — 2 new keys × 5 locales + searching label genericized
+- `docker-compose.production.yml` — `GDS_REFRESH_TOKEN` env passthrough
+
+### Verified
+- `4894222082885` (HK 489 prefix) → BarcodePlus lookup, "來自 GS1 香港" label
+- `6947119927726` (CN 694 prefix) → GDS lookup, returns 希蕾XL2772加厚紙杯 / 希蕾 / 一次性食品容器 / 中國, "來自 GS1 中國" label
+
+**Commits:** e5e248c (BarcodePlus fix), 42c9afa (GDS integration), 6622af0 (source label fix)
+**Final BUILD_ID deployed:** 6622af0
+
+## Catalog Image Sync Refactor + Storefront Image Fix + Scan UX (2026-04-12)
+
+### Catalog image sync — delta + interleaved variants
+- `getVariantImageUrls()` replaced with `getVariantImageUrlsByProduct()` returning `Map<productId, string[]>` so variant images can be grouped with their parent.
+- `syncImages()` now takes `variantsByProduct?: Map<string, string[]>` and builds an interleaved URL queue (`[p1_main, p1_variants..., p2_main, ...]`) so each batch of 6 loads a complete product before moving on.
+- Deleted `syncChangedImages()` — delta path now routes through `syncImages()` which dedups against cached URLs internally.
+- `cleanupOrphanedImages()` updated to walk variant map.
+
+### Storefront product images — bypass Next optimizer
+- Commit e1db84b removed product images from storefront Docker build (served via nginx volume), but `/_next/image?url=...` fetches server-side from Next's own origin, bypassing nginx and 400'ing.
+- Fix: added `unoptimized` prop to all product `<Image>` components in: `product-card.tsx` (5 variant templates), `product-overview.tsx` (thumbnails + main), `product-grid.tsx`, `product-carousel.tsx`, `product-list-simple.tsx`.
+
+### GDS token timeout + duplicate scan suppression
+- `lib/gds-token.ts` — added 5s AbortController around refresh_token fetch (was unbounded, could hang if passport.gds.org.cn was down).
+- `lib/use-barcode-scanner.ts` — added `DUPLICATE_SUPPRESS_MS = 2_000` + `lastBarcodeRef`/`lastBarcodeTimeRef` so rapid duplicate USB/BT scans are dropped, matching the camera scanner's existing 2s window.
+
+### GDS_REFRESH_TOKEN deployment
+- The 2026-04-12 GS1 ship left the env var set via transient `export` that got wiped on container restart. Running container had `refresh_token_len=0`, causing every CN lookup to return null.
+- User pasted the OIDC token from their browser localStorage; appended `GDS_REFRESH_TOKEN=<token>` to `/root/app/macau-pos/.env.production` and restarted cashier. Verified with `6947119927726` → 希蕾 product.
+
+### External barcode lookup UX — state discrimination
+- **Problem:** `lookupBarcodePlus`/`lookupGdsCn` collapsed every failure mode to `null`, so the cashier couldn't tell "registered GTIN, no product details" from "unknown barcode" from "network timeout".
+- **Solution:** both lookup functions now return a discriminated `ExternalLookupOutcome`:
+  - `found` — full product details
+  - `registered` — GS1 HK `PRD.CD015` (valid GTIN, no metadata)
+  - `missing` — provider has no record
+  - `error` — timeout / network / auth / unknown
+- **BarcodePlus retry:** when a zh locale returns generic `{code:"Validate"}`, retry once with `langId=en` to surface the structured `PRD.CDxxx` code.
+- **BcpClassified intermediate type** factored the fetch+classify into `fetchBarcodePlusOnce(gtin, langId)` to keep retry logic clean.
+- **UI:** `LookupState` extended with `registered | error`. Three new blocks in `scan-feedback.tsx`:
+  - Registered → shows "Registered barcode / no details on file" + GTIN + "Add to cart" button that creates a temp product using the barcode as provisional name (via `handleCreateBlankTempProduct`).
+  - Error → WifiOff icon + reason-specific message (timeout/auth/generic) + "Search online" fallback.
+  - Miss → unchanged.
+- **i18n:** 5 new keys × 5 locales (`scanLookupRegisteredTitle`, `scanLookupRegisteredBody`, `scanLookupErrorTimeout`, `scanLookupErrorAuth`, `scanLookupErrorGeneric`).
+- **Handler:** `pos-client.tsx` `handleBarcodeScan` switch-maps each `outcome.kind` → corresponding `LookupState`; catch branch now emits `{state: "error", reason: "unknown"}` instead of silently falling back to miss.
+
+### Files
+- `apps/cashier/src/lib/catalog-sync.ts`, `lib/catalog-image-sync.ts`, `lib/use-catalog-sync.ts` — sync refactor
+- `apps/cashier/src/lib/gds-token.ts` — 5s timeout
+- `apps/cashier/src/lib/use-barcode-scanner.ts` — duplicate suppression
+- `apps/cashier/src/lib/actions.ts` — `ExternalLookupOutcome` + BarcodePlus EN retry
+- `apps/cashier/src/components/scanner/scan-feedback.tsx` — registered/error UI blocks
+- `apps/cashier/src/app/pos-client.tsx` — outcome → LookupState mapping
+- `apps/cashier/src/i18n/locales.ts` — 5 new strings × 5 locales
+- `apps/storefront/src/components/**` — `unoptimized` on all product Image components
+
+**Commits:** 49325cf (image sync), d2ff584 (storefront images), 099ee11 (GDS timeout + dedup), scan UX uncommitted
+
+## Storefront Checkout — Auth Gate + Humanmade Theme (2026-04-13)
+
+Restyled the storefront checkout to match the HUMAN MADE theme and added a login-or-guest gate.
+
+### Auth gate
+- New `apps/storefront/src/app/[locale]/checkout/gate.tsx` — themed client component with Log in / Continue as guest options (humanmade variant: sharp edges, `#121212` bg, "OR" divider).
+- `checkout/page.tsx` accepts `searchParams: { guest?: string }`, fetches `themeId` from storefront config, renders `<CheckoutGate>` when `!customer && guest !== "1"`.
+- Login flow: `/${locale}/login?next=/${locale}/checkout` → `login/page.tsx` reads + validates `next` as internal path only (open-redirect safe: `startsWith("/") && !startsWith("//")`) → `login/client.tsx` `router.push(nextUrl || account)` after successful verify.
+- Guest flow: `/${locale}/checkout?guest=1`.
+
+### Themed checkout split
+- `components/checkout/checkout-split.tsx` rewritten with `isHumanMade = themeId === "humanmade"` branches throughout. Uses `StoreThumb` instead of raw `Image`, theme tokens for pills/inputs/submit button (underline inputs for humanmade, boxed for default).
+- **Full-bleed split bg without `fixed`:** replaced prior `fixed top-0 ... w-1/2` panels (which covered the site header) with an `absolute inset-0 pointer-events-none` decorative panel containing `ml-auto h-full w-1/2 bg-[#fafafa]`, inside a `relative` wrapper around the grid. Panel now scopes to the checkout container only.
+- Quantity badge on product thumbnails: circular `size-6 rounded-full bg-[#121212] text-white` at `-right-2 -top-2`, all themes.
+- Grid: no `gap-x-16` (was creating a 4rem column gap), `lg:pt-10` for breathing room, `lg:min-h-[calc(100vh-140px)]`.
+
+### Route-aware header + footer
+- `store-header.tsx` — added `usePathname()` detection, `isCheckoutPage = /\/(checkout|cart)(\/|$)/.test(pathname)`, passes `minimal={isCheckoutPage}` through to `HumanMadeHeader`. Minimal mode hides SHOP/NEWS/ABOUT nav links and hamburger buttons on both themes, tightens logo padding, adds `border-b border-[#121212]/20`.
+- `store-footer.tsx` — converted to `"use client"`, added `usePathname()` detection, drops `mt-10 md:mt-14` on cart/checkout routes (the margin was creating a visible white strip above the footer in the split-bg layout). Only humanmade footer needed the fix; default footer has no top margin.
+
+### Files
+- `apps/storefront/src/app/[locale]/checkout/gate.tsx` (new)
+- `apps/storefront/src/app/[locale]/checkout/page.tsx`
+- `apps/storefront/src/app/[locale]/checkout/client.tsx`
+- `apps/storefront/src/app/[locale]/login/page.tsx`
+- `apps/storefront/src/app/[locale]/login/client.tsx`
+- `apps/storefront/src/components/checkout/checkout-split.tsx`
+- `apps/storefront/src/components/layout/store-header.tsx`
+- `apps/storefront/src/components/layout/store-footer.tsx`
+
+**Commits:** checkout gate + themed split + header/footer minimal mode (multiple), final footer mt fix 6480778. All deployed to store.hkretailai.com.
+
+## simpaylicity Payment Integration Spec (2026-04-13)
+
+Storefront checkout button threw 500 — root cause `createOrder` inserts `payment_method = "mpay"` but the DB enum only has `tap/insert/qr/cash`. Rather than quick-fix by extending the enum, pivoted to the real solution: integrate with the in-house `simpaylicity` payment service (`/Users/lapchan/Projects/intellipay/simpaylicity`) that handles both POS (terminal/QR) and storefront (hosted checkout, PayPal-like redirect) channels across all supported locations.
+
+### What we nailed down in conversation
+- **Project rename** — retailai is the new name (flagged for future, not executed in this session).
+- **Merchant model** — each retailai tenant = independent simpaylicity merchant (NOT a sub-merchant under a retailai master account), because tenants do not share payment accounts. Credentials (merchant_id / access_key_id / secret_key) stored per-tenant in the retailai DB.
+- **Webhook model** — single master webhook URL on the retailai side; `merchant_id` in the payload routes events to the right tenant.
+- **Payment methods** — simpaylicity owns the "which methods are available where" decision; retailai just consumes whatever simpaylicity returns. No hardcoded method list.
+- **Refunds** — required v1.
+- **Line items** — required v1.
+- **Channels** — must support both in-person (terminal/QR) and online (hosted checkout with redirect-back). simpaylicity is the one that renders the payment page; retailai just initiates and handles the return.
+- **Spec scope** — §1-3 (context + credentials + request conventions including HMAC-SHA256 signing + Idempotency-Key) written in detail. §4+ deliberately left as a bullet-list of requirements so simpaylicity's team designs their own endpoints/shapes/error codes and returns a proper API doc.
+
+### Deliverable
+- `docs/PAYMENT_INTEGRATION_SPEC.md` (new, untracked) — "Retailai ↔ Simpaylicity Integration Spec v1" hand-off document for the simpaylicity team.
+
+### What's blocked on this
+- Storefront checkout 500 stays broken until simpaylicity's API doc comes back and we replace the hardcoded `"mpay"` payment_method path in `apps/storefront/src/lib/actions/order.ts`. Do NOT extend the DB enum as a workaround.
+
+## GS1 Japan Barcode Lookup — Rakuten Ichiba (2026-04-13)
+
+User scanned `4979750822117` (a Japanese JAN — SEGA FAVE Haikyuu Kageyama figure) and wanted it to resolve through the same lookup flow HK/CN barcodes use. Added GS1 Japan (prefix `450-459` + `490-499`) support with Rakuten Ichiba as the provider, and hit Rakuten's new API migration partway through.
+
+### Provider routing + code
+- **`apps/cashier/src/lib/barcode-providers.ts`** — added `{ id: "janjp", country: "JP" }` and regex `/^4[59][0-9]/` (matches 450-459 and 490-499, while `^489` still wins first for HK).
+- **`apps/cashier/src/lib/actions.ts`** — added `lookupJanJp` orchestrator + `lookupRakutenIchiba` + `lookupYahooShoppingJp`. Orchestrator: Rakuten first (broader consumer coverage via keyword=JAN), Yahoo fallback on miss, return `missing` if both miss, else error. Extended `ExternalLookupSource = "gs1hk" | "gs1cn" | "gs1jp"`.
+- **i18n** — added `scanLookupFoundFromJp` ("From Japan marketplace") + `tempProductFromGs1Jp` × 5 locales (tc/sc/en/pt/ja).
+- **`scan-feedback.tsx`** — extended `LookupSource` union, added `sourceLabelKey()` helper to replace 3 inline source-label ternaries, handles `"gs1jp"` throughout.
+- **`pos-client.tsx`** — extended `tempProductDraft` source type, added `janjp → lookupJanJp` dispatch branch, error-catch fallback branch, and `TempProductPriceModal.sourceLabel` branch.
+
+### Rakuten API migration (the surprise)
+Initial implementation used the legacy endpoint `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20220601` with a single `applicationId` (19-digit numeric) per long-standing Rakuten Web Service docs. User registered an app at `webservice.rakuten.co.jp/app/list` and got back a UUID `applicationId` + a `pk_...` `Access Key` + a dot-hex `Affiliate ID`. Legacy endpoint rejected the UUID with `"wrong_parameter: specify valid applicationId"`.
+
+Turns out Rakuten migrated since my training cutoff:
+- **New endpoint:** `https://openapi.rakuten.co.jp/ichibams/api/IchibaItem/Search/20260401`
+- **Dual-credential auth:** both `applicationId` (UUID) AND `accessKey` (`pk_...`) now required — single-cred is retired.
+- **IP allowlist** enforced at app level; only IPs registered in the Rakuten dashboard get through (everything else returns `CLIENT_IP_NOT_ALLOWED` 403).
+- **Error envelope** changed to `{ errors: { errorCode, errorMessage } }` from legacy `{ error, error_description }`.
+
+Confirmed the new endpoint + creds work by curling from the production ECS (only allowed IP) — returned a real Ichiba record for `4979750822117`:
+```
+itemName: 【4月1日限定ポイント15倍キャンペーン】【送料無料】セガフェイブ(SEGA FAVE)アクドール ハイキュー!! 影山 飛雄
+shop: shopwny, price: ¥3366
+```
+
+### Production deploy
+- `RAKUTEN_APP_ID` + `RAKUTEN_ACCESS_KEY` appended to `/opt/macau-pos/.env.production` on ECS. IP allowlist on the Rakuten app dashboard set to `47.83.141.219`.
+- Docker-compose cashier service wired to forward both vars.
+- `docker compose build cashier && up -d cashier` — both postgres and cashier containers recreated due to env-file hash change.
+- **Gotcha hit:** after recreate, nginx kept proxying to the old cashier container IP → 502 on `pos.hkretailai.com`. Fix: `docker exec macau-pos-nginx-1 nginx -s reload`. This is a recurring deploy pattern — nginx caches upstream DNS at config-load time and doesn't re-resolve when upstream containers are recreated. **Consider adding to STATE.md as a known deploy gotcha.**
+- Verified all three hosts post-reload: pos 307, www 200, admin 307.
+
+### Yahoo Shopping JP — parked
+Yahoo JP was the planned fallback for barcodes Rakuten misses (e.g. `4545403572694` returned `hits:0` from Ichiba — the product just isn't listed on Ichiba). Yahoo JP's developer portal requires a Yahoo! JAPAN ID with JP residency; signup needs SMS verification to a JP phone number and rejected user's attempt with generic error `E700701-E700000`. Decision: ship Rakuten-only, park Yahoo, revisit later if coverage becomes a pain point. Code already handles Yahoo-not-configured gracefully (returns `auth` error which the orchestrator treats as fall-through).
+
+### Files
+- `apps/cashier/src/lib/barcode-providers.ts`
+- `apps/cashier/src/lib/actions.ts`
+- `apps/cashier/src/i18n/locales.ts`
+- `apps/cashier/src/components/scanner/scan-feedback.tsx`
+- `apps/cashier/src/app/pos-client.tsx`
+- `.env.example` + `.env.production.example`
+- `docker-compose.production.yml`
+
+**Commits:** `ff750a2` (initial JP lookup with legacy Rakuten endpoint) + `392419b` (migration to openapi.rakuten.co.jp + dual-cred + new error envelope). Both deployed to pos.hkretailai.com.
+
+## 853mask Tenant Creation + Product Import (2026-04-14)
+
+### What was done
+1. **Created 853mask tenant** (`bc2e9011-dd29-4624-9cb3-d5d1ac288382`) with location + storefront config
+2. **Scraped 100 products** from 853mask.com via sitemap + og: meta tags (shopshop.cloud platform)
+3. **Backed up to** `docs/853mask-products-backup.json` (name, price MOP, images, description, stock status)
+4. **Imported all 100 products** with proper category classification into 7 categories:
+   - ASTM Level 3 (38), 一次性口罩 (21), 中童口罩 (13), 盒裝50片 (12), 冰極薄荷系列 (7), KF94/KN95 立體口罩 (6), 其他 (3)
+5. **Fixed transaction handling** — categories committed separately, products use SAVEPOINTs for per-row error isolation
+6. **Added `img.shopshop.cloud`** to storefront `next.config.ts` remotePatterns
+7. Sold-out products imported as `status: inactive`
+
+### Key files
+- `scripts/import-853mask.py` — import script with savepoint-based error handling
+- `docs/853mask-products-backup.json` — raw product data backup
+- `apps/storefront/next.config.ts` — added shopshop.cloud CDN domain
+
+### Also in this session (before context compaction)
+- **Product variant slide transition** on HUMAN MADE PDP — direction-aware translateX animation, only images animate (name/price static)
+- **Consolidated 2 HUMAN MADE products into 1 with variants** using `product_variants` table
+- **Added full product descriptions** from humanmade.jp reference (specs, size chart)
