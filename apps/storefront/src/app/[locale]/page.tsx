@@ -171,10 +171,11 @@ export default async function HomePage({
     ? theme.defaultSections
     : getDefaultSections(locale, tenant.name);
 
-  // Merge: saved sections first, then append any theme defaults not already present
-  const savedTypes = new Set(sections.map((s) => s.type));
-  const missingDefaults = defaults.filter((d) => !savedTypes.has(d.type));
-  const activeSections = [...sections, ...missingDefaults];
+  // If tenant has explicitly saved sections, use only those (no merging).
+  // Only fall back to theme defaults when there are NO saved sections at all.
+  const activeSections = sections.length > 0
+    ? sections
+    : defaults;
 
   return (
     <SectionRenderer
