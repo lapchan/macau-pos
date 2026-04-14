@@ -7,13 +7,16 @@ import {
   payments,
   products,
   productVariants,
+  tenantPaymentConfigs,
   eq,
   and,
   desc,
   inArray,
   sql,
   logCashEvent,
+  refundPayment,
 } from "@macau-pos/database";
+import { randomUUID } from "node:crypto";
 import { getAuthSession } from "./auth-actions";
 import { getActiveShift } from "./shift-actions";
 
@@ -228,12 +231,82 @@ export async function voidOrRefundOrder(
 
     const newStatus = action === "void" ? "voided" : "refunded";
 
+    // If this is a refund of an Intellipay-routed payment, hit the gateway
+    // first — we won't mark the order refunded locally unless the gateway
+    // confirms. Void (no money moved, e.g. pending) doesn't need this.
+    let refundStatus: number | null = null;
+    let refundStatusDesc: string | null = null;
+    if (
+      action === "refund" &&
+      payment?.provider === "intellipay" &&
+      payment.intellipayPaymentId
+    ) {
+      const [paymentConfig] = await db
+        .select()
+        .from(tenantPaymentConfigs)
+        .where(eq(tenantPaymentConfigs.tenantId, session.tenantId))
+        .limit(1);
+
+      if (
+        !paymentConfig?.accessKeyId ||
+        !paymentConfig.privateKeyPemEncrypted
+      ) {
+        return {
+          success: false,
+          error: "Intellipay credentials not configured for this tenant",
+        };
+      }
+
+      const refundAmountCents = Math.round(parseFloat(order.total) * 100);
+      const res = await refundPayment(
+        {
+          accessKeyId: paymentConfig.accessKeyId,
+          privateKeyPemEncrypted: paymentConfig.privateKeyPemEncrypted,
+        },
+        payment.intellipayPaymentId,
+        {
+          refund_amount: refundAmountCents,
+          reason: `Refund ${order.orderNumber}`,
+          ...(paymentConfig.merchantId ? { merchant_id: paymentConfig.merchantId } : {}),
+          ...(paymentConfig.operatorId ? { operator_id: paymentConfig.operatorId } : {}),
+        },
+        { idempotencyKey: randomUUID() },
+      );
+
+      if (!res.ok) {
+        console.error("[voidOrRefundOrder] intellipay refund failed", {
+          orderId,
+          code: res.errorCode,
+          type: res.errorType,
+          message: res.message,
+          requestId: res.requestId,
+        });
+        return {
+          success: false,
+          error: `Payment gateway refund failed: ${res.message}`,
+        };
+      }
+      refundStatus = res.data.status ?? null;
+      refundStatusDesc = res.data.status_desc ?? null;
+    }
+
     await db.transaction(async (tx) => {
       // Update order status
       await tx
         .update(orders)
         .set({ status: newStatus as "voided" | "refunded" })
         .where(eq(orders.id, orderId));
+
+      // Stamp refund result on the payment row so history queries can see it.
+      if (payment && refundStatus !== null) {
+        await tx
+          .update(payments)
+          .set({
+            intellipayStatus: refundStatus,
+            intellipayStatusDesc: refundStatusDesc,
+          })
+          .where(eq(payments.id, payment.id));
+      }
 
       // Reverse stock for each item
       for (const item of items) {

@@ -7,10 +7,17 @@ import { type Locale, t, getProductName } from "@/i18n/locales";
 import {
   Wifi, WifiOff, CreditCard, Banknote, QrCode, Smartphone,
   Check, AlertCircle, Loader2, Printer, Mail, XCircle, Clock,
-  ChevronLeft, Minus, Plus, Sun, Moon, Receipt,
+  ChevronLeft, Minus, Plus, Sun, Moon, Receipt, ScanLine,
 } from "lucide-react";
 import CloseButton from "@/components/shared/close-button";
 import { createOrder, type OrderDiscount } from "@/lib/actions";
+import {
+  createMpmPayment,
+  createCpmPayment,
+  getMpmPaymentStatus,
+  cancelMpmPayment,
+} from "@/lib/intellipay-actions";
+import { useBarcodeScanner } from "@/lib/use-barcode-scanner";
 import { enqueueOrder } from "@/lib/offline-queue";
 import PrintReceipt from "@/components/receipt/print-receipt";
 import type { ReceiptData } from "@/lib/receipt-queries";
@@ -20,6 +27,7 @@ type CheckoutState =
   | "tap"
   | "insert"
   | "qr"
+  | "cpqr"
   | "cash"
   | "processing"
   | "success"
@@ -55,6 +63,13 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
   });
   const [cashCents, setCashCents] = useState("0");
   const [orderNum, setOrderNum] = useState("");
+  // Intellipay MPM state. Populated when the cashier picks the QR tile and
+  // we successfully create an MPM payment.
+  const [mpmQrDataUrl, setMpmQrDataUrl] = useState<string | null>(null);
+  const [mpmPaymentId, setMpmPaymentId] = useState<string | null>(null);
+  const [mpmError, setMpmError] = useState<string | null>(null);
+  // CPM (scan customer wallet) state.
+  const [cpqrScanning, setCpqrScanning] = useState(false);
 
   const handleClose = useCallback(() => {
     setClosing(true);
@@ -70,7 +85,32 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
   const cashDisplay = (parseInt(cashCents, 10) / 100).toFixed(2);
   const changeDue = cashValue - total;
 
-  const buildOrderInput = useCallback((method: "tap" | "insert" | "qr" | "cash") => ({
+  const cartForAction = useCallback(() => cart.map((item) => {
+    const isCustom = item.id.startsWith("custom_");
+    const [productId, variantId] = isCustom ? [undefined, undefined] : item.id.split("__");
+    const rawTotal = item.price * item.quantity;
+    const itemDiscountAmt = item.discount
+      ? item.discount.type === "percent"
+        ? Math.round(rawTotal * item.discount.value / 100 * 100) / 100
+        : Math.min(item.discount.value, rawTotal)
+      : 0;
+    const itemDiscountNote = item.discount
+      ? item.discount.type === "percent" ? `${item.discount.value}%` : `${currency} ${item.discount.value}`
+      : undefined;
+    return {
+      productId,
+      variantId: variantId || undefined,
+      variantName: variantId ? item.name : undefined,
+      name: item.name,
+      translations: item.translations || undefined,
+      unitPrice: item.price,
+      quantity: item.quantity,
+      discountAmount: itemDiscountAmt || undefined,
+      discountNote: itemDiscountNote,
+    };
+  }), [cart, currency]);
+
+  const buildOrderInput = useCallback((method: "tap" | "insert" | "cash") => ({
     cart: cart.map((item) => {
       const isCustom = item.id.startsWith("custom_");
       const [productId, variantId] = isCustom ? [undefined, undefined] : item.id.split("__");
@@ -106,7 +146,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
     discountMeta: orderDiscount,
   }), [cart, subtotal, discountAmount, taxAmount, total, cashValue, customerId, orderDiscount, currency]);
 
-  const processPayment = useCallback(async (method: "tap" | "insert" | "qr" | "cash") => {
+  const processPayment = useCallback(async (method: "tap" | "insert" | "cash") => {
     setState("processing");
     const orderInput = buildOrderInput(method);
 
@@ -132,20 +172,137 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
     if (cashValue >= total) processPayment("cash");
   }, [cashValue, total, processPayment]);
 
+  // Start an Intellipay MPM payment: create the pending order + QR, then
+  // poll the DB until the webhook flips the order to a terminal state.
+  const startMpmPayment = useCallback(async () => {
+    setMpmError(null);
+    setMpmQrDataUrl(null);
+    setMpmPaymentId(null);
+    setState("qr");
+
+    const result = await createMpmPayment({
+      cart: cartForAction(),
+      // simplepay = user picks the wallet in their own app at scan time
+      paymentService: "simplepay",
+      subtotal,
+      discountAmount,
+      taxAmount,
+      total,
+      customerId,
+      discountMeta: orderDiscount,
+    });
+
+    if (!result.success) {
+      setMpmError(result.error);
+      setState("failed");
+      return;
+    }
+    setMpmQrDataUrl(result.qrCodeDataUrl);
+    setMpmPaymentId(result.paymentId);
+    setOrderNum(result.orderNumber);
+  }, [cartForAction, subtotal, discountAmount, taxAmount, total, customerId, orderDiscount]);
+
+  // Poll the payment row every 2s while we're on the QR screen with an
+  // active payment. Bail out when we reach a terminal order status.
+  useEffect(() => {
+    if (state !== "qr" || !mpmPaymentId) return;
+
+    let cancelled = false;
+    const tick = async () => {
+      const res = await getMpmPaymentStatus(mpmPaymentId);
+      if (cancelled) return;
+      if (!res.success) return;
+      if (res.data.orderStatus === "completed") {
+        setState("success");
+      } else if (
+        res.data.orderStatus === "voided" ||
+        res.data.orderStatus === "refunded"
+      ) {
+        setMpmError(res.data.intellipayStatusDesc || "Payment did not complete.");
+        setState("failed");
+      }
+    };
+    tick();
+    const interval = setInterval(tick, 2000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [state, mpmPaymentId]);
+
+  const handleMpmCancel = useCallback(async () => {
+    if (!mpmPaymentId) {
+      setState("review");
+      return;
+    }
+    await cancelMpmPayment(mpmPaymentId);
+    setMpmPaymentId(null);
+    setMpmQrDataUrl(null);
+    setState("review");
+  }, [mpmPaymentId]);
+
+  // CPM: customer shows wallet QR, cashier scans with POS barcode scanner.
+  // On scan we call Intellipay synchronously. Status 2 = paid (go to success);
+  // anything else pending = reuse the existing MPM poller by stashing the
+  // payment id and transitioning to "qr" state.
+  const handleCpmScan = useCallback(async (authCode: string) => {
+    if (cpqrScanning) return;
+    setCpqrScanning(true);
+    setMpmError(null);
+    setState("processing");
+
+    const result = await createCpmPayment({
+      cart: cartForAction(),
+      authCode,
+      paymentService: "simplepay",
+      subtotal,
+      discountAmount,
+      taxAmount,
+      total,
+      customerId,
+      discountMeta: orderDiscount,
+    });
+
+    setCpqrScanning(false);
+
+    if (!result.success) {
+      setMpmError(result.error);
+      setState("failed");
+      return;
+    }
+
+    setOrderNum(result.orderNumber);
+    if (result.immediate) {
+      setState("success");
+      return;
+    }
+    // Pending — fall back to the MPM poller (same DB row shape).
+    setMpmPaymentId(result.paymentId);
+    setMpmQrDataUrl(null);
+    setState("qr");
+  }, [cpqrScanning, cartForAction, subtotal, discountAmount, taxAmount, total, customerId, orderDiscount]);
+
+  useBarcodeScanner({
+    enabled: state === "cpqr" && !cpqrScanning,
+    onScan: handleCpmScan,
+  });
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         if (state === "review") handleClose();
+        else if (state === "qr") handleMpmCancel();
         else if (!["processing", "success", "saved-offline"].includes(state)) setState("review");
       }
 
-      // F1-F4: payment method shortcuts (only in review state)
+      // F1-F5: payment method shortcuts (only in review state)
       if (state === "review") {
         if (e.key === "F1") { e.preventDefault(); setState("tap"); }
         else if (e.key === "F2") { e.preventDefault(); setState("insert"); }
-        else if (e.key === "F3") { e.preventDefault(); setState("qr"); }
+        else if (e.key === "F3") { e.preventDefault(); startMpmPayment(); }
         else if (e.key === "F4") { e.preventDefault(); setState("cash"); }
+        else if (e.key === "F5") { e.preventDefault(); setState("cpqr"); }
       }
 
       // Enter: confirm cash payment
@@ -154,15 +311,15 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
         handleCashConfirm();
       }
 
-      // Enter on tap/insert/qr: process immediately
-      if (["tap", "insert", "qr"].includes(state) && e.key === "Enter") {
+      // Enter on tap/insert: process immediately (qr is driven by webhook poll)
+      if (["tap", "insert"].includes(state) && e.key === "Enter") {
         e.preventDefault();
-        processPayment(state as "tap" | "insert" | "qr");
+        processPayment(state as "tap" | "insert");
       }
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [state, handleClose, cashValue, total, handleCashConfirm, processPayment]);
+  }, [state, handleClose, cashValue, total, handleCashConfirm, processPayment, startMpmPayment, handleMpmCancel]);
 
   const handleDone = useCallback(() => {
     onComplete(orderNum);
@@ -318,21 +475,24 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
                 </p>
                 <div className="grid grid-cols-2 gap-3">
                   {[
-                    { key: "tap" as const, icon: Smartphone, label: t(locale, "tapCard"), sub: t(locale, "paymentSubTap"), fKey: "F1" },
-                    { key: "insert" as const, icon: CreditCard, label: t(locale, "insertCard"), sub: t(locale, "paymentSubInsert"), fKey: "F2" },
-                    { key: "qr" as const, icon: QrCode, label: t(locale, "scanQr"), sub: t(locale, "paymentSubQr"), fKey: "F3" },
-                    { key: "cash" as const, icon: Banknote, label: t(locale, "cash"), sub: "MOP", fKey: "F4" },
+                    { key: "tap" as const, icon: Smartphone, label: t(locale, "tapCard"), sub: t(locale, "paymentSubTap"), fKey: "F1", span: false },
+                    { key: "insert" as const, icon: CreditCard, label: t(locale, "insertCard"), sub: t(locale, "paymentSubInsert"), fKey: "F2", span: false },
+                    { key: "qr" as const, icon: QrCode, label: t(locale, "scanQr"), sub: t(locale, "paymentSubQr"), fKey: "F3", span: false },
+                    { key: "cash" as const, icon: Banknote, label: t(locale, "cash"), sub: "MOP", fKey: "F4", span: false },
+                    { key: "cpqr" as const, icon: ScanLine, label: t(locale, "scanWallet"), sub: t(locale, "paymentSubScanWallet"), fKey: "F5", span: true },
                   ].map((method) => (
                     <button
                       key={method.key}
                       onClick={() => {
                         if (method.key === "cash") setState("cash");
-                        else if (method.key === "qr") setState("qr");
+                        else if (method.key === "qr") startMpmPayment();
+                        else if (method.key === "cpqr") setState("cpqr");
                         else if (method.key === "tap") setState("tap");
                         else if (method.key === "insert") setState("insert");
                       }}
                       className={cn(
                         "relative flex flex-col items-center gap-3 py-7 rounded-[var(--radius-lg)] border-2 transition-all active:scale-[0.97]",
+                        method.span && "col-span-2",
                         border,
                         surface,
                         darkMode ? "hover:border-zinc-600 hover:bg-zinc-800/50" : "hover:border-pos-accent/30 hover:shadow-md"
@@ -414,32 +574,61 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
               </div>
             )}
 
-            {/* QR STATE */}
+            {/* QR STATE — Intellipay MPM */}
             {state === "qr" && (
               <div className="flex flex-col items-center text-center animate-scale-in">
-                <div className={cn("h-48 w-48 rounded-[var(--radius-lg)] border-2 flex items-center justify-center mb-5", border, surface)}>
-                  {/* Simulated QR code */}
-                  <div className="grid grid-cols-8 gap-[3px] p-4">
-                    {Array.from({ length: 64 }).map((_, i) => (
-                      <div
-                        key={i}
-                        className={cn("h-3 w-3 rounded-[2px]", Math.random() > 0.4 ? (darkMode ? "bg-white" : "bg-pos-text") : "bg-transparent")}
-                      />
-                    ))}
-                  </div>
+                <div className={cn("h-56 w-56 rounded-[var(--radius-lg)] border-2 flex items-center justify-center mb-5 p-3", border, surface)}>
+                  {mpmQrDataUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={mpmQrDataUrl}
+                      alt="Payment QR code"
+                      className="h-full w-full object-contain"
+                    />
+                  ) : (
+                    <Loader2
+                      className="h-10 w-10 animate-spin"
+                      style={{ color: "var(--color-pos-accent)" }}
+                      strokeWidth={1.5}
+                    />
+                  )}
                 </div>
                 <p className={cn("text-[28px] font-bold tabular-nums mb-2")} style={{ color: "var(--color-pos-accent)" }}>
                   {currency} {total.toFixed(2)}
                 </p>
-                <p className={cn("text-[15px] font-medium mb-1", text)}>{t(locale, "scanToPay")}</p>
+                <p className={cn("text-[15px] font-medium mb-1", text)}>
+                  {mpmQrDataUrl ? t(locale, "scanToPay") : t(locale, "processing")}
+                </p>
                 <p className={cn("text-[13px]", textSec)}>{t(locale, "waitingForPayment")}</p>
                 <button
-                  onClick={() => processPayment("qr")}
-                  className={cn("mt-6 h-11 px-6 rounded-[var(--radius-md)] text-[14px] font-semibold text-white transition-all hover:shadow-lg active:scale-[0.97]")}
-                  style={{ backgroundColor: "var(--color-pos-accent)" }}
+                  onClick={handleMpmCancel}
+                  className={cn("mt-6 h-11 px-6 rounded-[var(--radius-md)] text-[14px] font-semibold border transition-all active:scale-[0.97]", border, textSec, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
                 >
-                  {t(locale, "confirmCash")}
+                  {t(locale, "cancel")}
                 </button>
+              </div>
+            )}
+
+            {/* CPM STATE — Consumer-Presented QR (cashier scans customer wallet) */}
+            {state === "cpqr" && (
+              <div className="flex flex-col items-center text-center animate-scale-in">
+                <div className="relative mb-6">
+                  <div
+                    className="h-28 w-28 rounded-full flex items-center justify-center"
+                    style={{ backgroundColor: "var(--color-pos-accent-light)" }}
+                  >
+                    <ScanLine className="h-12 w-12" style={{ color: "var(--color-pos-accent)" }} strokeWidth={1.5} />
+                  </div>
+                  <div
+                    className="absolute inset-0 rounded-full border-2 animate-ping opacity-30"
+                    style={{ borderColor: "var(--color-pos-accent)" }}
+                  />
+                </div>
+                <p className={cn("text-[28px] font-bold tabular-nums mb-2")} style={{ color: "var(--color-pos-accent)" }}>
+                  {currency} {total.toFixed(2)}
+                </p>
+                <p className={cn("text-[18px] font-semibold mb-1", text)}>{t(locale, "scanWalletPrompt")}</p>
+                <p className={cn("text-[14px]", textSec)}>{t(locale, "scanWalletHint")}</p>
               </div>
             )}
 
@@ -680,7 +869,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
                 </div>
                 <p className={cn("text-[24px] font-bold mb-1", text)}>{t(locale, "paymentFailed")}</p>
                 <p className={cn("text-[14px] mb-6", textSec)}>
-                  {t(locale, "paymentFailedHint")}
+                  {mpmError || t(locale, "paymentFailedHint")}
                 </p>
                 <div className="flex gap-3">
                   <button
