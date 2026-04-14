@@ -73,7 +73,7 @@ export default function CartVariants({ items, variant = "single-column", locale,
                       ))}
                     </select>
                   </div>
-                  <button onClick={() => onRemove?.(item.id)} className="font-medium text-indigo-600 hover:text-indigo-500">
+                  <button onClick={() => onRemove?.(item.id)} className="font-medium text-sf-accent hover:text-sf-accent-hover">
                     {t(locale, "移除", "Remove")}
                   </button>
                 </div>
@@ -89,12 +89,12 @@ export default function CartVariants({ items, variant = "single-column", locale,
           </div>
           <p className="mt-1 text-sm text-gray-500">{t(locale, "運費及稅項將於結帳時計算", "Shipping and taxes calculated at checkout")}</p>
           <div className="mt-6">
-            <a href={`/${locale}/checkout`} className="flex items-center justify-center rounded-md bg-indigo-600 px-6 py-3 text-base font-medium text-white hover:bg-indigo-700">
+            <a href={`/${locale}/checkout`} className="flex items-center justify-center rounded-md bg-sf-accent px-6 py-3 text-base font-medium text-white hover:bg-sf-accent">
               {t(locale, "結帳", "Checkout")}
             </a>
           </div>
           <div className="mt-6 flex justify-center text-center text-sm text-gray-500">
-            <a href={`/${locale}/products`} className="font-medium text-indigo-600 hover:text-indigo-500">
+            <a href={`/${locale}/products`} className="font-medium text-sf-accent hover:text-sf-accent-hover">
               {t(locale, "繼續購物", "Continue Shopping")} <span aria-hidden="true"> →</span>
             </a>
           </div>
@@ -145,7 +145,7 @@ export default function CartVariants({ items, variant = "single-column", locale,
                         <option key={n} value={n}>{n}</option>
                       ))}
                     </select>
-                    <button onClick={() => onRemove?.(item.id)} className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                    <button onClick={() => onRemove?.(item.id)} className="text-sm font-medium text-sf-accent hover:text-sf-accent-hover">
                       {t(locale, "移除", "Remove")}
                     </button>
                   </div>
@@ -177,7 +177,7 @@ export default function CartVariants({ items, variant = "single-column", locale,
             </div>
           </dl>
           <div className="mt-6">
-            <a href={`/${locale}/checkout`} className="flex w-full items-center justify-center rounded-md bg-indigo-600 px-6 py-3 text-base font-medium text-white hover:bg-indigo-700">
+            <a href={`/${locale}/checkout`} className="flex w-full items-center justify-center rounded-md bg-sf-accent px-6 py-3 text-base font-medium text-white hover:bg-sf-accent">
               {t(locale, "結帳", "Checkout")}
             </a>
           </div>

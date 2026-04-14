@@ -357,7 +357,7 @@ export default function LoginPageClient({ locale, tenantName, accentColor, theme
                   value={contact}
                   onChange={(e) => setContact(e.target.value)}
                   placeholder={method === "phone" ? "+853 6XXX XXXX" : "your@email.com"}
-                  className="mt-2 block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
+                  className="mt-2 block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-sf-accent sm:text-sm"
                 />
               </div>
 
@@ -391,7 +391,7 @@ export default function LoginPageClient({ locale, tenantName, accentColor, theme
                         document.getElementById(`code-${i - 1}`)?.focus();
                       }
                     }}
-                    className="size-12 rounded-lg border-0 text-center text-lg font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600"
+                    className="size-12 rounded-lg border-0 text-center text-lg font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-sf-accent"
                   />
                 ))}
               </div>
@@ -421,7 +421,7 @@ export default function LoginPageClient({ locale, tenantName, accentColor, theme
 
         <p className="mt-10 text-center text-sm text-gray-500">
           {t(locale, "還沒有帳號？", "Don't have an account?", "Não tem conta?", "アカウントをお持ちでない方")}{" "}
-          <span className="font-semibold text-indigo-600">
+          <span className="font-semibold text-sf-accent">
             {t(locale, "輸入電話即可自動註冊", "Enter your phone to auto-register", "Digite para registrar", "電話入力で自動登録")}
           </span>
         </p>

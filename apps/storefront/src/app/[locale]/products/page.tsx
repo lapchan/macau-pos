@@ -372,7 +372,7 @@ export default async function ProductsPage({ params, searchParams }: Props) {
                 <li>
                   <a
                     href={buildUrl({ category: undefined, page: undefined })}
-                    className={!categorySlug ? "text-indigo-600 font-semibold" : "hover:text-gray-600"}
+                    className={!categorySlug ? "text-sf-accent font-semibold" : "hover:text-gray-600"}
                   >
                     {t(locale, "全部商品", "All Products")}
                   </a>
@@ -390,7 +390,7 @@ export default async function ProductsPage({ params, searchParams }: Props) {
                       <li>
                         <a
                           href={parentHref}
-                          className={categorySlug === activeParent.slug ? "text-indigo-600 font-semibold" : "font-semibold text-gray-900 hover:text-gray-600"}
+                          className={categorySlug === activeParent.slug ? "text-sf-accent font-semibold" : "font-semibold text-gray-900 hover:text-gray-600"}
                         >
                           {activeParent.displayName}
                         </a>
@@ -402,7 +402,7 @@ export default async function ProductsPage({ params, searchParams }: Props) {
                                 <li key={child.id}>
                                   <a
                                     href={childHref}
-                                    className={categorySlug === child.slug ? "text-indigo-600 font-medium" : "text-gray-500 hover:text-gray-700"}
+                                    className={categorySlug === child.slug ? "text-sf-accent font-medium" : "text-gray-500 hover:text-gray-700"}
                                   >
                                     {child.displayName}
                                   </a>
@@ -440,7 +440,7 @@ export default async function ProductsPage({ params, searchParams }: Props) {
                     <div key={opt.value} className="flex items-center">
                       <a
                         href={opt.href}
-                        className={`text-sm ${sortBy === opt.value ? "text-indigo-600 font-medium" : "text-gray-600 hover:text-gray-900"}`}
+                        className={`text-sm ${sortBy === opt.value ? "text-sf-accent font-medium" : "text-gray-600 hover:text-gray-900"}`}
                       >
                         {opt.label}
                       </a>
@@ -458,9 +458,9 @@ export default async function ProductsPage({ params, searchParams }: Props) {
               <div className="mb-6 flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   {search && (
-                    <div className="flex items-center gap-2 rounded-full bg-indigo-50 px-3 py-1 text-sm text-indigo-700">
+                    <div className="flex items-center gap-2 rounded-full bg-sf-accent-light px-3 py-1 text-sm text-sf-accent">
                       <span>{t(locale, `搜尋: "${search}"`, `Search: "${search}"`)}</span>
-                      <a href={buildUrl({ q: undefined, page: undefined })} className="text-indigo-400 hover:text-indigo-600" aria-label="Clear search">
+                      <a href={buildUrl({ q: undefined, page: undefined })} className="text-sf-accent hover:text-sf-accent" aria-label="Clear search">
                         <svg className="size-4" viewBox="0 0 20 20" fill="currentColor"><path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" /></svg>
                       </a>
                     </div>
@@ -476,7 +476,7 @@ export default async function ProductsPage({ params, searchParams }: Props) {
                   <p className="text-sm text-gray-500">
                     {t(locale, "找不到商品", "No products found")}
                   </p>
-                  <a href={`/${locale}/products`} className="mt-4 inline-block text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                  <a href={`/${locale}/products`} className="mt-4 inline-block text-sm font-medium text-sf-accent hover:text-sf-accent-hover">
                     {t(locale, "查看全部商品", "View all products")}
                   </a>
                 </div>

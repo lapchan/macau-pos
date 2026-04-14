@@ -103,7 +103,7 @@ export default function ProductQuickviewVariants({ product, locale, variant = "w
                       <button
                         key={i}
                         onClick={() => setSelectedColor(i)}
-                        className={`size-8 rounded-full border-2 ${color.class} ${selectedColor === i ? "ring-2 ring-indigo-500 ring-offset-2" : ""}`}
+                        className={`size-8 rounded-full border-2 ${color.class} ${selectedColor === i ? "ring-2 ring-sf-accent ring-offset-2" : ""}`}
                       />
                     ))}
                   </div>
@@ -119,7 +119,7 @@ export default function ProductQuickviewVariants({ product, locale, variant = "w
                       <button
                         key={size}
                         onClick={() => setSelectedSize(i)}
-                        className={`rounded-md border py-2 text-sm font-medium ${selectedSize === i ? "border-indigo-500 bg-indigo-50 text-indigo-700" : "border-gray-300 text-gray-700 hover:bg-gray-50"} ${variant === "with-large-size" ? "py-3 text-base" : ""}`}
+                        className={`rounded-md border py-2 text-sm font-medium ${selectedSize === i ? "border-sf-accent bg-sf-accent-light text-sf-accent" : "border-gray-300 text-gray-700 hover:bg-gray-50"} ${variant === "with-large-size" ? "py-3 text-base" : ""}`}
                       >
                         {size}
                       </button>
@@ -132,14 +132,14 @@ export default function ProductQuickviewVariants({ product, locale, variant = "w
                 <button
                   type="button"
                   disabled={!inStock}
-                  className="w-full rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white hover:bg-indigo-500 disabled:bg-gray-300"
+                  className="w-full rounded-lg bg-sf-accent px-4 py-3 text-sm font-semibold text-white hover:bg-sf-accent-hover disabled:bg-gray-300"
                 >
                   {t(locale, "加入購物車", "Add to cart")}
                 </button>
 
                 {/* Details link (variant: with-details-link) */}
                 {variant === "with-details-link" && product.slug && (
-                  <a href={`/${locale}/products/${product.slug}`} className="block text-center text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                  <a href={`/${locale}/products/${product.slug}`} className="block text-center text-sm font-medium text-sf-accent hover:text-sf-accent-hover">
                     {t(locale, "查看完整詳情", "View full details")}
                   </a>
                 )}

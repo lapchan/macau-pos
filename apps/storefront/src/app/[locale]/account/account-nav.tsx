@@ -33,11 +33,11 @@ export default function AccountNav({ items }: Props) {
             href={item.href}
             className={`flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
               isActive
-                ? "bg-gray-100 text-indigo-600"
+                ? "bg-gray-100 text-sf-accent"
                 : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
             }`}
           >
-            <Icon className={`hidden size-5 shrink-0 lg:block ${isActive ? "text-indigo-600" : "text-gray-400"}`} />
+            <Icon className={`hidden size-5 shrink-0 lg:block ${isActive ? "text-sf-accent" : "text-gray-400"}`} />
             {item.label}
           </Link>
         );

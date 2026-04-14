@@ -87,7 +87,7 @@ export default function ProductFilters({ categoryTree, categories, allHref, curr
                   <a
                     href={allHref}
                     onClick={() => setOpen(false)}
-                    className={`block py-2 text-sm font-medium ${!currentCategorySlug ? "text-indigo-600" : "text-gray-900"}`}
+                    className={`block py-2 text-sm font-medium ${!currentCategorySlug ? "text-sf-accent" : "text-gray-900"}`}
                   >
                     {t(locale, "全部商品", "All Products")}
                   </a>
@@ -109,7 +109,7 @@ export default function ProductFilters({ categoryTree, categories, allHref, curr
                           <a
                             href={activeParent.href}
                             onClick={() => setOpen(false)}
-                            className={`block py-2 text-sm font-medium ${activeParent.active ? "text-indigo-600" : "font-semibold text-gray-900"}`}
+                            className={`block py-2 text-sm font-medium ${activeParent.active ? "text-sf-accent" : "font-semibold text-gray-900"}`}
                           >
                             {activeParent.name}
                           </a>
@@ -120,7 +120,7 @@ export default function ProductFilters({ categoryTree, categories, allHref, curr
                                   <a
                                     href={child.href}
                                     onClick={() => setOpen(false)}
-                                    className={`block py-1.5 text-sm ${child.active ? "text-indigo-600 font-medium" : "text-gray-500 hover:text-gray-700"}`}
+                                    className={`block py-1.5 text-sm ${child.active ? "text-sf-accent font-medium" : "text-gray-500 hover:text-gray-700"}`}
                                   >
                                     {child.name}
                                   </a>
@@ -174,7 +174,7 @@ export default function ProductFilters({ categoryTree, categories, allHref, curr
                           <a
                             href={opt.href}
                             onClick={() => setOpen(false)}
-                            className={`block text-sm ${currentSort === opt.value ? "text-indigo-600 font-medium" : "text-gray-500 hover:text-gray-700"}`}
+                            className={`block text-sm ${currentSort === opt.value ? "text-sf-accent font-medium" : "text-gray-500 hover:text-gray-700"}`}
                           >
                             {opt.label}
                           </a>

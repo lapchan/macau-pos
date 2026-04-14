@@ -353,7 +353,7 @@ export default function ProductCard({ product, locale, variant = "simple", theme
           {showCategory && catName && <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">{catName}</p>}
           <h3 className="mt-1 text-sm font-medium text-gray-900">{name}</h3>
           <p className="mt-1 text-sm text-gray-500">{currency} {price.toFixed(2)}</p>
-          <p className="mt-2 text-sm font-medium text-indigo-600 hover:text-indigo-500">
+          <p className="mt-2 text-sm font-medium text-sf-accent hover:text-sf-accent-hover">
             {t(locale, "立即選購", "Shop now", "Comprar", "今すぐ購入")}
           </p>
         </div>

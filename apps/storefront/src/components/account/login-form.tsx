@@ -96,7 +96,7 @@ export default function LoginForm({ locale, tenantName, accentColor = "#4f46e5" 
                   value={contact}
                   onChange={(e) => setContact(e.target.value)}
                   placeholder={method === "phone" ? "+853 6XXX XXXX" : "your@email.com"}
-                  className="mt-2 block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm"
+                  className="mt-2 block w-full rounded-md border-0 py-2.5 px-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-sf-accent sm:text-sm"
                 />
               </div>
 
@@ -138,7 +138,7 @@ export default function LoginForm({ locale, tenantName, accentColor = "#4f46e5" 
                         prev?.focus();
                       }
                     }}
-                    className="size-12 rounded-lg border-0 text-center text-lg font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-indigo-600"
+                    className="size-12 rounded-lg border-0 text-center text-lg font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-sf-accent"
                   />
                 ))}
               </div>
@@ -169,7 +169,7 @@ export default function LoginForm({ locale, tenantName, accentColor = "#4f46e5" 
         {/* Register link */}
         <p className="mt-10 text-center text-sm text-gray-500">
           {t(locale, "還沒有帳號？", "Don't have an account?", "Não tem conta?", "アカウントをお持ちでない方")}{" "}
-          <a href={`/${locale}/register`} className="font-semibold text-indigo-600 hover:text-indigo-500">
+          <a href={`/${locale}/register`} className="font-semibold text-sf-accent hover:text-sf-accent-hover">
             {t(locale, "立即註冊", "Sign up", "Cadastre-se", "新規登録")}
           </a>
         </p>

@@ -123,7 +123,7 @@ export default function OrderHistoryVariants({ orders, variant = "invoice-list",
 
             {/* Footer */}
             <div className="border-t border-gray-200 px-6 py-3">
-              <a href={`/${locale}/account/orders/${order.id}`} className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+              <a href={`/${locale}/account/orders/${order.id}`} className="text-sm font-medium text-sf-accent hover:text-sf-accent-hover">
                 {t(locale, "查看詳情", "View order")} →
               </a>
             </div>
@@ -157,7 +157,7 @@ export default function OrderHistoryVariants({ orders, variant = "invoice-list",
                 <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">{order.itemCount}</td>
                 <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium text-gray-900">{currency} {order.total.toFixed(2)}</td>
                 <td className="whitespace-nowrap px-6 py-4 text-right">
-                  <a href={`/${locale}/account/orders/${order.id}`} className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                  <a href={`/${locale}/account/orders/${order.id}`} className="text-sm font-medium text-sf-accent hover:text-sf-accent-hover">
                     {t(locale, "查看", "View")}
                   </a>
                 </td>
@@ -200,7 +200,7 @@ export default function OrderHistoryVariants({ orders, variant = "invoice-list",
                 <a href={`/${locale}/account/orders/${order.id}`} className="rounded-md bg-white px-3 py-1.5 text-xs font-medium text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
                   {t(locale, "查看", "View")}
                 </a>
-                <button className="rounded-md bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-600 hover:bg-indigo-100">
+                <button className="rounded-md bg-sf-accent-light px-3 py-1.5 text-xs font-medium text-sf-accent hover:bg-sf-accent-light">
                   {t(locale, "再次購買", "Reorder")}
                 </button>
               </div>

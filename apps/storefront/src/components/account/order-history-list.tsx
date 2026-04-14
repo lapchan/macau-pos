@@ -125,7 +125,7 @@ export default function OrderHistoryList({ orders, locale, currency = "MOP" }: P
           <div className="flex items-center justify-between border-t border-gray-200 px-4 py-3 sm:px-6">
             <a
               href={`/${locale}/account/orders/${order.id}`}
-              className="text-sm font-medium text-indigo-600 hover:text-indigo-500"
+              className="text-sm font-medium text-sf-accent hover:text-sf-accent-hover"
             >
               {t(locale, "查看訂單", "View order", "Ver pedido", "注文を見る")}
               <span aria-hidden="true"> &rarr;</span>

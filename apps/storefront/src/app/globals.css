@@ -16,7 +16,7 @@
   /* Dynamic accent — overridden per-tenant from storefront_configs.branding */
   --color-sf-accent: var(--tenant-accent, #0071e3);
   --color-sf-accent-hover: var(--tenant-accent-hover, #0077ed);
-  --color-sf-accent-light: var(--tenant-accent-light, #0071e310);
+  --color-sf-accent-light: var(--tenant-accent-light, #0071e315);
 
   --color-sf-success: #198754;
   --color-sf-success-light: #19875415;

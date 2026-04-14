@@ -76,7 +76,7 @@ export default async function LocaleLayout({
   const branding = config.branding as Record<string, unknown>;
   const accentColor = (branding?.accentColor as string) || tenant.accentColor || "#0071e3";
   const accentHover = accentColor + "dd";
-  const accentLight = accentColor + "10";
+  const accentLight = accentColor + "15";
   const headerConfig = config.header as Record<string, unknown>;
   const headerStyle = (branding?.headerStyle as string) || "dark";
   const customNavLinks = (headerConfig?.navLinks as { label: string; href: string }[]) || [];

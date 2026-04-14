@@ -144,7 +144,7 @@ export default function AddressesClient({ locale, initialAddresses }: Props) {
         {!showForm && (
           <button
             onClick={openAdd}
-            className="inline-flex items-center gap-1.5 rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+            className="inline-flex items-center gap-1.5 rounded-md bg-sf-accent px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sf-accent-hover"
           >
             <PlusIcon className="size-4" />
             {t(locale, "新增地址", "Add address", "Adicionar", "追加")}
@@ -173,7 +173,7 @@ export default function AddressesClient({ locale, initialAddresses }: Props) {
                 placeholder={t(locale, "例: 住家、公司", "e.g. Home, Office", "Ex: Casa, Escritório", "例: 自宅、会社")}
                 value={form.label}
                 onChange={(e) => setForm({ ...form, label: e.target.value })}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-sf-accent focus:ring-1 focus:ring-sf-accent focus:outline-none"
               />
             </div>
 
@@ -187,7 +187,7 @@ export default function AddressesClient({ locale, initialAddresses }: Props) {
                 required
                 value={form.recipientName}
                 onChange={(e) => setForm({ ...form, recipientName: e.target.value })}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-sf-accent focus:ring-1 focus:ring-sf-accent focus:outline-none"
               />
             </div>
 
@@ -200,7 +200,7 @@ export default function AddressesClient({ locale, initialAddresses }: Props) {
                 type="tel"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-sf-accent focus:ring-1 focus:ring-sf-accent focus:outline-none"
               />
             </div>
 
@@ -212,7 +212,7 @@ export default function AddressesClient({ locale, initialAddresses }: Props) {
               <select
                 value={form.district}
                 onChange={(e) => setForm({ ...form, district: e.target.value })}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-sf-accent focus:ring-1 focus:ring-sf-accent focus:outline-none"
               >
                 {districts.map((d) => (
                   <option key={d.value} value={d.value}>{d.label}</option>
@@ -230,7 +230,7 @@ export default function AddressesClient({ locale, initialAddresses }: Props) {
                 required
                 value={form.addressLine1}
                 onChange={(e) => setForm({ ...form, addressLine1: e.target.value })}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-sf-accent focus:ring-1 focus:ring-sf-accent focus:outline-none"
               />
             </div>
 
@@ -243,7 +243,7 @@ export default function AddressesClient({ locale, initialAddresses }: Props) {
                 type="text"
                 value={form.addressLine2}
                 onChange={(e) => setForm({ ...form, addressLine2: e.target.value })}
-                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-sf-accent focus:ring-1 focus:ring-sf-accent focus:outline-none"
               />
             </div>
 
@@ -254,7 +254,7 @@ export default function AddressesClient({ locale, initialAddresses }: Props) {
                   type="checkbox"
                   checked={form.isDefault}
                   onChange={(e) => setForm({ ...form, isDefault: e.target.checked })}
-                  className="size-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  className="size-4 rounded border-gray-300 text-sf-accent focus:ring-sf-accent"
                 />
                 <span className="text-gray-700">
                   {t(locale, "設為預設地址", "Set as default address", "Definir como padrão", "デフォルトに設定")}
@@ -268,7 +268,7 @@ export default function AddressesClient({ locale, initialAddresses }: Props) {
             <button
               type="submit"
               disabled={saving}
-              className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-50"
+              className="rounded-md bg-sf-accent px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sf-accent-hover disabled:opacity-50"
             >
               {saving
                 ? t(locale, "儲存中…", "Saving…", "Salvando…", "保存中…")
@@ -303,7 +303,7 @@ export default function AddressesClient({ locale, initialAddresses }: Props) {
         {initialAddresses.map((addr) => (
           <div
             key={addr.id}
-            className={`rounded-lg border p-4 ${addr.isDefault ? "border-indigo-200 bg-indigo-50/50" : "border-gray-200 bg-white"}`}
+            className={`rounded-lg border p-4 ${addr.isDefault ? "border-sf-accent/20 bg-sf-accent-light/50" : "border-gray-200 bg-white"}`}
           >
             <div className="flex items-start justify-between">
               <div className="min-w-0">
@@ -314,7 +314,7 @@ export default function AddressesClient({ locale, initialAddresses }: Props) {
                     </span>
                   )}
                   {addr.isDefault && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-sf-accent-light px-2.5 py-0.5 text-xs font-medium text-sf-accent">
                       <CheckCircleIcon className="size-3.5" />
                       {t(locale, "預設", "Default", "Padrão", "デフォルト")}
                     </span>

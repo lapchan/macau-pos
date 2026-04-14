@@ -75,7 +75,7 @@ export default function CartDrawer({ open, onClose, items, locale, currency = "M
                     <button
                       type="button"
                       onClick={onClose}
-                      className="mt-6 rounded-md bg-indigo-600 px-6 py-2 text-sm font-medium text-white hover:bg-indigo-500"
+                      className="mt-6 rounded-md bg-sf-accent px-6 py-2 text-sm font-medium text-white hover:bg-sf-accent-hover"
                     >
                       {t(locale, "繼續購物", "Continue Shopping", "Continuar Comprando", "買い物を続ける")}
                     </button>
@@ -110,7 +110,7 @@ export default function CartDrawer({ open, onClose, items, locale, currency = "M
                 <div className="mt-6">
                   <a
                     href={`/${locale}/checkout`}
-                    className="flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-indigo-700"
+                    className="flex items-center justify-center rounded-md border border-transparent bg-sf-accent px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-sf-accent"
                   >
                     {t(locale, "結帳", "Checkout", "Finalizar compra", "チェックアウト")}
                   </a>
@@ -118,7 +118,7 @@ export default function CartDrawer({ open, onClose, items, locale, currency = "M
                 <div className="mt-6 flex justify-center text-center text-sm text-gray-500">
                   <p>
                     {t(locale, "或", "or", "ou", "または")}{" "}
-                    <button type="button" onClick={onClose} className="font-medium text-indigo-600 hover:text-indigo-500">
+                    <button type="button" onClick={onClose} className="font-medium text-sf-accent hover:text-sf-accent-hover">
                       {t(locale, "繼續購物", "Continue Shopping", "Continuar Comprando", "買い物を続ける")}
                       <span aria-hidden="true"> &rarr;</span>
                     </button>

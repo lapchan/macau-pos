@@ -56,7 +56,7 @@ export default function CartPageView({ items, locale, currency = "MOP", onUpdate
                 </p>
                 <a
                   href={`/${locale}/products`}
-                  className="mt-4 text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                  className="mt-4 text-sm font-medium text-sf-accent hover:text-sf-accent-hover"
                 >
                   {t(locale, "繼續購物", "Continue Shopping", "Continuar Comprando", "買い物を続ける")}
                   <span aria-hidden="true"> &rarr;</span>
@@ -111,14 +111,14 @@ export default function CartPageView({ items, locale, currency = "MOP", onUpdate
               <div className="mt-6">
                 <a
                   href={`/${locale}/checkout`}
-                  className="flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-2 focus:ring-indigo-500 focus:ring-offset-2"
+                  className="flex w-full items-center justify-center rounded-md border border-transparent bg-sf-accent px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-sf-accent focus:outline-2 focus:ring-sf-accent focus:ring-offset-2"
                 >
                   {t(locale, "結帳", "Checkout", "Finalizar compra", "チェックアウト")}
                 </a>
               </div>
 
               <div className="mt-6 text-center">
-                <a href={`/${locale}/products`} className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                <a href={`/${locale}/products`} className="text-sm font-medium text-sf-accent hover:text-sf-accent-hover">
                   {t(locale, "繼續購物", "Continue Shopping", "Continuar Comprando", "買い物を続ける")}
                   <span aria-hidden="true"> &rarr;</span>
                 </a>

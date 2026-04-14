@@ -75,7 +75,7 @@ export default function CategoryFilterSidebar({
             <button
               key={opt.value}
               onClick={() => onSortChange?.(opt.value)}
-              className={`block w-full text-left text-sm px-2 py-1.5 rounded-md ${selectedSort === opt.value ? "bg-indigo-50 text-indigo-700 font-medium" : "text-gray-600 hover:bg-gray-50"}`}
+              className={`block w-full text-left text-sm px-2 py-1.5 rounded-md ${selectedSort === opt.value ? "bg-sf-accent-light text-sf-accent font-medium" : "text-gray-600 hover:bg-gray-50"}`}
             >
               {opt.label}
             </button>
@@ -99,7 +99,7 @@ export default function CategoryFilterSidebar({
           <div className="mt-4 space-y-2">
             <button
               onClick={() => onCategoryChange?.(null)}
-              className={`block w-full text-left text-sm px-2 py-1.5 rounded-md ${!selectedCategorySlug ? "bg-indigo-50 text-indigo-700 font-medium" : "text-gray-600 hover:bg-gray-50"}`}
+              className={`block w-full text-left text-sm px-2 py-1.5 rounded-md ${!selectedCategorySlug ? "bg-sf-accent-light text-sf-accent font-medium" : "text-gray-600 hover:bg-gray-50"}`}
             >
               {t(locale, "全部", "All", "Todos", "すべて")}
             </button>
@@ -107,7 +107,7 @@ export default function CategoryFilterSidebar({
               <button
                 key={cat.id}
                 onClick={() => onCategoryChange?.(cat.slug)}
-                className={`flex w-full items-center justify-between text-left text-sm px-2 py-1.5 rounded-md ${selectedCategorySlug === cat.slug ? "bg-indigo-50 text-indigo-700 font-medium" : "text-gray-600 hover:bg-gray-50"}`}
+                className={`flex w-full items-center justify-between text-left text-sm px-2 py-1.5 rounded-md ${selectedCategorySlug === cat.slug ? "bg-sf-accent-light text-sf-accent font-medium" : "text-gray-600 hover:bg-gray-50"}`}
               >
                 <span>{cat.name}</span>
                 {cat.count !== undefined && <span className="text-xs text-gray-400">{cat.count}</span>}

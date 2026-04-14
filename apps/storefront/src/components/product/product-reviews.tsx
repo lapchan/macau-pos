@@ -105,7 +105,7 @@ export default function ProductReviews({ reviews, averageRating, totalCount, rat
                       {review.avatar ? (
                         <img src={review.avatar} alt="" className="size-10 rounded-full bg-gray-100" />
                       ) : (
-                        <div className="size-10 rounded-full bg-indigo-100 flex items-center justify-center text-sm font-semibold text-indigo-600">
+                        <div className="size-10 rounded-full bg-sf-accent-light flex items-center justify-center text-sm font-semibold text-sf-accent">
                           {review.author.charAt(0).toUpperCase()}
                         </div>
                       )}

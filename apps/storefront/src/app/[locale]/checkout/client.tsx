@@ -44,7 +44,8 @@ export default function CheckoutClient({ items, deliveryZones, locale, themeId, 
         const result = await createOrder({
           deliveryMethod: data.deliveryMethod as "delivery" | "pickup",
           deliveryZoneId: data.deliveryZoneId,
-          paymentMethod: data.paymentMethod,
+          paymentService: data.paymentService,
+          locale,
           shippingAddress: data.deliveryMethod === "delivery" ? {
             recipientName: data.recipientName,
             phone: data.phone,
@@ -56,6 +57,12 @@ export default function CheckoutClient({ items, deliveryZones, locale, themeId, 
           notes: data.notes,
         });
 
+        // On success, hand off to Intellipay's hosted page.
+        // Fallback to confirmation page if no payment_url (shouldn't happen).
+        if (result.success && "paymentUrl" in result && result.paymentUrl) {
+          window.location.href = result.paymentUrl;
+          return result;
+        }
         if (result.success && result.orderNumber) {
           router.push(`/${locale}/checkout/confirmation?order=${result.orderNumber}`);
         }

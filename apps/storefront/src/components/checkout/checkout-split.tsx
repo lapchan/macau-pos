@@ -45,7 +45,7 @@ type Props = {
   onSubmit?: (data: {
     deliveryMethod: string;
     deliveryZoneId?: string;
-    paymentMethod: string;
+    paymentService: string;
     contact: string;
     recipientName: string;
     phone: string;
@@ -53,7 +53,7 @@ type Props = {
     district: string;
     postalCode: string;
     notes?: string;
-  }) => Promise<{ error?: string; success?: boolean; orderNumber?: string }>;
+  }) => Promise<{ error?: string; success?: boolean; orderNumber?: string; paymentUrl?: string }>;
 };
 
 const t = (locale: string, tc: string, en: string, pt: string, ja: string) => {
@@ -74,7 +74,7 @@ export default function CheckoutSplit({
   onSubmit,
 }: Props) {
   const isHumanMade = themeId === "humanmade";
-  const [paymentMethod, setPaymentMethod] = useState("mpay");
+  const [paymentService, setPaymentService] = useState("simplepay");
   const [deliveryMethod, setDeliveryMethod] = useState<"delivery" | "pickup">("delivery");
   const [selectedZone, setSelectedZone] = useState(deliveryZones[0]?.id || "");
   const [submitting, setSubmitting] = useState(false);
@@ -104,31 +104,31 @@ export default function CheckoutSplit({
     : "block text-sm/6 font-medium text-gray-700";
   const inputClass = isHumanMade
     ? "block w-full border-b border-[#121212]/20 bg-transparent px-0 py-2 text-[14px] text-[#121212] outline-none transition-colors focus:border-[#121212] placeholder:text-[#121212]/30"
-    : "block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6";
+    : "block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-sf-accent sm:text-sm/6";
   const selectClass = isHumanMade
     ? "appearance-none block w-full border-b border-[#121212]/20 bg-transparent px-0 py-2 pr-8 text-[14px] text-[#121212] outline-none focus:border-[#121212] bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%23121212%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.22%208.22a.75.75%200%200%201%201.06%200L10%2011.94l3.72-3.72a.75.75%200%201%201%201.06%201.06l-4.25%204.25a.75.75%200%200%201-1.06%200L5.22%209.28a.75.75%200%200%201%200-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1rem_1rem] bg-[position:right_0.25rem_center] bg-no-repeat"
-    : "appearance-none block w-full rounded-md bg-white px-3 py-2 pr-8 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%236b7280%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.22%208.22a.75.75%200%200%201%201.06%200L10%2011.94l3.72-3.72a.75.75%200%201%201%201.06%201.06l-4.25%204.25a.75.75%200%200%201-1.06%200L5.22%209.28a.75.75%200%200%201%200-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem_1.25rem] bg-[position:right_0.5rem_center] bg-no-repeat focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6";
+    : "appearance-none block w-full rounded-md bg-white px-3 py-2 pr-8 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%236b7280%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.22%208.22a.75.75%200%200%201%201.06%200L10%2011.94l3.72-3.72a.75.75%200%201%201%201.06%201.06l-4.25%204.25a.75.75%200%200%201-1.06%200L5.22%209.28a.75.75%200%200%201%200-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem_1.25rem] bg-[position:right_0.5rem_center] bg-no-repeat focus:outline-2 focus:-outline-offset-2 focus:outline-sf-accent sm:text-sm/6";
 
   const pillBase = isHumanMade
     ? "px-3 py-3 text-[11px] uppercase tracking-[0.1em] border transition-colors"
     : "rounded-md border px-3 py-2.5 text-sm font-medium transition-colors";
   const pillOn = isHumanMade
     ? "border-[#121212] bg-[#121212] text-white"
-    : "border-indigo-500 bg-indigo-50 text-indigo-700 ring-1 ring-indigo-500";
+    : "border-sf-accent bg-sf-accent-light text-sf-accent ring-1 ring-sf-accent";
   const pillOff = isHumanMade
     ? "border-[#121212]/30 bg-white text-[#121212] hover:border-[#121212]"
     : "border-gray-300 text-gray-700 hover:bg-gray-50";
 
   const radioCardOn = isHumanMade
     ? "border-[#121212] bg-[#f5f5f5]"
-    : "border-indigo-500 bg-indigo-50 ring-1 ring-indigo-500";
+    : "border-sf-accent bg-sf-accent-light ring-1 ring-sf-accent";
   const radioCardOff = isHumanMade
     ? "border-[#121212]/15 hover:border-[#121212]/40"
     : "border-gray-200 hover:bg-gray-50";
 
   const submitBtn = isHumanMade
     ? "w-full bg-[#121212] px-6 py-4 text-[13px] uppercase tracking-[0.15em] text-white hover:bg-[#333] transition-colors disabled:bg-[#121212]/40 disabled:cursor-not-allowed"
-    : "rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-50 disabled:bg-gray-300";
+    : "rounded-md border border-transparent bg-sf-accent px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-sf-accent focus:outline-2 focus:ring-sf-accent focus:ring-offset-2 focus:ring-offset-gray-50 disabled:bg-gray-300";
 
   const summaryText = isHumanMade ? "text-[#121212]" : "text-gray-500";
   const summaryAmountLabel = isHumanMade
@@ -270,7 +270,7 @@ export default function CheckoutSplit({
               const result = await onSubmit({
                 deliveryMethod,
                 deliveryZoneId: selectedZone || undefined,
-                paymentMethod,
+                paymentService,
                 contact: fd.get("email") as string,
                 ...addr,
                 notes: fd.get("notes") as string,
@@ -316,8 +316,9 @@ export default function CheckoutSplit({
                   <label className={labelClass}>
                     {t(locale, "付款方式", "Payment method", "Método", "支払い方法")}
                   </label>
-                  <div className="mt-2 grid grid-cols-3 gap-3">
+                  <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {[
+                      { id: "simplepay", label: t(locale, "所有方式", "All methods", "Todos", "すべて") },
                       { id: "mpay", label: "MPay" },
                       { id: "alipay", label: t(locale, "支付寶", "Alipay", "Alipay", "Alipay") },
                       { id: "wechat_pay", label: t(locale, "微信支付", "WeChat Pay", "WeChat Pay", "WeChat Pay") },
@@ -325,8 +326,8 @@ export default function CheckoutSplit({
                       <button
                         key={pm.id}
                         type="button"
-                        onClick={() => setPaymentMethod(pm.id)}
-                        className={`${pillBase} ${paymentMethod === pm.id ? pillOn : pillOff}`}
+                        onClick={() => setPaymentService(pm.id)}
+                        className={`${pillBase} ${paymentService === pm.id ? pillOn : pillOff}`}
                       >
                         {pm.label}
                       </button>
@@ -404,7 +405,7 @@ export default function CheckoutSplit({
                               value={addr.id}
                               checked={selectedAddressId === addr.id}
                               onChange={() => setSelectedAddressId(addr.id)}
-                              className={`mt-1 size-4 ${isHumanMade ? "accent-[#121212]" : "text-indigo-600 focus:ring-indigo-500"}`}
+                              className={`mt-1 size-4 ${isHumanMade ? "accent-[#121212]" : "text-sf-accent focus:ring-sf-accent"}`}
                             />
                             <div className="min-w-0 text-sm">
                               <div className="flex items-center gap-2">
@@ -420,7 +421,7 @@ export default function CheckoutSplit({
                                 {addr.isDefault && (
                                   <span className={isHumanMade
                                     ? "inline-flex bg-[#121212] px-1.5 py-0.5 text-[10px] uppercase tracking-[0.08em] text-white"
-                                    : "inline-flex rounded-full bg-indigo-100 px-2 py-0.5 text-xs text-indigo-700"
+                                    : "inline-flex rounded-full bg-sf-accent-light px-2 py-0.5 text-xs text-sf-accent"
                                   }>{t(locale, "預設", "Default", "Padrão", "デフォルト")}</span>
                                 )}
                               </div>
@@ -442,7 +443,7 @@ export default function CheckoutSplit({
                             value="new"
                             checked={selectedAddressId === "new"}
                             onChange={() => setSelectedAddressId("new")}
-                            className={`size-4 ${isHumanMade ? "accent-[#121212]" : "text-indigo-600 focus:ring-indigo-500"}`}
+                            className={`size-4 ${isHumanMade ? "accent-[#121212]" : "text-sf-accent focus:ring-sf-accent"}`}
                           />
                           <span className={isHumanMade ? "text-[12px] uppercase tracking-[0.08em] text-[#121212]" : "text-sm font-medium text-gray-700"}>
                             {t(locale, "使用新地址", "Use a new address", "Usar novo endereço", "新しい住所を使用")}

@@ -70,7 +70,7 @@ export default function ProfileForm({ locale, initialData }: Props) {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-sf-accent focus:ring-1 focus:ring-sf-accent focus:outline-none"
           />
         </div>
 
@@ -84,7 +84,7 @@ export default function ProfileForm({ locale, initialData }: Props) {
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-sf-accent focus:ring-1 focus:ring-sf-accent focus:outline-none"
           />
         </div>
 
@@ -98,7 +98,7 @@ export default function ProfileForm({ locale, initialData }: Props) {
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-sf-accent focus:ring-1 focus:ring-sf-accent focus:outline-none"
           />
         </div>
 
@@ -111,7 +111,7 @@ export default function ProfileForm({ locale, initialData }: Props) {
             id="locale"
             value={preferredLocale}
             onChange={(e) => setPreferredLocale(e.target.value)}
-            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
+            className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 text-sm shadow-sm focus:border-sf-accent focus:ring-1 focus:ring-sf-accent focus:outline-none"
           >
             <option value="tc">繁體中文</option>
             <option value="sc">简体中文</option>
@@ -133,7 +133,7 @@ export default function ProfileForm({ locale, initialData }: Props) {
           <button
             type="submit"
             disabled={saving}
-            className="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
+            className="rounded-md bg-sf-accent px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sf-accent-hover disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sf-accent"
           >
             {saving
               ? t(locale, "儲存中…", "Saving…", "Salvando…", "保存中…")

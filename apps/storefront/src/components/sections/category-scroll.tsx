@@ -10,7 +10,7 @@ const t = (locale: string, tc: string, en: string, pt: string, ja: string) => {
 
 // Placeholder images for categories (gradient backgrounds with icons)
 const CATEGORY_COLORS = [
-  "from-indigo-500 to-purple-600",
+  "from-sf-accent to-purple-600",
   "from-emerald-500 to-teal-600",
   "from-orange-500 to-red-600",
   "from-sky-500 to-blue-600",

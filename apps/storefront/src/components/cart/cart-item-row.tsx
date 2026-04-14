@@ -67,7 +67,7 @@ export default function CartItemRow({ item, locale, currency = "MOP", onUpdateQu
             <select
               value={item.quantity}
               onChange={(e) => onUpdateQuantity?.(item.id, parseInt(e.target.value))}
-              className="rounded-md border border-gray-300 py-1 pl-2 pr-7 text-sm text-gray-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              className="rounded-md border border-gray-300 py-1 pl-2 pr-7 text-sm text-gray-700 focus:border-sf-accent focus:outline-none focus:ring-1 focus:ring-sf-accent"
             >
               {Array.from({ length: Math.min(item.maxQuantity || 10, 10) }, (_, i) => i + 1).map((n) => (
                 <option key={n} value={n}>{n}</option>
@@ -79,7 +79,7 @@ export default function CartItemRow({ item, locale, currency = "MOP", onUpdateQu
           <button
             type="button"
             onClick={() => onRemove?.(item.id)}
-            className="font-medium text-indigo-600 hover:text-indigo-500"
+            className="font-medium text-sf-accent hover:text-sf-accent-hover"
           >
             {t(locale, "移除", "Remove", "Remover", "削除")}
           </button>

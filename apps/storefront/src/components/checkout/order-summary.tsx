@@ -69,7 +69,7 @@ function ProgressTracker({ steps }: { steps: FulfillmentStep[] }) {
       {/* Progress bar */}
       <div className="overflow-hidden rounded-full bg-gray-200">
         <div
-          className="h-2 rounded-full bg-indigo-600 transition-all duration-500"
+          className="h-2 rounded-full bg-sf-accent transition-all duration-500"
           style={{ width: `${Math.min(progressPercent, 100)}%` }}
         />
       </div>
@@ -77,9 +77,9 @@ function ProgressTracker({ steps }: { steps: FulfillmentStep[] }) {
       {/* Step labels */}
       <div className="mt-6 hidden sm:grid" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
         {steps.map((step, i) => (
-          <div key={i} className={`text-sm font-medium ${step.status === "completed" ? "text-indigo-600" : step.status === "current" ? "text-indigo-600" : "text-gray-500"}`}>
+          <div key={i} className={`text-sm font-medium ${step.status === "completed" ? "text-sf-accent" : step.status === "current" ? "text-sf-accent" : "text-gray-500"}`}>
             <div className="flex items-center gap-1.5">
-              {step.status === "completed" && <CheckIcon className="size-4 text-indigo-600" />}
+              {step.status === "completed" && <CheckIcon className="size-4 text-sf-accent" />}
               {step.label}
             </div>
             {step.date && <p className="mt-0.5 text-xs font-normal text-gray-500">{step.date}</p>}
@@ -91,7 +91,7 @@ function ProgressTracker({ steps }: { steps: FulfillmentStep[] }) {
       <div className="mt-4 sm:hidden">
         {steps.map((step, i) =>
           step.status === "current" ? (
-            <p key={i} className="text-sm font-medium text-indigo-600">{step.label}</p>
+            <p key={i} className="text-sm font-medium text-sf-accent">{step.label}</p>
           ) : null
         )}
       </div>
@@ -254,7 +254,7 @@ export default function OrderSummary({
         <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24 lg:grid lg:max-w-7xl lg:grid-cols-2 lg:gap-x-8 lg:px-8 lg:py-32 xl:gap-x-24">
           {/* Left — Hero image */}
           <div className="lg:col-start-2">
-            <p className="text-sm font-medium text-indigo-600">
+            <p className="text-sm font-medium text-sf-accent">
               {t(locale, "付款成功", "Payment successful", "Pagamento bem-sucedido", "支払い成功")}
             </p>
             <h1 className="mt-2 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
@@ -300,7 +300,7 @@ export default function OrderSummary({
             </dl>
 
             <div className="mt-16 border-t border-gray-200 py-6 text-right">
-              <a href={`/${locale}/products`} className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+              <a href={`/${locale}/products`} className="text-sm font-medium text-sf-accent hover:text-sf-accent-hover">
                 {t(locale, "繼續購物", "Continue Shopping", "Continuar", "買い物を続ける")}
                 <span aria-hidden="true"> &rarr;</span>
               </a>
@@ -314,8 +314,8 @@ export default function OrderSummary({
                 <Image src={heroImage} alt="" fill sizes="(max-width: 1024px) 100vw, 50vw" className="rounded-lg object-cover" />
               </div>
             ) : (
-              <div className="aspect-square w-full rounded-lg bg-gradient-to-br from-indigo-50 to-indigo-100 flex items-center justify-center lg:aspect-auto lg:h-full">
-                <CheckIcon className="size-24 text-indigo-200" />
+              <div className="aspect-square w-full rounded-lg bg-gradient-to-br from-sf-accent-light to-sf-accent-light flex items-center justify-center lg:aspect-auto lg:h-full">
+                <CheckIcon className="size-24 text-sf-accent/20" />
               </div>
             )}
           </div>
@@ -333,7 +333,7 @@ export default function OrderSummary({
         <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
           {/* Header */}
           <div className="max-w-xl">
-            <p className="text-sm font-medium text-indigo-600">{t(locale, "訂單已確認", "Order confirmed", "Pedido confirmado", "注文確認")}</p>
+            <p className="text-sm font-medium text-sf-accent">{t(locale, "訂單已確認", "Order confirmed", "Pedido confirmado", "注文確認")}</p>
             <h1 className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">
               {t(locale, "即將送達", "It's on the way!", "Está a caminho!", "配送中です！")}
             </h1>
@@ -387,7 +387,7 @@ export default function OrderSummary({
       <div className="bg-white">
         <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
           <div className="max-w-xl">
-            <h1 className="text-base font-medium text-indigo-600">
+            <h1 className="text-base font-medium text-sf-accent">
               {t(locale, "感謝您！", "Thank you!", "Obrigado!", "ありがとうございます！")}
             </h1>
             <p className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">
@@ -456,7 +456,7 @@ export default function OrderSummary({
 
           {/* Continue shopping */}
           <div className="mt-16 border-t border-gray-200 pt-6 text-right">
-            <a href={`/${locale}/products`} className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+            <a href={`/${locale}/products`} className="text-sm font-medium text-sf-accent hover:text-sf-accent-hover">
               {t(locale, "繼續購物", "Continue Shopping", "Continuar", "買い物を続ける")}
               <span aria-hidden="true"> &rarr;</span>
             </a>
@@ -474,7 +474,7 @@ export default function OrderSummary({
       <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
         {/* Header */}
         <div className="max-w-xl">
-          <p className="text-sm font-medium text-indigo-600">{t(locale, "訂單已確認", "Order confirmed", "Pedido confirmado", "注文確認")}</p>
+          <p className="text-sm font-medium text-sf-accent">{t(locale, "訂單已確認", "Order confirmed", "Pedido confirmado", "注文確認")}</p>
           <h1 className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">
             {t(locale, "感謝您的訂購！", "Thanks for ordering!", "Obrigado!", "ご注文ありがとうございます！")}
           </h1>
@@ -521,7 +521,7 @@ export default function OrderSummary({
 
         {/* Continue shopping */}
         <div className="mt-16 border-t border-gray-200 pt-6 text-right">
-          <a href={`/${locale}/products`} className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+          <a href={`/${locale}/products`} className="text-sm font-medium text-sf-accent hover:text-sf-accent-hover">
             {t(locale, "繼續購物", "Continue Shopping", "Continuar", "買い物を続ける")}
             <span aria-hidden="true"> &rarr;</span>
           </a>

@@ -90,7 +90,7 @@ export default function ProductOverview({ product, locale, currency = "MOP", onA
                   <button
                     key={i}
                     onClick={() => setSelectedImage(i)}
-                    className={`relative aspect-square overflow-hidden rounded-lg bg-gray-100 ${i === selectedImage ? "ring-2 ring-indigo-500" : "ring-1 ring-gray-200 hover:ring-gray-300"}`}
+                    className={`relative aspect-square overflow-hidden rounded-lg bg-gray-100 ${i === selectedImage ? "ring-2 ring-sf-accent" : "ring-1 ring-gray-200 hover:ring-gray-300"}`}
                   >
                     <Image src={img.url} alt={img.alt || ""} fill unoptimized sizes="100px" className="object-cover object-center" />
                   </button>
@@ -133,7 +133,7 @@ export default function ProductOverview({ product, locale, currency = "MOP", onA
           <div className="mt-10 px-4 sm:mt-16 sm:px-0 lg:mt-0">
             {/* Category */}
             {catName && (
-              <a href={`/${locale}/categories/${product.categorySlug}`} className="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+              <a href={`/${locale}/categories/${product.categorySlug}`} className="text-sm font-medium text-sf-accent hover:text-sf-accent-hover">
                 {catName}
               </a>
             )}
@@ -159,7 +159,7 @@ export default function ProductOverview({ product, locale, currency = "MOP", onA
                   )
                 ))}
               </div>
-              <a href="#reviews" className="ml-3 text-sm font-medium text-indigo-600 hover:text-indigo-500">
+              <a href="#reviews" className="ml-3 text-sm font-medium text-sf-accent hover:text-sf-accent-hover">
                 {t(locale, "0 則評價", "0 reviews", "0 avaliações", "0件のレビュー")}
               </a>
             </div>
@@ -231,7 +231,7 @@ export default function ProductOverview({ product, locale, currency = "MOP", onA
                       setAddedMessage(result.error);
                     }
                   }}
-                  className="flex-1 rounded-lg bg-indigo-600 px-8 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  className="flex-1 rounded-lg bg-sf-accent px-8 py-3 text-sm font-semibold text-white shadow-sm hover:bg-sf-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sf-accent disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
                   {adding ? "..." : t(locale, "加入購物車", "Add to cart", "Adicionar ao carrinho", "カートに追加")}
                 </button>

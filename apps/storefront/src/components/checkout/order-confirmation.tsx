@@ -117,7 +117,7 @@ export default function OrderConfirmation({
         <div className="mt-12 flex flex-col sm:flex-row gap-4">
           <a
             href={`/${locale}/account/orders`}
-            className="flex-1 text-center rounded-md bg-indigo-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500"
+            className="flex-1 text-center rounded-md bg-sf-accent px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-sf-accent-hover"
           >
             {t(locale, "查看我的訂單", "View my orders", "Ver meus pedidos", "注文を確認")}
           </a>

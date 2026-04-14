@@ -58,7 +58,7 @@ export default function ReviewVariants({ reviews, averageRating, totalCount, rat
                 {review.avatar ? (
                   <img src={review.avatar} alt="" className="size-8 rounded-full bg-gray-100" />
                 ) : (
-                  <div className="flex size-8 items-center justify-center rounded-full bg-indigo-100 text-xs font-semibold text-indigo-600">
+                  <div className="flex size-8 items-center justify-center rounded-full bg-sf-accent-light text-xs font-semibold text-sf-accent">
                     {review.author.charAt(0)}
                   </div>
                 )}
@@ -116,7 +116,7 @@ export default function ReviewVariants({ reviews, averageRating, totalCount, rat
               {reviews.map((review) => (
                 <div key={review.id} className="py-8">
                   <div className="flex items-center gap-3">
-                    <div className="flex size-10 items-center justify-center rounded-full bg-indigo-100 text-sm font-semibold text-indigo-600">
+                    <div className="flex size-10 items-center justify-center rounded-full bg-sf-accent-light text-sm font-semibold text-sf-accent">
                       {review.author.charAt(0)}
                     </div>
                     <div>

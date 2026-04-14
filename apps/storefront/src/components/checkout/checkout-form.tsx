@@ -54,7 +54,7 @@ export default function CheckoutForm({ locale, currency = "MOP", deliveryZones =
                   type="text"
                   id="email"
                   autoComplete="email"
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sf-accent focus:ring-sf-accent sm:text-sm"
                 />
               </div>
             </div>
@@ -67,7 +67,7 @@ export default function CheckoutForm({ locale, currency = "MOP", deliveryZones =
               <fieldset className="mt-4">
                 <div className="grid grid-cols-1 gap-y-3 sm:grid-cols-2 sm:gap-x-4">
                   <label
-                    className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${deliveryMethod === "delivery" ? "border-indigo-500 ring-2 ring-indigo-500" : "border-gray-300"}`}
+                    className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${deliveryMethod === "delivery" ? "border-sf-accent ring-2 ring-sf-accent" : "border-gray-300"}`}
                   >
                     <input type="radio" name="delivery-method" value="delivery" className="sr-only" checked={deliveryMethod === "delivery"} onChange={() => setDeliveryMethod("delivery")} />
                     <span className="flex flex-1">
@@ -83,7 +83,7 @@ export default function CheckoutForm({ locale, currency = "MOP", deliveryZones =
                   </label>
 
                   <label
-                    className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${deliveryMethod === "pickup" ? "border-indigo-500 ring-2 ring-indigo-500" : "border-gray-300"}`}
+                    className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm focus:outline-none ${deliveryMethod === "pickup" ? "border-sf-accent ring-2 ring-sf-accent" : "border-gray-300"}`}
                   >
                     <input type="radio" name="delivery-method" value="pickup" className="sr-only" checked={deliveryMethod === "pickup"} onChange={() => setDeliveryMethod("pickup")} />
                     <span className="flex flex-1">
@@ -110,7 +110,7 @@ export default function CheckoutForm({ locale, currency = "MOP", deliveryZones =
                     id="zone"
                     value={selectedZone}
                     onChange={(e) => setSelectedZone(e.target.value)}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sf-accent focus:ring-sf-accent sm:text-sm"
                   >
                     {deliveryZones.map((z) => (
                       <option key={z.id} value={z.id}>
@@ -132,23 +132,23 @@ export default function CheckoutForm({ locale, currency = "MOP", deliveryZones =
                 <div className="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
                   <div className="sm:col-span-2">
                     <label className="block text-sm font-medium text-gray-700">{t(locale, "收件人姓名", "Full name", "Nome completo", "氏名")}</label>
-                    <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                    <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sf-accent focus:ring-sf-accent sm:text-sm" />
                   </div>
                   <div className="sm:col-span-2">
                     <label className="block text-sm font-medium text-gray-700">{t(locale, "電話", "Phone", "Telefone", "電話番号")}</label>
-                    <input type="tel" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                    <input type="tel" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sf-accent focus:ring-sf-accent sm:text-sm" />
                   </div>
                   <div className="sm:col-span-2">
                     <label className="block text-sm font-medium text-gray-700">{t(locale, "地址", "Address", "Endereço", "住所")}</label>
-                    <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                    <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sf-accent focus:ring-sf-accent sm:text-sm" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">{t(locale, "區域", "District", "Distrito", "地区")}</label>
-                    <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                    <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sf-accent focus:ring-sf-accent sm:text-sm" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">{t(locale, "郵政編碼", "Postal code", "Código postal", "郵便番号")}</label>
-                    <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+                    <input type="text" className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-sf-accent focus:ring-sf-accent sm:text-sm" />
                   </div>
                 </div>
               </div>
@@ -169,7 +169,7 @@ export default function CheckoutForm({ locale, currency = "MOP", deliveryZones =
                   ].map((method) => (
                     <label
                       key={method.id}
-                      className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm ${paymentMethod === method.id ? "border-indigo-500 ring-2 ring-indigo-500" : "border-gray-300"}`}
+                      className={`relative flex cursor-pointer rounded-lg border p-4 shadow-sm ${paymentMethod === method.id ? "border-sf-accent ring-2 ring-sf-accent" : "border-gray-300"}`}
                     >
                       <input
                         type="radio"
@@ -217,7 +217,7 @@ export default function CheckoutForm({ locale, currency = "MOP", deliveryZones =
               <div className="border-t border-gray-200 px-4 py-6 sm:px-6">
                 <button
                   type="submit"
-                  className="w-full rounded-md border border-transparent bg-indigo-600 px-4 py-3 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-2 focus:ring-indigo-500 focus:ring-offset-2"
+                  className="w-full rounded-md border border-transparent bg-sf-accent px-4 py-3 text-base font-medium text-white shadow-sm hover:bg-sf-accent focus:outline-2 focus:ring-sf-accent focus:ring-offset-2"
                 >
                   {t(locale, "確認訂單", "Confirm order", "Confirmar pedido", "注文を確定")}
                 </button>

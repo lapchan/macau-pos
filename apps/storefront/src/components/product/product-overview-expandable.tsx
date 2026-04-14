@@ -80,12 +80,12 @@ function DisclosureSection({ title, items, content, defaultOpen = false }: { tit
           onClick={() => setOpen(!open)}
           className="group relative flex w-full items-center justify-between py-6 text-left"
         >
-          <span className={`text-sm font-medium ${open ? "text-indigo-600" : "text-gray-900"}`}>
+          <span className={`text-sm font-medium ${open ? "text-sf-accent" : "text-gray-900"}`}>
             {title}
           </span>
           <span className="ml-6 flex items-center">
             {open ? (
-              <MinusIcon className="size-6 text-indigo-400" aria-hidden="true" />
+              <MinusIcon className="size-6 text-sf-accent" aria-hidden="true" />
             ) : (
               <PlusIcon className="size-6 text-gray-400 group-hover:text-gray-500" aria-hidden="true" />
             )}
@@ -650,7 +650,7 @@ export default function ProductOverviewExpandable({
                     <button
                       key={i}
                       onClick={() => setSelectedImage(i)}
-                      className="relative flex aspect-square cursor-pointer items-center justify-center rounded-md bg-white text-sm font-medium text-gray-900 uppercase hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:ring-offset-4"
+                      className="relative flex aspect-square cursor-pointer items-center justify-center rounded-md bg-white text-sm font-medium text-gray-900 uppercase hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-sf-accent/50 focus:ring-offset-4"
                     >
                       <span className="sr-only">{img.alt || `Image ${i + 1}`}</span>
                       <span className="absolute inset-0 overflow-hidden rounded-md">
@@ -659,7 +659,7 @@ export default function ProductOverviewExpandable({
                       {/* Selection ring */}
                       <span
                         aria-hidden="true"
-                        className={`pointer-events-none absolute inset-0 rounded-md ring-2 ring-offset-2 ${i === selectedImage ? "ring-indigo-500" : "ring-transparent"}`}
+                        className={`pointer-events-none absolute inset-0 rounded-md ring-2 ring-offset-2 ${i === selectedImage ? "ring-sf-accent" : "ring-transparent"}`}
                       />
                     </button>
                   ))}
@@ -709,7 +709,7 @@ export default function ProductOverviewExpandable({
                 <div className="flex items-center">
                   {[1, 2, 3, 4, 5].map((star) =>
                     star <= 4 ? (
-                      <StarSolidIcon key={star} className="size-5 shrink-0 text-indigo-500" />
+                      <StarSolidIcon key={star} className="size-5 shrink-0 text-sf-accent-hover" />
                     ) : (
                       <StarSolidIcon key={star} className="size-5 shrink-0 text-gray-300" />
                     )
@@ -735,7 +735,7 @@ export default function ProductOverviewExpandable({
                 type="button"
                 disabled={!inStock || adding}
                 onClick={handleAddToCart}
-                className="flex max-w-xs flex-1 items-center justify-center rounded-md border border-transparent bg-indigo-600 px-8 py-3 text-base font-medium text-white hover:bg-indigo-700 focus:outline-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-50 sm:w-full disabled:bg-gray-300 disabled:cursor-not-allowed"
+                className="flex max-w-xs flex-1 items-center justify-center rounded-md border border-transparent bg-sf-accent px-8 py-3 text-base font-medium text-white hover:bg-sf-accent focus:outline-2 focus:ring-sf-accent focus:ring-offset-2 focus:ring-offset-gray-50 sm:w-full disabled:bg-gray-300 disabled:cursor-not-allowed"
               >
                 {adding
                   ? "..."

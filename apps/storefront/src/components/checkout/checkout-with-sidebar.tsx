@@ -150,7 +150,7 @@ export default function CheckoutWithSidebar({
               <button
                 type="button"
                 onClick={() => setMobileOrderOpen(!mobileOrderOpen)}
-                className="font-medium text-indigo-600 hover:text-indigo-500"
+                className="font-medium text-sf-accent hover:text-sf-accent-hover"
               >
                 {mobileOrderOpen
                   ? t(locale, "隱藏詳情", "Hide full summary", "Ocultar resumo", "詳細を隠す")
@@ -208,11 +208,11 @@ export default function CheckoutWithSidebar({
                   type="text"
                   value={discountCode}
                   onChange={(e) => setDiscountCode(e.target.value)}
-                  className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-indigo-600 sm:text-sm/6"
+                  className="block w-full rounded-md bg-white px-3 py-2 text-base text-gray-900 outline-1 -outline-offset-1 outline-gray-300 placeholder:text-gray-400 focus:outline-2 focus:-outline-offset-2 focus:outline-sf-accent sm:text-sm/6"
                 />
                 <button
                   type="submit"
-                  className="rounded-md bg-gray-200 px-4 text-sm font-medium text-gray-600 hover:bg-gray-300 focus:outline-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-50"
+                  className="rounded-md bg-gray-200 px-4 text-sm font-medium text-gray-600 hover:bg-gray-300 focus:outline-2 focus:ring-sf-accent focus:ring-offset-2 focus:ring-offset-gray-50"
                 >
                   {t(locale, "套用", "Apply", "Aplicar", "適用")}
                 </button>
@@ -241,7 +241,7 @@ export default function CheckoutWithSidebar({
                   key={pm.id}
                   type="button"
                   onClick={() => setPaymentMethod(pm.id)}
-                  className={`flex w-full items-center justify-center rounded-md border border-transparent py-2 text-white ${pm.color} ${paymentMethod === pm.id ? "ring-2 ring-offset-2 ring-indigo-500" : ""} focus:outline-2 focus:ring-indigo-500 focus:ring-offset-2`}
+                  className={`flex w-full items-center justify-center rounded-md border border-transparent py-2 text-white ${pm.color} ${paymentMethod === pm.id ? "ring-2 ring-offset-2 ring-sf-accent" : ""} focus:outline-2 focus:ring-sf-accent focus:ring-offset-2`}
                 >
                   <span className="sr-only">{t(locale, "使用", "Pay with", "Pagar com", "で支払う")} </span>
                   <span className="text-sm font-medium">{pm.label}</span>
@@ -297,7 +297,7 @@ export default function CheckoutWithSidebar({
                       {t(locale, "名字", "First name", "Nome", "名")}
                     </label>
                     <div className="mt-2">
-                      <input id="first-name" name="first-name" type="text" autoComplete="given-name" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors" />
+                      <input id="first-name" name="first-name" type="text" autoComplete="given-name" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-sf-accent focus:ring-2 focus:ring-sf-accent/20 focus:outline-none transition-colors" />
                     </div>
                   </div>
                   <div>
@@ -305,7 +305,7 @@ export default function CheckoutWithSidebar({
                       {t(locale, "姓氏", "Last name", "Sobrenome", "姓")}
                     </label>
                     <div className="mt-2">
-                      <input id="last-name" name="last-name" type="text" autoComplete="family-name" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors" />
+                      <input id="last-name" name="last-name" type="text" autoComplete="family-name" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-sf-accent focus:ring-2 focus:ring-sf-accent/20 focus:outline-none transition-colors" />
                     </div>
                   </div>
                 </div>
@@ -316,7 +316,7 @@ export default function CheckoutWithSidebar({
                     {t(locale, "電郵地址", "Email address", "Email", "メールアドレス")}
                   </label>
                   <div className="mt-2">
-                    <input id="email" name="email" type="email" autoComplete="email" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors" />
+                    <input id="email" name="email" type="email" autoComplete="email" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-sf-accent focus:ring-2 focus:ring-sf-accent/20 focus:outline-none transition-colors" />
                   </div>
                 </div>
 
@@ -326,7 +326,7 @@ export default function CheckoutWithSidebar({
                     {t(locale, "聯絡電話", "Phone", "Telefone", "電話番号")}
                   </label>
                   <div className="mt-2">
-                    <input id="phone" name="phone" type="tel" autoComplete="tel" placeholder="+853 6XXX XXXX" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors" />
+                    <input id="phone" name="phone" type="tel" autoComplete="tel" placeholder="+853 6XXX XXXX" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-sf-accent focus:ring-2 focus:ring-sf-accent/20 focus:outline-none transition-colors" />
                   </div>
                 </div>
 
@@ -341,7 +341,7 @@ export default function CheckoutWithSidebar({
                         key={method}
                         type="button"
                         onClick={() => setDeliveryMethod(method)}
-                        className={`rounded-lg border-2 px-4 py-3 text-sm font-medium transition-colors ${deliveryMethod === method ? "border-indigo-500 bg-indigo-50 text-indigo-700" : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"}`}
+                        className={`rounded-lg border-2 px-4 py-3 text-sm font-medium transition-colors ${deliveryMethod === method ? "border-sf-accent bg-sf-accent-light text-sf-accent" : "border-gray-200 text-gray-700 hover:border-gray-300 hover:bg-gray-50"}`}
                       >
                         {method === "delivery"
                           ? t(locale, "送貨", "Delivery", "Entrega", "配送")
@@ -363,7 +363,7 @@ export default function CheckoutWithSidebar({
                         id="zone"
                         value={selectedZone}
                         onChange={(e) => setSelectedZone(e.target.value)}
-                        className="appearance-none block w-full rounded-lg border border-gray-300 bg-white bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%236b7280%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.22%208.22a.75.75%200%200%201%201.06%200L10%2011.94l3.72-3.72a.75.75%200%201%201%201.06%201.06l-4.25%204.25a.75.75%200%200%201-1.06%200L5.22%209.28a.75.75%200%200%201%200-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem_1.25rem] bg-[position:right_0.75rem_center] bg-no-repeat px-4 py-3 pr-10 text-base text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors"
+                        className="appearance-none block w-full rounded-lg border border-gray-300 bg-white bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%236b7280%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.22%208.22a.75.75%200%200%201%201.06%200L10%2011.94l3.72-3.72a.75.75%200%201%201%201.06%201.06l-4.25%204.25a.75.75%200%200%201-1.06%200L5.22%209.28a.75.75%200%200%201%200-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem_1.25rem] bg-[position:right_0.75rem_center] bg-no-repeat px-4 py-3 pr-10 text-base text-gray-900 focus:border-sf-accent focus:ring-2 focus:ring-sf-accent/20 focus:outline-none transition-colors"
                       >
                         {deliveryZones.map((z) => (
                           <option key={z.id} value={z.id}>
@@ -384,7 +384,7 @@ export default function CheckoutWithSidebar({
                         {t(locale, "地址", "Address", "Endereço", "住所")}
                       </label>
                       <div className="mt-2">
-                        <input id="address" name="address" type="text" autoComplete="street-address" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors" />
+                        <input id="address" name="address" type="text" autoComplete="street-address" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-sf-accent focus:ring-2 focus:ring-sf-accent/20 focus:outline-none transition-colors" />
                       </div>
                     </div>
 
@@ -393,7 +393,7 @@ export default function CheckoutWithSidebar({
                         {t(locale, "地址補充", "Apartment, suite, etc.", "Complemento", "建物名・部屋番号")}
                       </label>
                       <div className="mt-2">
-                        <input id="address2" name="address2" type="text" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors" />
+                        <input id="address2" name="address2" type="text" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-sf-accent focus:ring-2 focus:ring-sf-accent/20 focus:outline-none transition-colors" />
                       </div>
                     </div>
 
@@ -412,7 +412,7 @@ export default function CheckoutWithSidebar({
                           {t(locale, "國家/地區", "Country", "País", "国/地域")}
                         </label>
                         <div className="mt-2">
-                          <select className="appearance-none block w-full rounded-lg border border-gray-300 bg-white bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%236b7280%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.22%208.22a.75.75%200%200%201%201.06%200L10%2011.94l3.72-3.72a.75.75%200%201%201%201.06%201.06l-4.25%204.25a.75.75%200%200%201-1.06%200L5.22%209.28a.75.75%200%200%201%200-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem_1.25rem] bg-[position:right_0.75rem_center] bg-no-repeat px-4 py-3 pr-10 text-base text-gray-900 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors">
+                          <select className="appearance-none block w-full rounded-lg border border-gray-300 bg-white bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22%236b7280%22%3E%3Cpath%20fill-rule%3D%22evenodd%22%20d%3D%22M5.22%208.22a.75.75%200%200%201%201.06%200L10%2011.94l3.72-3.72a.75.75%200%201%201%201.06%201.06l-4.25%204.25a.75.75%200%200%201-1.06%200L5.22%209.28a.75.75%200%200%201%200-1.06z%22%20clip-rule%3D%22evenodd%22%2F%3E%3C%2Fsvg%3E')] bg-[length:1.25rem_1.25rem] bg-[position:right_0.75rem_center] bg-no-repeat px-4 py-3 pr-10 text-base text-gray-900 focus:border-sf-accent focus:ring-2 focus:ring-sf-accent/20 focus:outline-none transition-colors">
                             <option>Macau (澳門)</option>
                           </select>
                         </div>
@@ -426,7 +426,7 @@ export default function CheckoutWithSidebar({
                           {t(locale, "區域", "State / Province", "Estado", "地区")}
                         </label>
                         <div className="mt-2">
-                          <input id="district" name="district" type="text" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors" />
+                          <input id="district" name="district" type="text" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-sf-accent focus:ring-2 focus:ring-sf-accent/20 focus:outline-none transition-colors" />
                         </div>
                       </div>
                       <div>
@@ -434,7 +434,7 @@ export default function CheckoutWithSidebar({
                           {t(locale, "郵政編碼", "Postal code", "CEP", "郵便番号")}
                         </label>
                         <div className="mt-2">
-                          <input id="postal" name="postal" type="text" autoComplete="postal-code" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors" />
+                          <input id="postal" name="postal" type="text" autoComplete="postal-code" className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-sf-accent focus:ring-2 focus:ring-sf-accent/20 focus:outline-none transition-colors" />
                         </div>
                       </div>
                     </div>
@@ -447,7 +447,7 @@ export default function CheckoutWithSidebar({
                     {t(locale, "備註", "Order notes", "Notas", "備考")}
                   </label>
                   <div className="mt-2">
-                    <input id="notes" name="notes" type="text" placeholder={t(locale, "可選", "Optional", "Opcional", "任意")} className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none transition-colors" />
+                    <input id="notes" name="notes" type="text" placeholder={t(locale, "可選", "Optional", "Opcional", "任意")} className="block w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-base text-gray-900 placeholder:text-gray-400 focus:border-sf-accent focus:ring-2 focus:ring-sf-accent/20 focus:outline-none transition-colors" />
                   </div>
                 </div>
               </div>
@@ -456,7 +456,7 @@ export default function CheckoutWithSidebar({
               <button
                 type="submit"
                 disabled={submitting}
-                className="mt-10 w-full rounded-lg border border-transparent bg-indigo-600 px-6 py-3.5 text-base font-semibold text-white shadow-sm hover:bg-indigo-700 focus:outline-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:bg-gray-300 transition-colors"
+                className="mt-10 w-full rounded-lg border border-transparent bg-sf-accent px-6 py-3.5 text-base font-semibold text-white shadow-sm hover:bg-sf-accent focus:outline-2 focus:ring-sf-accent focus:ring-offset-2 disabled:bg-gray-300 transition-colors"
               >
                 {submitting
                   ? "..."

@@ -140,7 +140,7 @@ export default function ProductQuickview({ product, locale, open, onClose, curre
                 <button
                   type="button"
                   disabled={!inStock}
-                  className="w-full rounded-lg bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600 disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  className="w-full rounded-lg bg-sf-accent px-4 py-3 text-sm font-semibold text-white shadow-sm hover:bg-sf-accent-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sf-accent disabled:bg-gray-300 disabled:cursor-not-allowed"
                 >
                   {t(locale, "加入購物車", "Add to cart", "Adicionar ao carrinho", "カートに追加")}
                 </button>
@@ -149,7 +149,7 @@ export default function ProductQuickview({ product, locale, open, onClose, curre
                 {product.slug && (
                   <a
                     href={`/${locale}/products/${product.slug}`}
-                    className="block text-center text-sm font-medium text-indigo-600 hover:text-indigo-500"
+                    className="block text-center text-sm font-medium text-sf-accent hover:text-sf-accent-hover"
                   >
                     {t(locale, "查看完整詳情", "View full details", "Ver detalhes completos", "詳細を見る")}
                   </a>

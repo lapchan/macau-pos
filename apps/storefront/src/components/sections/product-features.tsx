@@ -187,7 +187,7 @@ export default function ProductFeatures({ data, locale }: Props) {
         <div className="mt-16 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
           {features.map((feat, i) => (
             <div key={i} className="text-center">
-              <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+              <div className="mx-auto flex size-12 items-center justify-center rounded-xl bg-sf-accent-light text-sf-accent">
                 <span className="text-lg">{feat.icon || "✨"}</span>
               </div>
               <h3 className="mt-4 text-base font-semibold text-gray-900">{feat.title}</h3>
