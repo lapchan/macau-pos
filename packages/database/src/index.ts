@@ -21,6 +21,12 @@ export {
 } from "./auth";
 export type { AuthSession } from "./auth";
 
+// Crypto (AES-256-GCM for secrets at rest)
+export { encryptSecret, decryptSecret } from "./crypto";
+
+// Intellipay (simpaylicity) payment gateway signing + client
+export * from "./intellipay";
+
 // Cash log
 export { logCashEvent, getCashLogByShift } from "./cash-log";
 export type { CashEventParams } from "./cash-log";

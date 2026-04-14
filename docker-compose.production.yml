@@ -55,6 +55,9 @@ services:
       - RAKUTEN_APP_ID=${RAKUTEN_APP_ID:-}
       - RAKUTEN_ACCESS_KEY=${RAKUTEN_ACCESS_KEY:-}
       - YAHOO_JP_APP_ID=${YAHOO_JP_APP_ID:-}
+      - INTELLIPAY_KMS_KEY=${INTELLIPAY_KMS_KEY:-}
+      - INTELLIPAY_BASE_URL=${INTELLIPAY_BASE_URL:-}
+      - INTELLIPAY_OUTBOUND_PUBLIC_KEY=${INTELLIPAY_OUTBOUND_PUBLIC_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -71,6 +74,9 @@ services:
       - DATABASE_URL=postgresql://${DB_USER:-pos_prod}:${DB_PASSWORD}@postgres:5432/${DB_NAME:-macau_pos}
       - AUTH_SECRET=${AUTH_SECRET}
       - NODE_ENV=production
+      - INTELLIPAY_KMS_KEY=${INTELLIPAY_KMS_KEY:-}
+      - INTELLIPAY_BASE_URL=${INTELLIPAY_BASE_URL:-}
+      - INTELLIPAY_OUTBOUND_PUBLIC_KEY=${INTELLIPAY_OUTBOUND_PUBLIC_KEY:-}
     depends_on:
       postgres:
         condition: service_healthy

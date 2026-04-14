@@ -19,6 +19,7 @@ export * from "./order-items";
 export * from "./payments";
 export * from "./terminals";
 export * from "./terminal-cash-log";
+export * from "./tenant-payment-configs";
 
 // Storefront tables
 export * from "./customers";

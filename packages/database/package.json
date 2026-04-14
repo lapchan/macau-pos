@@ -12,7 +12,9 @@
     "db:seed": "tsx src/seed.ts",
     "db:studio": "drizzle-kit studio",
     "db:import-yp": "tsx src/import-yp.ts",
-    "db:seed-storefront": "tsx src/seed-storefront.ts"
+    "db:seed-storefront": "tsx src/seed-storefront.ts",
+    "db:intellipay:provision": "tsx src/intellipay/provision.ts",
+    "db:intellipay:smoke": "tsx src/intellipay/smoke.ts"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
