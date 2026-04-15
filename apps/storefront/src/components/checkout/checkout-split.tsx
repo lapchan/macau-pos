@@ -281,13 +281,12 @@ export default function CheckoutSplit({
     ? "text-[15px] tabular-nums text-[#121212]"
     : "text-base font-semibold text-gray-900";
 
-  // ─── Summary content (reused desktop + mobile) ────────────────────────
-  const summaryContent = (
-    <>
-      <ul
-        role="list"
-        className={`divide-y ${isHumanMade ? "divide-[#121212]/10" : "divide-gray-200"} text-sm font-medium`}
-      >
+  // ─── Summary content ──────────────────────────────────────────────────
+  const itemsList = (
+    <ul
+      role="list"
+      className={`divide-y ${isHumanMade ? "divide-[#121212]/10" : "divide-gray-200"} text-sm font-medium`}
+    >
         {items.map((item) => (
           <li key={item.id} className="flex items-start space-x-4 py-6">
             <div className="relative shrink-0">
@@ -327,7 +326,10 @@ export default function CheckoutSplit({
           </li>
         ))}
       </ul>
+  );
 
+  const summaryFooter = (
+    <>
       {/* Discount code */}
       <div
         className={`border-t ${isHumanMade ? "border-[#121212]/10" : "border-gray-200"} pt-6`}
@@ -471,27 +473,33 @@ export default function CheckoutSplit({
                 </span>
               </button>
               {mobileSummaryOpen && (
-                <div className="mx-auto max-w-2xl px-4 pb-8">{summaryContent}</div>
+                <div className="mx-auto max-w-2xl px-4 pb-8">
+                  {itemsList}
+                  {summaryFooter}
+                </div>
               )}
             </div>
 
-            {/* Desktop */}
-            <div className="hidden lg:block lg:sticky lg:top-0 lg:max-h-screen lg:overflow-y-auto lg:pt-10 lg:pb-10">
-              <div className="mx-auto max-w-2xl px-4 lg:max-w-none lg:px-0">
-                <h2 id="summary-heading" className={isHumanMade ? sectionHeading + " mb-2" : "sr-only"}>
-                  {isHumanMade
-                    ? t(locale, "訂單摘要", "Order summary", "Resumo", "ご注文内容")
-                    : "Order summary"}
-                </h2>
-                <dl>
-                  <dt className={summaryAmountLabel}>
-                    {t(locale, "應付金額", "Amount due", "Valor devido", "お支払い金額")}
-                  </dt>
-                  <dd className={summaryAmountValue}>
-                    {currency} {total.toFixed(2)}
-                  </dd>
-                </dl>
-                <div className="mt-6">{summaryContent}</div>
+            {/* Desktop — sticky full-height with scrollable items and pinned footer */}
+            <div className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:pt-10 lg:pb-6">
+              <div className="mx-auto flex w-full max-w-2xl min-h-0 flex-1 flex-col px-4 lg:max-w-none lg:px-0">
+                <div className="shrink-0">
+                  <h2 id="summary-heading" className={isHumanMade ? sectionHeading + " mb-2" : "sr-only"}>
+                    {isHumanMade
+                      ? t(locale, "訂單摘要", "Order summary", "Resumo", "ご注文内容")
+                      : "Order summary"}
+                  </h2>
+                  <dl>
+                    <dt className={summaryAmountLabel}>
+                      {t(locale, "應付金額", "Amount due", "Valor devido", "お支払い金額")}
+                    </dt>
+                    <dd className={summaryAmountValue}>
+                      {currency} {total.toFixed(2)}
+                    </dd>
+                  </dl>
+                </div>
+                <div className="mt-6 min-h-0 flex-1 overflow-y-auto">{itemsList}</div>
+                <div className="shrink-0">{summaryFooter}</div>
               </div>
             </div>
           </section>
