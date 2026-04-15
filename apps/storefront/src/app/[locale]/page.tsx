@@ -159,6 +159,7 @@ export default async function HomePage({
 }) {
   const { locale } = await params;
   const h = await headers();
+  console.log("[HomePage] all headers=", JSON.stringify(Object.fromEntries(h.entries())));
   const tenant = await resolveTenant();
   console.log("[HomePage] host=", h.get("host"), "locale=", locale, "resolved tenant=", tenant?.slug);
   if (!tenant) notFound();
