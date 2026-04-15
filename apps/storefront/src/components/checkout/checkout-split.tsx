@@ -4,7 +4,6 @@ import { useState, type FormEvent } from "react";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
-  ChevronRightIcon,
   ChevronLeftIcon,
   LockClosedIcon,
 } from "@heroicons/react/24/outline";
@@ -38,8 +37,6 @@ type SavedAddress = {
   city: string | null;
   isDefault: boolean;
 };
-
-type Step = "information" | "shipping" | "payment";
 
 type Props = {
   items: CartItem[];
@@ -86,8 +83,6 @@ export default function CheckoutSplit({
 }: Props) {
   const isHumanMade = themeId === "humanmade";
 
-  const [step, setStep] = useState<Step>("information");
-
   // Contact
   const [email, setEmail] = useState(customerEmail || "");
   const [newsletter, setNewsletter] = useState(false);
@@ -95,7 +90,7 @@ export default function CheckoutSplit({
   // Delivery method
   const [deliveryMethod, setDeliveryMethod] = useState<"delivery" | "pickup">("delivery");
 
-  // Address fields (controlled so they persist across step transitions)
+  // Address fields
   const nameParts = (customerName || "").trim().split(/\s+/);
   const [firstName, setFirstName] = useState(nameParts[0] || "");
   const [lastName, setLastName] = useState(nameParts.slice(1).join(" "));
@@ -116,14 +111,14 @@ export default function CheckoutSplit({
   const selectedSavedAddress =
     selectedAddressId !== "new" ? savedAddresses.find((a) => a.id === selectedAddressId) : undefined;
 
-  // Shipping method (step 2)
+  // Shipping method
   const [selectedZone, setSelectedZone] = useState(deliveryZones[0]?.id || "");
 
-  // Payment (step 3)
+  // Payment
   const [paymentService, setPaymentService] = useState("simplepay");
   const [notes, setNotes] = useState("");
 
-  // Discount code (UI only — backend not implemented)
+  // Discount code (UI only)
   const [discountCode, setDiscountCode] = useState("");
   const [discountError, setDiscountError] = useState<string | null>(null);
 
@@ -153,11 +148,10 @@ export default function CheckoutSplit({
     ? selectedSavedAddress!.addressLine1 +
       (selectedSavedAddress!.addressLine2 ? `, ${selectedSavedAddress!.addressLine2}` : "")
     : addressLine1 + (apartment ? `, ${apartment}` : "");
-  const resolvedCity = usingSavedAddress ? (selectedSavedAddress!.city || "") : city;
   const resolvedDistrict = usingSavedAddress ? (selectedSavedAddress!.district || "") : district;
 
   // ─── Validation ───────────────────────────────────────────────────────
-  function validateInformation(): boolean {
+  function validateAll(): boolean {
     const errs: Record<string, string> = {};
     const req = t(locale, "必填", "Required", "Obrigatório", "必須");
     if (!email.trim()) errs.email = t(locale, "請輸入電郵", "Enter your email", "Insira email", "メールを入力");
@@ -173,31 +167,20 @@ export default function CheckoutSplit({
       }
     }
 
-    setFieldErrors(errs);
-    return Object.keys(errs).length === 0;
-  }
-
-  function validateShipping(): boolean {
-    const errs: Record<string, string> = {};
     if (deliveryMethod === "delivery" && !selectedZone) {
       errs.zone = t(locale, "請選擇送貨方式", "Select a shipping method", "Selecione método", "配送方法を選択");
     }
+
     setFieldErrors(errs);
-    return Object.keys(errs).length === 0;
-  }
-
-  // ─── Handlers ─────────────────────────────────────────────────────────
-  function goToStep(next: Step) {
-    setStep(next);
-    if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function handleContinueFromInformation() {
-    if (validateInformation()) goToStep("shipping");
-  }
-
-  function handleContinueFromShipping() {
-    if (validateShipping()) goToStep("payment");
+    if (Object.keys(errs).length > 0) {
+      const firstKey = Object.keys(errs)[0];
+      if (typeof document !== "undefined") {
+        const el = document.querySelector(`[data-field="${firstKey}"]`);
+        if (el) (el as HTMLElement).scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      return false;
+    }
+    return true;
   }
 
   function handleApplyDiscount() {
@@ -210,6 +193,7 @@ export default function CheckoutSplit({
   async function handleFinalSubmit(e: FormEvent) {
     e.preventDefault();
     if (!onSubmit) return;
+    if (!validateAll()) return;
     setSubmitError(null);
     setSubmitting(true);
 
@@ -272,17 +256,6 @@ export default function CheckoutSplit({
     ? "inline-flex items-center gap-1.5 text-[11px] uppercase tracking-[0.1em] text-[#121212]/70 hover:text-[#121212]"
     : "inline-flex items-center gap-1.5 text-sm font-medium text-sf-accent hover:opacity-80";
 
-  const changeLink = isHumanMade
-    ? "shrink-0 text-[11px] uppercase tracking-[0.08em] text-[#121212]/60 underline underline-offset-2 hover:text-[#121212]"
-    : "shrink-0 text-sm font-medium text-sf-accent hover:opacity-80 underline";
-
-  const bcBase = isHumanMade ? "text-[11px] uppercase tracking-[0.12em]" : "text-xs uppercase tracking-wider";
-  const bcActive = isHumanMade ? "text-[#121212] font-medium" : "text-gray-900 font-semibold";
-  const bcVisited = isHumanMade
-    ? "text-[#121212]/50 hover:text-[#121212]"
-    : "text-gray-500 hover:text-gray-700";
-  const bcFuture = isHumanMade ? "text-[#121212]/25" : "text-gray-300";
-
   const summaryAmountLabel = isHumanMade
     ? "text-[11px] uppercase tracking-[0.1em] text-[#121212]/60"
     : "text-sm font-medium text-gray-500";
@@ -307,68 +280,6 @@ export default function CheckoutSplit({
   const totalValue = isHumanMade
     ? "text-[15px] tabular-nums text-[#121212]"
     : "text-base font-semibold text-gray-900";
-
-  // ─── Breadcrumb ───────────────────────────────────────────────────────
-  type BcEntry = {
-    key: string;
-    label: string;
-    state: "active" | "visited" | "future";
-    onClick?: () => void;
-    href?: string;
-  };
-  const bcSteps: BcEntry[] = [
-    {
-      key: "cart",
-      label: t(locale, "購物車", "Cart", "Carrinho", "カート"),
-      state: "visited",
-      href: `/${locale}/cart`,
-    },
-    {
-      key: "information",
-      label: t(locale, "資料", "Information", "Informação", "情報"),
-      state: step === "information" ? "active" : "visited",
-      onClick: step === "information" ? undefined : () => goToStep("information"),
-    },
-    {
-      key: "shipping",
-      label: t(locale, "送貨", "Shipping", "Envio", "配送"),
-      state:
-        step === "shipping" ? "active" : step === "payment" ? "visited" : "future",
-      onClick: step === "payment" ? () => goToStep("shipping") : undefined,
-    },
-    {
-      key: "payment",
-      label: t(locale, "付款", "Payment", "Pagamento", "支払い"),
-      state: step === "payment" ? "active" : "future",
-    },
-  ];
-
-  // ─── Review row helper ────────────────────────────────────────────────
-  function ReviewRow({ label, value, onEdit }: { label: string; value: string; onEdit: () => void }) {
-    return (
-      <div className="flex items-start justify-between gap-4 p-4">
-        <div className="min-w-0 flex-1">
-          <dt
-            className={
-              isHumanMade
-                ? "text-[11px] uppercase tracking-[0.08em] text-[#121212]/60"
-                : "text-xs uppercase tracking-wider text-gray-500"
-            }
-          >
-            {label}
-          </dt>
-          <dd
-            className={`mt-1 truncate ${isHumanMade ? "text-[13px] text-[#121212]" : "text-sm text-gray-900"}`}
-          >
-            {value}
-          </dd>
-        </div>
-        <button type="button" onClick={onEdit} className={changeLink}>
-          {t(locale, "修改", "Change", "Alterar", "変更")}
-        </button>
-      </div>
-    );
-  }
 
   // ─── Summary content (reused desktop + mobile) ────────────────────────
   const summaryContent = (
@@ -478,10 +389,10 @@ export default function CheckoutSplit({
         <div className="flex items-center justify-between">
           <dt className={breakdownLabel}>{t(locale, "運費", "Shipping", "Frete", "送料")}</dt>
           <dd className={breakdownValue}>
-            {step === "information"
-              ? t(locale, "下一步計算", "Calculated next step", "Próxima etapa", "次のステップで計算")
-              : deliveryMethod === "pickup"
-                ? t(locale, "免費", "Free", "Grátis", "無料")
+            {deliveryMethod === "pickup"
+              ? t(locale, "免費", "Free", "Grátis", "無料")
+              : !zone
+                ? t(locale, "請選擇", "Select method", "Selecione", "選択")
                 : isFreeShipping
                   ? t(locale, "免費", "Free", "Grátis", "無料")
                   : `${currency} ${shippingFee.toFixed(2)}`}
@@ -497,7 +408,7 @@ export default function CheckoutSplit({
     </>
   );
 
-  // ─── Field renderers ──────────────────────────────────────────────────
+  // ─── Field error helper ───────────────────────────────────────────────
   function FieldError({ name }: { name: string }) {
     const err = fieldErrors[name];
     if (!err) return null;
@@ -518,8 +429,6 @@ export default function CheckoutSplit({
 
           {/* ═══════════════════════════════════════════════════════════
               ORDER SUMMARY
-              - Mobile: collapsible bar at top
-              - Desktop: sticky side panel
               ═══════════════════════════════════════════════════════════ */}
           <section
             aria-labelledby="summary-heading"
@@ -592,47 +501,6 @@ export default function CheckoutSplit({
               ═══════════════════════════════════════════════════════════ */}
           <section className="py-12 lg:col-start-1 lg:row-start-1 lg:mx-auto lg:w-full lg:max-w-lg lg:pt-0 lg:pb-24">
             <div className="mx-auto max-w-2xl px-4 lg:max-w-none lg:px-0">
-              {/* Breadcrumb */}
-              <nav aria-label="Checkout progress" className="mb-8">
-                <ol className="flex flex-wrap items-center gap-2">
-                  {bcSteps.map((s, i) => (
-                    <li key={s.key} className="flex items-center gap-2">
-                      {s.href ? (
-                        <a
-                          href={s.href}
-                          className={`${bcBase} ${s.state === "active" ? bcActive : bcVisited}`}
-                        >
-                          {s.label}
-                        </a>
-                      ) : s.onClick ? (
-                        <button
-                          type="button"
-                          onClick={s.onClick}
-                          className={`${bcBase} ${s.state === "active" ? bcActive : bcVisited}`}
-                        >
-                          {s.label}
-                        </button>
-                      ) : (
-                        <span
-                          className={`${bcBase} ${
-                            s.state === "active"
-                              ? bcActive
-                              : s.state === "visited"
-                                ? bcVisited
-                                : bcFuture
-                          }`}
-                        >
-                          {s.label}
-                        </span>
-                      )}
-                      {i < bcSteps.length - 1 && (
-                        <ChevronRightIcon className={`size-3 ${bcFuture}`} />
-                      )}
-                    </li>
-                  ))}
-                </ol>
-              </nav>
-
               {submitError && (
                 <div
                   className={
@@ -645,712 +513,590 @@ export default function CheckoutSplit({
                 </div>
               )}
 
-              <form onSubmit={handleFinalSubmit} noValidate>
-                {/* ═══════ STEP 1: INFORMATION ═══════ */}
-                {step === "information" && (
-                  <div className="space-y-10">
-                    {/* Contact */}
-                    <section>
-                      <div className="flex items-baseline justify-between gap-4">
-                        <h3 className={sectionHeading}>
-                          {t(locale, "聯絡資料", "Contact", "Contato", "連絡先")}
-                        </h3>
-                        {!isLoggedIn && (
-                          <p
-                            className={
-                              isHumanMade
-                                ? "text-[11px] tracking-[0.04em] text-[#121212]/60"
-                                : "text-xs text-gray-500"
-                            }
-                          >
-                            {t(locale, "已有帳號？", "Have an account?", "Já tem conta?", "アカウントをお持ちですか？")}{" "}
-                            <a
-                              href={`/${locale}/login?next=${encodeURIComponent(`/${locale}/checkout`)}`}
-                              className={
-                                isHumanMade
-                                  ? "underline underline-offset-2 text-[#121212] hover:text-[#121212]/80"
-                                  : "font-medium text-sf-accent hover:opacity-80"
-                              }
-                            >
-                              {t(locale, "登入", "Log in", "Entrar", "ログイン")}
-                            </a>
-                          </p>
-                        )}
-                      </div>
-
-                      <div className="mt-6">
-                        <label htmlFor="email" className={labelClass}>
-                          {t(locale, "電郵地址", "Email", "Email", "メールアドレス")}
-                        </label>
-                        <input
-                          id="email"
-                          type="email"
-                          autoComplete="email"
-                          value={email}
-                          onChange={(e) => setEmail(e.target.value)}
-                          className={`${inputBase} mt-1 ${fieldErrors.email ? inputErr : ""}`}
-                        />
-                        <FieldError name="email" />
-                        <p
+              <form onSubmit={handleFinalSubmit} noValidate className="space-y-10">
+                {/* ═══════ CONTACT ═══════ */}
+                <section>
+                  <div className="flex items-baseline justify-between gap-4">
+                    <h3 className={sectionHeading}>
+                      {t(locale, "聯絡資料", "Contact", "Contato", "連絡先")}
+                    </h3>
+                    {!isLoggedIn && (
+                      <p
+                        className={
+                          isHumanMade
+                            ? "text-[11px] tracking-[0.04em] text-[#121212]/60"
+                            : "text-xs text-gray-500"
+                        }
+                      >
+                        {t(locale, "已有帳號？", "Have an account?", "Já tem conta?", "アカウントをお持ちですか？")}{" "}
+                        <a
+                          href={`/${locale}/login?next=${encodeURIComponent(`/${locale}/checkout`)}`}
                           className={
                             isHumanMade
-                              ? "mt-2 text-[11px] text-[#121212]/50 tracking-[0.03em]"
-                              : "mt-2 text-xs text-gray-500"
+                              ? "underline underline-offset-2 text-[#121212] hover:text-[#121212]/80"
+                              : "font-medium text-sf-accent hover:opacity-80"
                           }
                         >
-                          {t(
-                            locale,
-                            "我們將使用此電郵向您發送訂單詳情及更新。",
-                            "We'll use this email to send you order details and updates.",
-                            "Usaremos este email para enviar detalhes do pedido.",
-                            "このメールアドレスで注文の詳細と更新をお知らせします。"
-                          )}
-                        </p>
-                      </div>
+                          {t(locale, "登入", "Log in", "Entrar", "ログイン")}
+                        </a>
+                      </p>
+                    )}
+                  </div>
 
-                      <label className="mt-4 flex items-start gap-2 cursor-pointer">
+                  <div className="mt-6" data-field="email">
+                    <label htmlFor="email" className={labelClass}>
+                      {t(locale, "電郵地址", "Email", "Email", "メールアドレス")}
+                    </label>
+                    <input
+                      id="email"
+                      type="email"
+                      autoComplete="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className={`${inputBase} mt-1 ${fieldErrors.email ? inputErr : ""}`}
+                    />
+                    <FieldError name="email" />
+                    <p
+                      className={
+                        isHumanMade
+                          ? "mt-2 text-[11px] text-[#121212]/50 tracking-[0.03em]"
+                          : "mt-2 text-xs text-gray-500"
+                      }
+                    >
+                      {t(
+                        locale,
+                        "我們將使用此電郵向您發送訂單詳情及更新。",
+                        "We'll use this email to send you order details and updates.",
+                        "Usaremos este email para enviar detalhes do pedido.",
+                        "このメールアドレスで注文の詳細と更新をお知らせします。"
+                      )}
+                    </p>
+                  </div>
+
+                  <label className="mt-4 flex items-start gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={newsletter}
+                      onChange={(e) => setNewsletter(e.target.checked)}
+                      className={`mt-0.5 size-4 ${isHumanMade ? "accent-[#121212]" : "text-sf-accent"}`}
+                    />
+                    <span
+                      className={
+                        isHumanMade
+                          ? "text-[11px] text-[#121212]/70 tracking-[0.03em]"
+                          : "text-sm text-gray-600"
+                      }
+                    >
+                      {t(
+                        locale,
+                        "訂閱電郵獲取最新消息及優惠",
+                        "Email me with news and offers",
+                        "Receber novidades e ofertas",
+                        "ニュースとお得情報を受け取る"
+                      )}
+                    </span>
+                  </label>
+                </section>
+
+                {/* ═══════ DELIVERY METHOD ═══════ */}
+                <section>
+                  <h3 className={sectionHeading}>
+                    {t(locale, "配送方式", "Delivery method", "Entrega", "配送方法")}
+                  </h3>
+                  <div className="mt-6 grid grid-cols-2 gap-3">
+                    {(["delivery", "pickup"] as const).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setDeliveryMethod(m)}
+                        className={`${pillBase} ${deliveryMethod === m ? pillOn : pillOff}`}
+                      >
+                        {m === "delivery"
+                          ? t(locale, "送貨", "Ship", "Enviar", "配送")
+                          : t(locale, "門市自取", "Pick up in store", "Retirada", "店舗受取")}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                {/* ═══════ SAVED ADDRESSES ═══════ */}
+                {isLoggedIn && deliveryMethod === "delivery" && savedAddresses.length > 0 && (
+                  <section>
+                    <h3 className={sectionHeading}>
+                      {t(locale, "已儲存地址", "Saved addresses", "Endereços salvos", "保存済み住所")}
+                    </h3>
+                    <div className="mt-6 space-y-2">
+                      {savedAddresses.map((addr) => (
+                        <label
+                          key={addr.id}
+                          className={`flex cursor-pointer items-start gap-3 ${isHumanMade ? "" : "rounded-lg"} border p-3 transition-colors ${
+                            selectedAddressId === addr.id ? radioCardOn : radioCardOff
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="saved-address"
+                            checked={selectedAddressId === addr.id}
+                            onChange={() => setSelectedAddressId(addr.id)}
+                            className={`mt-1 size-4 ${isHumanMade ? "accent-[#121212]" : "text-sf-accent"}`}
+                          />
+                          <div className="min-w-0 text-sm">
+                            <div className="flex items-center gap-2">
+                              <span
+                                className={
+                                  isHumanMade
+                                    ? "text-[13px] text-[#121212]"
+                                    : "font-medium text-gray-900"
+                                }
+                              >
+                                {addr.recipientName}
+                              </span>
+                              {addr.isDefault && (
+                                <span
+                                  className={
+                                    isHumanMade
+                                      ? "inline-flex bg-[#121212] px-1.5 py-0.5 text-[10px] uppercase tracking-[0.08em] text-white"
+                                      : "inline-flex rounded-full bg-sf-accent-light px-2 py-0.5 text-xs text-sf-accent"
+                                  }
+                                >
+                                  {t(locale, "預設", "Default", "Padrão", "デフォルト")}
+                                </span>
+                              )}
+                            </div>
+                            <p
+                              className={
+                                isHumanMade
+                                  ? "mt-0.5 text-[12px] text-[#121212]/70"
+                                  : "mt-0.5 text-gray-500"
+                              }
+                            >
+                              {addr.addressLine1}
+                              {addr.addressLine2 ? `, ${addr.addressLine2}` : ""}
+                            </p>
+                            {addr.phone && (
+                              <p
+                                className={
+                                  isHumanMade ? "text-[11px] text-[#121212]/50" : "text-gray-400"
+                                }
+                              >
+                                {addr.phone}
+                              </p>
+                            )}
+                          </div>
+                        </label>
+                      ))}
+                      <label
+                        className={`flex cursor-pointer items-center gap-3 ${isHumanMade ? "" : "rounded-lg"} border p-3 transition-colors ${
+                          selectedAddressId === "new" ? radioCardOn : radioCardOff
+                        }`}
+                      >
                         <input
-                          type="checkbox"
-                          checked={newsletter}
-                          onChange={(e) => setNewsletter(e.target.checked)}
-                          className={`mt-0.5 size-4 ${isHumanMade ? "accent-[#121212]" : "text-sf-accent"}`}
+                          type="radio"
+                          name="saved-address"
+                          checked={selectedAddressId === "new"}
+                          onChange={() => setSelectedAddressId("new")}
+                          className={`size-4 ${isHumanMade ? "accent-[#121212]" : "text-sf-accent"}`}
                         />
                         <span
                           className={
                             isHumanMade
-                              ? "text-[11px] text-[#121212]/70 tracking-[0.03em]"
-                              : "text-sm text-gray-600"
+                              ? "text-[12px] uppercase tracking-[0.08em] text-[#121212]"
+                              : "text-sm font-medium text-gray-700"
                           }
                         >
-                          {t(
-                            locale,
-                            "訂閱電郵獲取最新消息及優惠",
-                            "Email me with news and offers",
-                            "Receber novidades e ofertas",
-                            "ニュースとお得情報を受け取る"
-                          )}
+                          {t(locale, "使用新地址", "Use a new address", "Usar novo", "新しい住所")}
                         </span>
                       </label>
-                    </section>
+                    </div>
+                  </section>
+                )}
 
-                    {/* Delivery method */}
-                    <section>
-                      <h3 className={sectionHeading}>
-                        {t(locale, "配送方式", "Delivery method", "Entrega", "配送方法")}
-                      </h3>
-                      <div className="mt-6 grid grid-cols-2 gap-3">
-                        {(["delivery", "pickup"] as const).map((m) => (
-                          <button
-                            key={m}
-                            type="button"
-                            onClick={() => setDeliveryMethod(m)}
-                            className={`${pillBase} ${deliveryMethod === m ? pillOn : pillOff}`}
-                          >
-                            {m === "delivery"
-                              ? t(locale, "送貨", "Ship", "Enviar", "配送")
-                              : t(locale, "門市自取", "Pick up in store", "Retirada", "店舗受取")}
-                          </button>
-                        ))}
+                {/* ═══════ ADDRESS FORM ═══════ */}
+                {!usingSavedAddress && (
+                  <section>
+                    <h3 className={sectionHeading}>
+                      {deliveryMethod === "delivery"
+                        ? t(locale, "收件地址", "Shipping address", "Endereço de entrega", "配送先")
+                        : t(locale, "取件人資料", "Pickup details", "Detalhes de retirada", "受取人情報")}
+                    </h3>
+
+                    <div className="mt-6 space-y-4">
+                      {deliveryMethod === "delivery" && (
+                        <div>
+                          <label htmlFor="country" className={labelClass}>
+                            {t(locale, "國家/地區", "Country/Region", "País/Região", "国/地域")}
+                          </label>
+                          <input
+                            id="country"
+                            type="text"
+                            value="Macau SAR"
+                            disabled
+                            className={`${inputBase} mt-1 opacity-60 cursor-not-allowed`}
+                          />
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div data-field="firstName">
+                          <label htmlFor="first-name" className={labelClass}>
+                            {t(locale, "名", "First name", "Nome", "名")}
+                          </label>
+                          <input
+                            id="first-name"
+                            type="text"
+                            autoComplete="given-name"
+                            value={firstName}
+                            onChange={(e) => setFirstName(e.target.value)}
+                            className={`${inputBase} mt-1 ${fieldErrors.firstName ? inputErr : ""}`}
+                          />
+                          <FieldError name="firstName" />
+                        </div>
+                        <div data-field="lastName">
+                          <label htmlFor="last-name" className={labelClass}>
+                            {t(locale, "姓", "Last name", "Sobrenome", "姓")}
+                          </label>
+                          <input
+                            id="last-name"
+                            type="text"
+                            autoComplete="family-name"
+                            value={lastName}
+                            onChange={(e) => setLastName(e.target.value)}
+                            className={`${inputBase} mt-1 ${fieldErrors.lastName ? inputErr : ""}`}
+                          />
+                          <FieldError name="lastName" />
+                        </div>
                       </div>
-                    </section>
 
-                    {/* Saved addresses */}
-                    {isLoggedIn && deliveryMethod === "delivery" && savedAddresses.length > 0 && (
-                      <section>
-                        <h3 className={sectionHeading}>
-                          {t(locale, "已儲存地址", "Saved addresses", "Endereços salvos", "保存済み住所")}
-                        </h3>
-                        <div className="mt-6 space-y-2">
-                          {savedAddresses.map((addr) => (
+                      {deliveryMethod === "delivery" && (
+                        <>
+                          <div>
+                            <label htmlFor="company" className={labelClass}>
+                              {t(locale, "公司（可選）", "Company (optional)", "Empresa (opcional)", "会社名（任意）")}
+                            </label>
+                            <input
+                              id="company"
+                              type="text"
+                              autoComplete="organization"
+                              value={company}
+                              onChange={(e) => setCompany(e.target.value)}
+                              className={`${inputBase} mt-1`}
+                            />
+                          </div>
+
+                          <div data-field="addressLine1">
+                            <label htmlFor="address" className={labelClass}>
+                              {t(locale, "地址", "Address", "Endereço", "住所")}
+                            </label>
+                            <input
+                              id="address"
+                              type="text"
+                              autoComplete="address-line1"
+                              value={addressLine1}
+                              onChange={(e) => setAddressLine1(e.target.value)}
+                              className={`${inputBase} mt-1 ${fieldErrors.addressLine1 ? inputErr : ""}`}
+                            />
+                            <FieldError name="addressLine1" />
+                          </div>
+
+                          <div>
+                            <label htmlFor="apartment" className={labelClass}>
+                              {t(
+                                locale,
+                                "單位、樓層、大廈等（可選）",
+                                "Apartment, suite, etc. (optional)",
+                                "Apto, andar (opcional)",
+                                "部屋番号、階数など（任意）"
+                              )}
+                            </label>
+                            <input
+                              id="apartment"
+                              type="text"
+                              autoComplete="address-line2"
+                              value={apartment}
+                              onChange={(e) => setApartment(e.target.value)}
+                              className={`${inputBase} mt-1`}
+                            />
+                          </div>
+
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div data-field="city">
+                              <label htmlFor="city" className={labelClass}>
+                                {t(locale, "城市", "City", "Cidade", "都市")}
+                              </label>
+                              <input
+                                id="city"
+                                type="text"
+                                autoComplete="address-level2"
+                                value={city}
+                                onChange={(e) => setCity(e.target.value)}
+                                className={`${inputBase} mt-1 ${fieldErrors.city ? inputErr : ""}`}
+                              />
+                              <FieldError name="city" />
+                            </div>
+                            <div>
+                              <label htmlFor="postal" className={labelClass}>
+                                {t(
+                                  locale,
+                                  "郵政編碼（可選）",
+                                  "Postal code (optional)",
+                                  "CEP (opcional)",
+                                  "郵便番号（任意）"
+                                )}
+                              </label>
+                              <input
+                                id="postal"
+                                type="text"
+                                autoComplete="postal-code"
+                                value={postalCode}
+                                onChange={(e) => setPostalCode(e.target.value)}
+                                className={`${inputBase} mt-1`}
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label htmlFor="district" className={labelClass}>
+                              {t(locale, "區域（可選）", "District (optional)", "Distrito (opcional)", "地区（任意）")}
+                            </label>
+                            <input
+                              id="district"
+                              type="text"
+                              autoComplete="address-level1"
+                              value={district}
+                              onChange={(e) => setDistrict(e.target.value)}
+                              className={`${inputBase} mt-1`}
+                            />
+                          </div>
+                        </>
+                      )}
+
+                      <div data-field="phone">
+                        <label htmlFor="phone" className={labelClass}>
+                          {t(locale, "電話", "Phone", "Telefone", "電話番号")}
+                        </label>
+                        <input
+                          id="phone"
+                          type="tel"
+                          autoComplete="tel"
+                          placeholder="+853 6XXX XXXX"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          className={`${inputBase} mt-1 ${fieldErrors.phone ? inputErr : ""}`}
+                        />
+                        <FieldError name="phone" />
+                      </div>
+
+                      {!isLoggedIn && (
+                        <label className="mt-2 flex items-start gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={saveInfo}
+                            onChange={(e) => setSaveInfo(e.target.checked)}
+                            className={`mt-0.5 size-4 ${isHumanMade ? "accent-[#121212]" : "text-sf-accent"}`}
+                          />
+                          <span
+                            className={
+                              isHumanMade
+                                ? "text-[11px] text-[#121212]/70 tracking-[0.03em]"
+                                : "text-sm text-gray-600"
+                            }
+                          >
+                            {t(
+                              locale,
+                              "儲存此資料以供下次使用",
+                              "Save this information for next time",
+                              "Salvar para próxima compra",
+                              "次回のために保存する"
+                            )}
+                          </span>
+                        </label>
+                      )}
+                    </div>
+                  </section>
+                )}
+
+                {/* ═══════ SHIPPING METHOD ═══════ */}
+                <section data-field="zone">
+                  <h3 className={sectionHeading}>
+                    {t(locale, "送貨方式", "Shipping method", "Método de envio", "配送方法")}
+                  </h3>
+
+                  {deliveryMethod === "delivery" ? (
+                    <div className="mt-6 space-y-2">
+                      {deliveryZones.length === 0 ? (
+                        <p
+                          className={
+                            isHumanMade
+                              ? "text-[12px] text-[#121212]/60"
+                              : "text-sm text-gray-500"
+                          }
+                        >
+                          {t(locale, "暫無送貨服務", "No shipping available", "Sem envio", "配送不可")}
+                        </p>
+                      ) : (
+                        deliveryZones.map((z) => {
+                          const free = !!(z.freeAbove && subtotal >= z.freeAbove);
+                          return (
                             <label
-                              key={addr.id}
-                              className={`flex cursor-pointer items-start gap-3 ${isHumanMade ? "" : "rounded-lg"} border p-3 transition-colors ${
-                                selectedAddressId === addr.id ? radioCardOn : radioCardOff
+                              key={z.id}
+                              className={`flex cursor-pointer items-center justify-between gap-3 ${isHumanMade ? "" : "rounded-lg"} border p-4 transition-colors ${
+                                selectedZone === z.id ? radioCardOn : radioCardOff
                               }`}
                             >
-                              <input
-                                type="radio"
-                                name="saved-address"
-                                checked={selectedAddressId === addr.id}
-                                onChange={() => setSelectedAddressId(addr.id)}
-                                className={`mt-1 size-4 ${isHumanMade ? "accent-[#121212]" : "text-sf-accent"}`}
-                              />
-                              <div className="min-w-0 text-sm">
-                                <div className="flex items-center gap-2">
+                              <span className="flex items-center gap-3">
+                                <input
+                                  type="radio"
+                                  checked={selectedZone === z.id}
+                                  onChange={() => setSelectedZone(z.id)}
+                                  className={`size-4 ${isHumanMade ? "accent-[#121212]" : "text-sf-accent"}`}
+                                />
+                                <span>
                                   <span
                                     className={
                                       isHumanMade
-                                        ? "text-[13px] text-[#121212]"
-                                        : "font-medium text-gray-900"
+                                        ? "block text-[13px] text-[#121212]"
+                                        : "block text-sm font-medium text-gray-900"
                                     }
                                   >
-                                    {addr.recipientName}
+                                    {z.name}
                                   </span>
-                                  {addr.isDefault && (
+                                  {z.freeAbove && !free && (
                                     <span
                                       className={
                                         isHumanMade
-                                          ? "inline-flex bg-[#121212] px-1.5 py-0.5 text-[10px] uppercase tracking-[0.08em] text-white"
-                                          : "inline-flex rounded-full bg-sf-accent-light px-2 py-0.5 text-xs text-sf-accent"
+                                          ? "block text-[11px] text-[#121212]/60 mt-0.5"
+                                          : "block text-xs text-gray-500 mt-0.5"
                                       }
                                     >
-                                      {t(locale, "預設", "Default", "Padrão", "デフォルト")}
+                                      {t(
+                                        locale,
+                                        `滿${currency}${z.freeAbove}免運費`,
+                                        `Free over ${currency}${z.freeAbove}`,
+                                        `Grátis acima ${currency}${z.freeAbove}`,
+                                        `${currency}${z.freeAbove}以上無料`
+                                      )}
                                     </span>
                                   )}
-                                </div>
-                                <p
-                                  className={
-                                    isHumanMade
-                                      ? "mt-0.5 text-[12px] text-[#121212]/70"
-                                      : "mt-0.5 text-gray-500"
-                                  }
-                                >
-                                  {addr.addressLine1}
-                                  {addr.addressLine2 ? `, ${addr.addressLine2}` : ""}
-                                </p>
-                                {addr.phone && (
-                                  <p
-                                    className={
-                                      isHumanMade ? "text-[11px] text-[#121212]/50" : "text-gray-400"
-                                    }
-                                  >
-                                    {addr.phone}
-                                  </p>
-                                )}
-                              </div>
-                            </label>
-                          ))}
-                          <label
-                            className={`flex cursor-pointer items-center gap-3 ${isHumanMade ? "" : "rounded-lg"} border p-3 transition-colors ${
-                              selectedAddressId === "new" ? radioCardOn : radioCardOff
-                            }`}
-                          >
-                            <input
-                              type="radio"
-                              name="saved-address"
-                              checked={selectedAddressId === "new"}
-                              onChange={() => setSelectedAddressId("new")}
-                              className={`size-4 ${isHumanMade ? "accent-[#121212]" : "text-sf-accent"}`}
-                            />
-                            <span
-                              className={
-                                isHumanMade
-                                  ? "text-[12px] uppercase tracking-[0.08em] text-[#121212]"
-                                  : "text-sm font-medium text-gray-700"
-                              }
-                            >
-                              {t(locale, "使用新地址", "Use a new address", "Usar novo", "新しい住所")}
-                            </span>
-                          </label>
-                        </div>
-                      </section>
-                    )}
-
-                    {/* Address form (unless using saved address) */}
-                    {!usingSavedAddress && (
-                      <section>
-                        <h3 className={sectionHeading}>
-                          {deliveryMethod === "delivery"
-                            ? t(locale, "收件地址", "Shipping address", "Endereço de entrega", "配送先")
-                            : t(locale, "取件人資料", "Pickup details", "Detalhes de retirada", "受取人情報")}
-                        </h3>
-
-                        <div className="mt-6 space-y-4">
-                          {deliveryMethod === "delivery" && (
-                            <div>
-                              <label htmlFor="country" className={labelClass}>
-                                {t(locale, "國家/地區", "Country/Region", "País/Região", "国/地域")}
-                              </label>
-                              <input
-                                id="country"
-                                type="text"
-                                value="Macau SAR"
-                                disabled
-                                className={`${inputBase} mt-1 opacity-60 cursor-not-allowed`}
-                              />
-                            </div>
-                          )}
-
-                          <div className="grid grid-cols-2 gap-4">
-                            <div>
-                              <label htmlFor="first-name" className={labelClass}>
-                                {t(locale, "名", "First name", "Nome", "名")}
-                              </label>
-                              <input
-                                id="first-name"
-                                type="text"
-                                autoComplete="given-name"
-                                value={firstName}
-                                onChange={(e) => setFirstName(e.target.value)}
-                                className={`${inputBase} mt-1 ${fieldErrors.firstName ? inputErr : ""}`}
-                              />
-                              <FieldError name="firstName" />
-                            </div>
-                            <div>
-                              <label htmlFor="last-name" className={labelClass}>
-                                {t(locale, "姓", "Last name", "Sobrenome", "姓")}
-                              </label>
-                              <input
-                                id="last-name"
-                                type="text"
-                                autoComplete="family-name"
-                                value={lastName}
-                                onChange={(e) => setLastName(e.target.value)}
-                                className={`${inputBase} mt-1 ${fieldErrors.lastName ? inputErr : ""}`}
-                              />
-                              <FieldError name="lastName" />
-                            </div>
-                          </div>
-
-                          {deliveryMethod === "delivery" && (
-                            <>
-                              <div>
-                                <label htmlFor="company" className={labelClass}>
-                                  {t(locale, "公司（可選）", "Company (optional)", "Empresa (opcional)", "会社名（任意）")}
-                                </label>
-                                <input
-                                  id="company"
-                                  type="text"
-                                  autoComplete="organization"
-                                  value={company}
-                                  onChange={(e) => setCompany(e.target.value)}
-                                  className={`${inputBase} mt-1`}
-                                />
-                              </div>
-
-                              <div>
-                                <label htmlFor="address" className={labelClass}>
-                                  {t(locale, "地址", "Address", "Endereço", "住所")}
-                                </label>
-                                <input
-                                  id="address"
-                                  type="text"
-                                  autoComplete="address-line1"
-                                  value={addressLine1}
-                                  onChange={(e) => setAddressLine1(e.target.value)}
-                                  className={`${inputBase} mt-1 ${fieldErrors.addressLine1 ? inputErr : ""}`}
-                                />
-                                <FieldError name="addressLine1" />
-                              </div>
-
-                              <div>
-                                <label htmlFor="apartment" className={labelClass}>
-                                  {t(
-                                    locale,
-                                    "單位、樓層、大廈等（可選）",
-                                    "Apartment, suite, etc. (optional)",
-                                    "Apto, andar (opcional)",
-                                    "部屋番号、階数など（任意）"
-                                  )}
-                                </label>
-                                <input
-                                  id="apartment"
-                                  type="text"
-                                  autoComplete="address-line2"
-                                  value={apartment}
-                                  onChange={(e) => setApartment(e.target.value)}
-                                  className={`${inputBase} mt-1`}
-                                />
-                              </div>
-
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                  <label htmlFor="city" className={labelClass}>
-                                    {t(locale, "城市", "City", "Cidade", "都市")}
-                                  </label>
-                                  <input
-                                    id="city"
-                                    type="text"
-                                    autoComplete="address-level2"
-                                    value={city}
-                                    onChange={(e) => setCity(e.target.value)}
-                                    className={`${inputBase} mt-1 ${fieldErrors.city ? inputErr : ""}`}
-                                  />
-                                  <FieldError name="city" />
-                                </div>
-                                <div>
-                                  <label htmlFor="postal" className={labelClass}>
-                                    {t(
-                                      locale,
-                                      "郵政編碼（可選）",
-                                      "Postal code (optional)",
-                                      "CEP (opcional)",
-                                      "郵便番号（任意）"
-                                    )}
-                                  </label>
-                                  <input
-                                    id="postal"
-                                    type="text"
-                                    autoComplete="postal-code"
-                                    value={postalCode}
-                                    onChange={(e) => setPostalCode(e.target.value)}
-                                    className={`${inputBase} mt-1`}
-                                  />
-                                </div>
-                              </div>
-
-                              <div>
-                                <label htmlFor="district" className={labelClass}>
-                                  {t(locale, "區域（可選）", "District (optional)", "Distrito (opcional)", "地区（任意）")}
-                                </label>
-                                <input
-                                  id="district"
-                                  type="text"
-                                  autoComplete="address-level1"
-                                  value={district}
-                                  onChange={(e) => setDistrict(e.target.value)}
-                                  className={`${inputBase} mt-1`}
-                                />
-                              </div>
-                            </>
-                          )}
-
-                          <div>
-                            <label htmlFor="phone" className={labelClass}>
-                              {t(locale, "電話", "Phone", "Telefone", "電話番号")}
-                            </label>
-                            <input
-                              id="phone"
-                              type="tel"
-                              autoComplete="tel"
-                              placeholder="+853 6XXX XXXX"
-                              value={phone}
-                              onChange={(e) => setPhone(e.target.value)}
-                              className={`${inputBase} mt-1 ${fieldErrors.phone ? inputErr : ""}`}
-                            />
-                            <FieldError name="phone" />
-                          </div>
-
-                          {!isLoggedIn && (
-                            <label className="mt-2 flex items-start gap-2 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={saveInfo}
-                                onChange={(e) => setSaveInfo(e.target.checked)}
-                                className={`mt-0.5 size-4 ${isHumanMade ? "accent-[#121212]" : "text-sf-accent"}`}
-                              />
+                                </span>
+                              </span>
                               <span
                                 className={
                                   isHumanMade
-                                    ? "text-[11px] text-[#121212]/70 tracking-[0.03em]"
-                                    : "text-sm text-gray-600"
+                                    ? "text-[13px] tabular-nums text-[#121212]"
+                                    : "text-sm font-medium text-gray-900"
                                 }
                               >
-                                {t(
-                                  locale,
-                                  "儲存此資料以供下次使用",
-                                  "Save this information for next time",
-                                  "Salvar para próxima compra",
-                                  "次回のために保存する"
-                                )}
+                                {free
+                                  ? t(locale, "免費", "Free", "Grátis", "無料")
+                                  : `${currency} ${z.fee.toFixed(2)}`}
                               </span>
                             </label>
-                          )}
-                        </div>
-                      </section>
-                    )}
-
-                    {/* Nav */}
-                    <div
-                      className={`flex flex-col-reverse items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between ${
-                        isHumanMade ? "border-t border-[#121212]/15 pt-8" : "pt-6"
-                      }`}
-                    >
-                      <a href={`/${locale}/cart`} className={backLink}>
-                        <ChevronLeftIcon className="size-4" />
-                        {t(locale, "返回購物車", "Return to cart", "Voltar ao carrinho", "カートに戻る")}
-                      </a>
-                      <button
-                        type="button"
-                        onClick={handleContinueFromInformation}
-                        className={primaryBtn}
-                      >
-                        {t(locale, "繼續至送貨", "Continue to shipping", "Continuar para envio", "配送へ進む")}
-                      </button>
-                    </div>
-                  </div>
-                )}
-
-                {/* ═══════ STEP 2: SHIPPING ═══════ */}
-                {step === "shipping" && (
-                  <div className="space-y-10">
-                    {/* Review */}
-                    <div
-                      className={`${isHumanMade ? "border border-[#121212]/15" : "rounded-lg border border-gray-200"} divide-y ${isHumanMade ? "divide-[#121212]/15" : "divide-gray-200"}`}
-                    >
-                      <ReviewRow
-                        label={t(locale, "聯絡", "Contact", "Contato", "連絡先")}
-                        value={email}
-                        onEdit={() => goToStep("information")}
-                      />
-                      <ReviewRow
-                        label={
-                          deliveryMethod === "delivery"
-                            ? t(locale, "送至", "Ship to", "Enviar para", "配送先")
-                            : t(locale, "取件", "Pickup", "Retirada", "受取")
-                        }
-                        value={
-                          deliveryMethod === "delivery"
-                            ? `${resolvedAddressLine}${resolvedCity ? ", " + resolvedCity : ""}`
-                            : t(locale, "門市自取", "Store pickup", "Retirada na loja", "店舗受取")
-                        }
-                        onEdit={() => goToStep("information")}
-                      />
-                    </div>
-
-                    {/* Shipping method */}
-                    <section>
-                      <h3 className={sectionHeading}>
-                        {t(locale, "送貨方式", "Shipping method", "Método de envio", "配送方法")}
-                      </h3>
-
-                      {deliveryMethod === "delivery" ? (
-                        <div className="mt-6 space-y-2">
-                          {deliveryZones.length === 0 ? (
-                            <p
-                              className={
-                                isHumanMade
-                                  ? "text-[12px] text-[#121212]/60"
-                                  : "text-sm text-gray-500"
-                              }
-                            >
-                              {t(locale, "暫無送貨服務", "No shipping available", "Sem envio", "配送不可")}
-                            </p>
-                          ) : (
-                            deliveryZones.map((z) => {
-                              const free = !!(z.freeAbove && subtotal >= z.freeAbove);
-                              return (
-                                <label
-                                  key={z.id}
-                                  className={`flex cursor-pointer items-center justify-between gap-3 ${isHumanMade ? "" : "rounded-lg"} border p-4 transition-colors ${
-                                    selectedZone === z.id ? radioCardOn : radioCardOff
-                                  }`}
-                                >
-                                  <span className="flex items-center gap-3">
-                                    <input
-                                      type="radio"
-                                      checked={selectedZone === z.id}
-                                      onChange={() => setSelectedZone(z.id)}
-                                      className={`size-4 ${isHumanMade ? "accent-[#121212]" : "text-sf-accent"}`}
-                                    />
-                                    <span>
-                                      <span
-                                        className={
-                                          isHumanMade
-                                            ? "block text-[13px] text-[#121212]"
-                                            : "block text-sm font-medium text-gray-900"
-                                        }
-                                      >
-                                        {z.name}
-                                      </span>
-                                      {z.freeAbove && !free && (
-                                        <span
-                                          className={
-                                            isHumanMade
-                                              ? "block text-[11px] text-[#121212]/60 mt-0.5"
-                                              : "block text-xs text-gray-500 mt-0.5"
-                                          }
-                                        >
-                                          {t(
-                                            locale,
-                                            `滿${currency}${z.freeAbove}免運費`,
-                                            `Free over ${currency}${z.freeAbove}`,
-                                            `Grátis acima ${currency}${z.freeAbove}`,
-                                            `${currency}${z.freeAbove}以上無料`
-                                          )}
-                                        </span>
-                                      )}
-                                    </span>
-                                  </span>
-                                  <span
-                                    className={
-                                      isHumanMade
-                                        ? "text-[13px] tabular-nums text-[#121212]"
-                                        : "text-sm font-medium text-gray-900"
-                                    }
-                                  >
-                                    {free
-                                      ? t(locale, "免費", "Free", "Grátis", "無料")
-                                      : `${currency} ${z.fee.toFixed(2)}`}
-                                  </span>
-                                </label>
-                              );
-                            })
-                          )}
-                          <FieldError name="zone" />
-                        </div>
-                      ) : (
-                        <div
-                          className={`mt-6 ${isHumanMade ? "" : "rounded-lg"} border ${isHumanMade ? "border-[#121212]/15" : "border-gray-200"} p-4 flex items-center justify-between`}
-                        >
-                          <span
-                            className={
-                              isHumanMade
-                                ? "text-[13px] text-[#121212]"
-                                : "text-sm font-medium text-gray-900"
-                            }
-                          >
-                            {t(locale, "門市自取", "Store pickup", "Retirada na loja", "店舗受取")}
-                          </span>
-                          <span
-                            className={
-                              isHumanMade
-                                ? "text-[13px] tabular-nums text-[#121212]"
-                                : "text-sm font-medium text-gray-900"
-                            }
-                          >
-                            {t(locale, "免費", "Free", "Grátis", "無料")}
-                          </span>
-                        </div>
+                          );
+                        })
                       )}
-                    </section>
-
-                    <div
-                      className={`flex flex-col-reverse items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between ${
-                        isHumanMade ? "border-t border-[#121212]/15 pt-8" : "pt-6"
-                      }`}
-                    >
-                      <button
-                        type="button"
-                        onClick={() => goToStep("information")}
-                        className={backLink}
-                      >
-                        <ChevronLeftIcon className="size-4" />
-                        {t(locale, "返回資料", "Return to information", "Voltar", "情報へ戻る")}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={handleContinueFromShipping}
-                        className={primaryBtn}
-                      >
-                        {t(locale, "繼續至付款", "Continue to payment", "Continuar para pagamento", "支払いへ進む")}
-                      </button>
+                      <FieldError name="zone" />
                     </div>
-                  </div>
-                )}
-
-                {/* ═══════ STEP 3: PAYMENT ═══════ */}
-                {step === "payment" && (
-                  <div className="space-y-10">
-                    {/* Review */}
+                  ) : (
                     <div
-                      className={`${isHumanMade ? "border border-[#121212]/15" : "rounded-lg border border-gray-200"} divide-y ${isHumanMade ? "divide-[#121212]/15" : "divide-gray-200"}`}
+                      className={`mt-6 ${isHumanMade ? "" : "rounded-lg"} border ${isHumanMade ? "border-[#121212]/15" : "border-gray-200"} p-4 flex items-center justify-between`}
                     >
-                      <ReviewRow
-                        label={t(locale, "聯絡", "Contact", "Contato", "連絡先")}
-                        value={email}
-                        onEdit={() => goToStep("information")}
-                      />
-                      <ReviewRow
-                        label={
-                          deliveryMethod === "delivery"
-                            ? t(locale, "送至", "Ship to", "Enviar para", "配送先")
-                            : t(locale, "取件", "Pickup", "Retirada", "受取")
-                        }
-                        value={
-                          deliveryMethod === "delivery"
-                            ? `${resolvedAddressLine}${resolvedCity ? ", " + resolvedCity : ""}`
-                            : t(locale, "門市自取", "Store pickup", "Retirada na loja", "店舗受取")
-                        }
-                        onEdit={() => goToStep("information")}
-                      />
-                      <ReviewRow
-                        label={t(locale, "方式", "Method", "Método", "方法")}
-                        value={
-                          deliveryMethod === "delivery" && zone
-                            ? `${zone.name} · ${
-                                isFreeShipping
-                                  ? t(locale, "免費", "Free", "Grátis", "無料")
-                                  : `${currency} ${zone.fee.toFixed(2)}`
-                              }`
-                            : t(
-                                locale,
-                                "門市自取 · 免費",
-                                "Store pickup · Free",
-                                "Retirada · Grátis",
-                                "店舗受取 · 無料"
-                              )
-                        }
-                        onEdit={() => goToStep("shipping")}
-                      />
-                    </div>
-
-                    {/* Payment method */}
-                    <section>
-                      <div className="flex items-center gap-2">
-                        <h3 className={sectionHeading}>
-                          {t(locale, "付款", "Payment", "Pagamento", "支払い")}
-                        </h3>
-                        <LockClosedIcon
-                          className={`size-4 ${isHumanMade ? "text-[#121212]/60" : "text-gray-400"}`}
-                        />
-                      </div>
-                      <p
+                      <span
                         className={
                           isHumanMade
-                            ? "mt-2 text-[11px] text-[#121212]/60 tracking-[0.03em]"
-                            : "mt-2 text-sm text-gray-500"
+                            ? "text-[13px] text-[#121212]"
+                            : "text-sm font-medium text-gray-900"
                         }
                       >
-                        {t(
-                          locale,
-                          "所有交易均已加密並安全處理。",
-                          "All transactions are secure and encrypted.",
-                          "Todas as transações são seguras e criptografadas.",
-                          "すべての取引は暗号化されています。"
-                        )}
-                      </p>
-
-                      <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        {[
-                          { id: "simplepay", label: t(locale, "所有方式", "All methods", "Todos", "すべて") },
-                          { id: "mpay", label: "MPay" },
-                          { id: "alipay", label: t(locale, "支付寶", "Alipay", "Alipay", "Alipay") },
-                          { id: "wechat_pay", label: t(locale, "微信支付", "WeChat Pay", "WeChat Pay", "WeChat Pay") },
-                        ].map((pm) => (
-                          <button
-                            key={pm.id}
-                            type="button"
-                            onClick={() => setPaymentService(pm.id)}
-                            className={`${pillBase} ${paymentService === pm.id ? pillOn : pillOff}`}
-                          >
-                            {pm.label}
-                          </button>
-                        ))}
-                      </div>
-                    </section>
-
-                    {/* Notes */}
-                    <section>
-                      <label htmlFor="notes" className={labelClass}>
-                        {t(locale, "訂單備註（可選）", "Order notes (optional)", "Notas do pedido", "注文備考（任意）")}
-                      </label>
-                      <textarea
-                        id="notes"
-                        rows={3}
-                        value={notes}
-                        onChange={(e) => setNotes(e.target.value)}
-                        className={`${inputBase} mt-1`}
-                      />
-                    </section>
-
-                    <div
-                      className={`flex flex-col-reverse items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between ${
-                        isHumanMade ? "border-t border-[#121212]/15 pt-8" : "pt-6"
-                      }`}
-                    >
-                      <button type="button" onClick={() => goToStep("shipping")} className={backLink}>
-                        <ChevronLeftIcon className="size-4" />
-                        {t(locale, "返回送貨", "Return to shipping", "Voltar ao envio", "配送へ戻る")}
-                      </button>
-                      <button type="submit" disabled={submitting} className={primaryBtn}>
-                        {submitting
-                          ? "..."
-                          : t(locale, "立即付款", "Pay now", "Pagar agora", "今すぐ支払う")}
-                      </button>
+                        {t(locale, "門市自取", "Store pickup", "Retirada na loja", "店舗受取")}
+                      </span>
+                      <span
+                        className={
+                          isHumanMade
+                            ? "text-[13px] tabular-nums text-[#121212]"
+                            : "text-sm font-medium text-gray-900"
+                        }
+                      >
+                        {t(locale, "免費", "Free", "Grátis", "無料")}
+                      </span>
                     </div>
+                  )}
+                </section>
+
+                {/* ═══════ PAYMENT ═══════ */}
+                <section>
+                  <div className="flex items-center gap-2">
+                    <h3 className={sectionHeading}>
+                      {t(locale, "付款", "Payment", "Pagamento", "支払い")}
+                    </h3>
+                    <LockClosedIcon
+                      className={`size-4 ${isHumanMade ? "text-[#121212]/60" : "text-gray-400"}`}
+                    />
                   </div>
-                )}
+                  <p
+                    className={
+                      isHumanMade
+                        ? "mt-2 text-[11px] text-[#121212]/60 tracking-[0.03em]"
+                        : "mt-2 text-sm text-gray-500"
+                    }
+                  >
+                    {t(
+                      locale,
+                      "所有交易均已加密並安全處理。",
+                      "All transactions are secure and encrypted.",
+                      "Todas as transações são seguras e criptografadas.",
+                      "すべての取引は暗号化されています。"
+                    )}
+                  </p>
+
+                  <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {[
+                      { id: "simplepay", label: t(locale, "所有方式", "All methods", "Todos", "すべて") },
+                      { id: "mpay", label: "MPay" },
+                      { id: "alipay", label: t(locale, "支付寶", "Alipay", "Alipay", "Alipay") },
+                      { id: "wechat_pay", label: t(locale, "微信支付", "WeChat Pay", "WeChat Pay", "WeChat Pay") },
+                    ].map((pm) => (
+                      <button
+                        key={pm.id}
+                        type="button"
+                        onClick={() => setPaymentService(pm.id)}
+                        className={`${pillBase} ${paymentService === pm.id ? pillOn : pillOff}`}
+                      >
+                        {pm.label}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+
+                {/* ═══════ NOTES ═══════ */}
+                <section>
+                  <label htmlFor="notes" className={labelClass}>
+                    {t(locale, "訂單備註（可選）", "Order notes (optional)", "Notas do pedido", "注文備考（任意）")}
+                  </label>
+                  <textarea
+                    id="notes"
+                    rows={3}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className={`${inputBase} mt-1`}
+                  />
+                </section>
+
+                {/* ═══════ SUBMIT ═══════ */}
+                <div
+                  className={`flex flex-col-reverse items-stretch gap-4 sm:flex-row sm:items-center sm:justify-between ${
+                    isHumanMade ? "border-t border-[#121212]/15 pt-8" : "pt-6"
+                  }`}
+                >
+                  <a href={`/${locale}/cart`} className={backLink}>
+                    <ChevronLeftIcon className="size-4" />
+                    {t(locale, "返回購物車", "Return to cart", "Voltar ao carrinho", "カートに戻る")}
+                  </a>
+                  <button type="submit" disabled={submitting} className={primaryBtn}>
+                    {submitting
+                      ? "..."
+                      : t(locale, "立即付款", "Pay now", "Pagar agora", "今すぐ支払う")}
+                  </button>
+                </div>
               </form>
             </div>
           </section>
