@@ -275,7 +275,7 @@ export async function createOrder(
     secure: true,
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 30,
+    maxAge: 60 * 20,
   });
 
   return {

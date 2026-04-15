@@ -386,6 +386,7 @@ export async function getPendingOnlineOrder(params: {
     eq(orders.tenantId, tenantId),
     eq(orders.channel, "online"),
     eq(orders.status, "pending"),
+    sql`${orders.createdAt} > now() - interval '20 minutes'`,
   ];
   if (customerId) conditions.push(eq(orders.customerId, customerId));
   else if (orderNumber) conditions.push(eq(orders.orderNumber, orderNumber));
