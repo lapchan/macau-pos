@@ -16,3 +16,5 @@ QA-REPORT.md
 .vercel/
 apps/cashier/public/products/
 apps/storefront/public/products/
+docs/853mask-images/
+.claude/scheduled_tasks.lock
