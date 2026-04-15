@@ -4,6 +4,7 @@ import OrderSummary from "@/components/checkout/order-summary";
 import PaymentStatusBanner from "@/components/checkout/payment-status-banner";
 import { resolveTenant } from "@/lib/tenant-resolver";
 import { getOrderByNumber } from "@/lib/storefront-queries";
+import { clearCartAfterPayment } from "@/lib/actions/payment-flow";
 
 type Props = {
   params: Promise<{ locale: string }>;
@@ -28,6 +29,10 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
   const initialStatus = (order.status === "completed" || order.status === "refunded" || order.status === "voided")
     ? order.status
     : "pending";
+
+  if (initialStatus === "completed") {
+    await clearCartAfterPayment();
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 pt-6">

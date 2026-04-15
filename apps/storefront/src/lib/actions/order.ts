@@ -5,8 +5,6 @@ import {
   orders,
   orderItems,
   payments,
-  carts,
-  cartItems,
   products,
   locations,
   deliveryZones,
@@ -96,6 +94,41 @@ export async function createOrder(
   if (!cart || cart.items.length === 0) return { success: false, error: "Cart is empty" };
 
   const customer = await getCurrentCustomer();
+
+  // Invariant: at most one pending online order per customer at a time.
+  // If the user bails on the hosted page and then triggers a fresh
+  // checkout (instead of clicking Resume), void the stale one and
+  // restore its reserved stock before creating the new one.
+  if (customer) {
+    const stale = await db
+      .select({ id: orders.id })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.tenantId, tenant.id),
+          eq(orders.customerId, customer.id),
+          eq(orders.channel, "online"),
+          eq(orders.status, "pending"),
+        ),
+      );
+    for (const s of stale) {
+      const lines = await db
+        .select({ productId: orderItems.productId, quantity: orderItems.quantity })
+        .from(orderItems)
+        .where(eq(orderItems.orderId, s.id));
+      await db.transaction(async (tx) => {
+        await tx.update(orders).set({ status: "voided" }).where(eq(orders.id, s.id));
+        for (const l of lines) {
+          if (l.productId) {
+            await tx
+              .update(products)
+              .set({ stock: sql`${products.stock} + ${l.quantity}` })
+              .where(eq(products.id, l.productId));
+          }
+        }
+      });
+    }
+  }
 
   const [location] = await db
     .select()
@@ -266,8 +299,10 @@ export async function createOrder(
     intellipayRequestId: ipResult.requestId,
   });
 
-  await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
-  await db.delete(carts).where(eq(carts.id, cart.id));
+  // Cart is intentionally left alone here. We clear it only after payment
+  // is confirmed (webhook / status poll → completed), so that customers who
+  // abandon the hosted checkout page can come back, tweak the cart, or just
+  // resume the existing payment directly.
 
   const cookieStore = await cookies();
   cookieStore.set("pending_payment_order", dbResult.orderNumber, {

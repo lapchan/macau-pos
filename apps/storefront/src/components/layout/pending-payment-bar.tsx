@@ -3,6 +3,7 @@ import { resolveTenant } from "@/lib/tenant-resolver";
 import { getCurrentCustomer } from "@/lib/actions/auth";
 import { getPendingOnlineOrder } from "@/lib/storefront-queries";
 import { voidPendingOrder } from "@/lib/actions/void-order";
+import { resumePayment } from "@/lib/actions/payment-flow";
 
 const PENDING_COOKIE = "pending_payment_order";
 
@@ -77,15 +78,19 @@ export default async function PendingPaymentBar({ locale }: { locale: string }) 
         </span>
       </span>
       <span className="flex items-center gap-3">
-        <a
-          href={pending.paymentUrl!}
-          className="inline-flex items-center gap-1 rounded-md bg-white/95 px-3 py-1 text-xs font-semibold text-amber-700 transition hover:bg-white"
-        >
-          {c.resume}
-          <svg className="size-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-            <path fillRule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
-          </svg>
-        </a>
+        <form action={resumePayment}>
+          <input type="hidden" name="orderNumber" value={pending.orderNumber} />
+          <input type="hidden" name="locale" value={locale} />
+          <button
+            type="submit"
+            className="inline-flex items-center gap-1 rounded-md bg-white/95 px-3 py-1 text-xs font-semibold text-amber-700 transition hover:bg-white"
+          >
+            {c.resume}
+            <svg className="size-3.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+              <path fillRule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+            </svg>
+          </button>
+        </form>
         <form action={voidPendingOrder}>
           <input type="hidden" name="orderNumber" value={pending.orderNumber} />
           <input type="hidden" name="redirectTo" value={`/${locale}`} />

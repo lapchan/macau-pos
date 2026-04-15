@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getOnlinePaymentStatus } from "@/lib/actions/intellipay-status";
+import { clearCartAfterPayment } from "@/lib/actions/payment-flow";
 
 type Status = "pending" | "completed" | "refunded" | "voided";
 
@@ -69,6 +70,9 @@ export default function PaymentStatusBanner({
       if (res.success) {
         setStatus(res.data.orderStatus);
         setPaymentUrl(res.data.paymentUrl);
+        if (res.data.orderStatus === "completed") {
+          void clearCartAfterPayment();
+        }
         if (res.data.orderStatus === "pending") {
           timer = setTimeout(poll, 3000);
         }
