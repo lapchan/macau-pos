@@ -19,7 +19,6 @@ import {
 import { resolveTenant } from "@/lib/tenant-resolver";
 import { getCart } from "./cart";
 import { getCurrentCustomer } from "./auth";
-import { revalidatePath } from "next/cache";
 import { randomUUID } from "node:crypto";
 
 type ShippingAddress = {
@@ -266,13 +265,9 @@ export async function createOrder(
     intellipayRequestId: ipResult.requestId,
   });
 
-  // Clear cart only once intellipay has accepted the payment. If the user
-  // bails on the hosted page we still have the order + stock reservation,
-  // but they don't have to re-fill the cart to retry.
   await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
   await db.delete(carts).where(eq(carts.id, cart.id));
 
-  revalidatePath("/", "layout");
   return {
     success: true,
     orderId: dbResult.orderId,
