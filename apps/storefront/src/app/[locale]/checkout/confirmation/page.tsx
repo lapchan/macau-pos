@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { getDisplayName } from "@macau-pos/database";
 import OrderSummary from "@/components/checkout/order-summary";
+import PaymentStatusBanner from "@/components/checkout/payment-status-banner";
 import { resolveTenant } from "@/lib/tenant-resolver";
 import { getOrderByNumber } from "@/lib/storefront-queries";
 
@@ -24,8 +25,18 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
 
   const shippingAddr = order.shippingAddress as { recipientName?: string; addressLine1?: string; city?: string } | null;
 
+  const initialStatus = (order.status === "completed" || order.status === "refunded" || order.status === "voided")
+    ? order.status
+    : "pending";
+
   return (
-    <OrderSummary
+    <div className="mx-auto max-w-3xl px-4 pt-6">
+      <PaymentStatusBanner
+        orderNumber={order.orderNumber}
+        initialStatus={initialStatus}
+        locale={locale}
+      />
+      <OrderSummary
       variant="with-progress"
       orderNumber={order.orderNumber}
       orderDate={order.createdAt.toISOString().slice(0, 10)}
@@ -47,7 +58,8 @@ export default async function ConfirmationPage({ params, searchParams }: Props) 
         city: shippingAddr.city || "Macau",
       } : undefined}
       locale={locale}
-    />
+      />
+    </div>
   );
 }
 
