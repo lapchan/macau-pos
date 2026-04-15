@@ -6,17 +6,13 @@ import { getAddresses } from "@/lib/actions/account";
 import { notFound, redirect } from "next/navigation";
 import { db, locations, eq, getDisplayName } from "@macau-pos/database";
 import CheckoutClient from "./client";
-import CheckoutGate from "./gate";
 
 export default async function CheckoutPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ locale: string }>;
-  searchParams: Promise<{ guest?: string }>;
 }) {
   const { locale } = await params;
-  const { guest } = await searchParams;
   const tenant = await resolveTenant();
   if (!tenant) notFound();
 
@@ -29,11 +25,7 @@ export default async function CheckoutPage({
   const branding = config.branding as Record<string, unknown>;
   const themeId = (branding?.themeId as string) || "modern";
 
-  // Gate: require login choice unless already logged in or explicitly continuing as guest
   const customer = await getCurrentCustomer();
-  if (!customer && guest !== "1") {
-    return <CheckoutGate locale={locale} themeId={themeId} />;
-  }
 
   // Load delivery zones
   const locs = await db
@@ -70,6 +62,7 @@ export default async function CheckoutPage({
       deliveryZones={zones}
       locale={locale}
       themeId={themeId}
+      isLoggedIn={!!customer}
       customerEmail={customer?.email || undefined}
       customerPhone={customer?.phone || undefined}
       customerName={customer?.name || undefined}

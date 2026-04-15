@@ -38,6 +38,7 @@ type Props = {
   locale: string;
   currency?: string;
   themeId?: string;
+  isLoggedIn?: boolean;
   customerEmail?: string;
   customerPhone?: string;
   customerName?: string;
@@ -67,6 +68,7 @@ export default function CheckoutSplit({
   locale,
   currency = "MOP",
   themeId,
+  isLoggedIn = false,
   customerEmail,
   customerPhone,
   customerName,
@@ -294,9 +296,28 @@ export default function CheckoutSplit({
 
               {/* Contact */}
               <div>
-                <h3 className={sectionHeading}>
-                  {t(locale, "聯絡資料", "Contact information", "Informações de contato", "連絡先情報")}
-                </h3>
+                <div className="flex items-baseline justify-between gap-4">
+                  <h3 className={sectionHeading}>
+                    {t(locale, "聯絡資料", "Contact information", "Informações de contato", "連絡先情報")}
+                  </h3>
+                  {!isLoggedIn && (
+                    <p className={isHumanMade
+                      ? "text-[11px] tracking-[0.04em] text-[#121212]/60"
+                      : "text-xs text-gray-500"
+                    }>
+                      {t(locale, "已有帳號？", "Have an account?", "Já tem conta?", "アカウントをお持ちですか？")}{" "}
+                      <a
+                        href={`/${locale}/login?next=${encodeURIComponent(`/${locale}/checkout`)}`}
+                        className={isHumanMade
+                          ? "underline underline-offset-2 text-[#121212] hover:text-[#121212]/80"
+                          : "font-medium text-sf-accent hover:text-sf-accent-hover"
+                        }
+                      >
+                        {t(locale, "登入", "Log in", "Entrar", "ログイン")}
+                      </a>
+                    </p>
+                  )}
+                </div>
                 <div className="mt-6">
                   <label htmlFor="email" className={labelClass}>
                     {t(locale, "電郵地址", "Email address", "Email", "メールアドレス")}

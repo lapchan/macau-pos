@@ -22,6 +22,7 @@ type Props = {
   deliveryZones: { id: string; name: string; fee: number; freeAbove?: number | null }[];
   locale: string;
   themeId?: string;
+  isLoggedIn?: boolean;
   customerEmail?: string;
   customerPhone?: string;
   customerName?: string;
@@ -58,7 +59,7 @@ const redirectingCopy: Record<string, { preparing: string; redirecting: string; 
 
 type Phase = "idle" | "preparing" | "redirecting";
 
-export default function CheckoutClient({ items, deliveryZones, locale, themeId, customerEmail, customerPhone, customerName, savedAddresses = [] }: Props) {
+export default function CheckoutClient({ items, deliveryZones, locale, themeId, isLoggedIn = false, customerEmail, customerPhone, customerName, savedAddresses = [] }: Props) {
   const router = useRouter();
   const [phase, setPhase] = useState<Phase>("idle");
   const copy = redirectingCopy[locale] ?? redirectingCopy.en;
@@ -72,6 +73,7 @@ export default function CheckoutClient({ items, deliveryZones, locale, themeId, 
         deliveryZones={deliveryZones}
         locale={locale}
         themeId={themeId}
+        isLoggedIn={isLoggedIn}
         customerEmail={customerEmail}
         customerPhone={customerPhone}
         customerName={customerName}
