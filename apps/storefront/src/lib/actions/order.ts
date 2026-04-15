@@ -19,6 +19,7 @@ import {
 import { resolveTenant } from "@/lib/tenant-resolver";
 import { getCart } from "./cart";
 import { getCurrentCustomer } from "./auth";
+import { cookies } from "next/headers";
 import { randomUUID } from "node:crypto";
 
 type ShippingAddress = {
@@ -267,6 +268,15 @@ export async function createOrder(
 
   await db.delete(cartItems).where(eq(cartItems.cartId, cart.id));
   await db.delete(carts).where(eq(carts.id, cart.id));
+
+  const cookieStore = await cookies();
+  cookieStore.set("pending_payment_order", dbResult.orderNumber, {
+    httpOnly: true,
+    secure: true,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 30,
+  });
 
   return {
     success: true,

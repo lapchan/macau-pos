@@ -374,6 +374,41 @@ export async function getOrderByNumber(tenantId: string, orderNumber: string) {
   };
 }
 
+export async function getPendingOnlineOrder(params: {
+  tenantId: string;
+  customerId?: string | null;
+  orderNumber?: string | null;
+}) {
+  const { tenantId, customerId, orderNumber } = params;
+  if (!customerId && !orderNumber) return null;
+
+  const conditions = [
+    eq(orders.tenantId, tenantId),
+    eq(orders.channel, "online"),
+    eq(orders.status, "pending"),
+  ];
+  if (customerId) conditions.push(eq(orders.customerId, customerId));
+  else if (orderNumber) conditions.push(eq(orders.orderNumber, orderNumber));
+
+  const [row] = await db
+    .select({
+      orderId: orders.id,
+      orderNumber: orders.orderNumber,
+      total: orders.total,
+      currency: orders.currency,
+      createdAt: orders.createdAt,
+      paymentUrl: payments.intellipayPaymentUrl,
+    })
+    .from(orders)
+    .leftJoin(payments, eq(payments.orderId, orders.id))
+    .where(and(...conditions))
+    .orderBy(desc(orders.createdAt))
+    .limit(1);
+
+  if (!row || !row.paymentUrl) return null;
+  return row;
+}
+
 export async function getCustomerOrders(tenantId: string, customerId: string) {
   const rows = await db
     .select({

@@ -7,6 +7,7 @@ import { getDisplayName } from "@macau-pos/database";
 import StoreHeader from "@/components/layout/store-header";
 import StoreFooter from "@/components/layout/store-footer";
 import CookieBanner from "@/components/layout/cookie-banner";
+import PendingPaymentBar from "@/components/layout/pending-payment-bar";
 import { notFound } from "next/navigation";
 
 const VALID_LOCALES = ["tc", "sc", "en", "pt", "ja"];
@@ -125,6 +126,8 @@ export default async function LocaleLayout({
       )}
 
       <CookieBanner locale={locale} themeId={themeId} />
+
+      <PendingPaymentBar locale={locale} />
 
       {/* Announcement bar — hidden for humanmade theme */}
       {showAnnouncement && themeId !== "humanmade" && (
