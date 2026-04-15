@@ -78,6 +78,14 @@ export default function CartPopover({
     }
   }, [open]);
 
+  useEffect(() => {
+    function handleOpen() {
+      setOpen(true);
+    }
+    window.addEventListener("storefront:cart-open", handleOpen);
+    return () => window.removeEventListener("storefront:cart-open", handleOpen);
+  }, []);
+
   const isHumanMade = themeId === "humanmade";
 
   const handleQty = (id: string, next: number) => {

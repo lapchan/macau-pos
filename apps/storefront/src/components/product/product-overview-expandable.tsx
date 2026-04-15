@@ -334,8 +334,7 @@ export default function ProductOverviewExpandable({
     const result = await onAddToCart(productId, 1);
     setAdding(false);
     if (result.success) {
-      setAddedMessage(t(locale, "已加入購物車！", "Added to cart!", "Adicionado!", "カートに追加しました！"));
-      setTimeout(() => setAddedMessage(null), 3000);
+      window.dispatchEvent(new CustomEvent("storefront:cart-open"));
     } else if (result.error) {
       setAddedMessage(result.error);
     }
