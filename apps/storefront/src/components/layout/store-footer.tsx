@@ -32,6 +32,7 @@ export default function StoreFooter({ locale, tenantName, categories, accentColo
     ],
     account: [
       { name: t(locale, "管理帳號", "Manage Account", "Gerir Conta", "アカウント管理"), href: `/${locale}/account` },
+      { name: t(locale, "查詢訂單", "Track an order", "Procurar pedido", "注文を検索"), href: `/${locale}/orders/lookup` },
       { name: t(locale, "退換貨", "Returns & Exchanges", "Devoluções", "返品・交換"), href: `/${locale}/pages/returns` },
     ],
     connect: [

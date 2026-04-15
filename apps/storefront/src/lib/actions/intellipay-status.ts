@@ -10,6 +10,7 @@ import {
   and,
 } from "@macau-pos/database";
 import { resolveTenant } from "@/lib/tenant-resolver";
+import { clearCartAfterPayment } from "./payment-flow";
 
 export type OnlinePaymentStatus = {
   orderStatus: "pending" | "completed" | "refunded" | "voided";
@@ -155,6 +156,17 @@ export async function getOnlinePaymentStatus(
       .set({ status: mapped })
       .where(and(eq(orders.id, row.orderId), eq(orders.tenantId, tenant.id)));
   });
+
+  // pending → completed transition: clear the cart server-side so refreshing
+  // the page (or polling from another tab) won't show stale items. Only fires
+  // when *we* observed the transition, not on every status check.
+  if (mapped === "completed") {
+    try {
+      await clearCartAfterPayment();
+    } catch (e) {
+      console.warn("[getOnlinePaymentStatus] clearCartAfterPayment failed", e);
+    }
+  }
 
   return {
     success: true,

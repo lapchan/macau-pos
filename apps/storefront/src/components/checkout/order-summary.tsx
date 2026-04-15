@@ -1,16 +1,11 @@
 /**
- * OrderSummary — Tailwind Plus "Order Summaries" adapted for macau-pos
+ * OrderSummary — confirmation page receipt block.
  *
- * Variants:
- *  - "with-progress"         : Order items + progress bar tracking
- *  - "with-large-images"     : Large product images + progress bars
- *  - "with-split-image"      : Split layout with hero image + order details
- *  - "simple-full-details"   : Full order details in a clean single-column layout
+ * Server component. Renders order items, cost summary, shipping/payment
+ * details, and a status header that reflects the actual order state
+ * (no fake fulfillment tracking).
  */
-"use client";
-
 import Image from "next/image";
-import { CheckIcon } from "@heroicons/react/24/solid";
 
 type OrderItem = {
   name: string;
@@ -21,16 +16,12 @@ type OrderItem = {
   href?: string;
 };
 
-type FulfillmentStep = {
-  label: string;
-  date?: string;
-  status: "completed" | "current" | "upcoming";
-};
+type OrderStatus = "pending" | "completed" | "refunded" | "voided";
 
 type Props = {
-  variant?: "with-progress" | "with-large-images" | "with-split-image" | "simple-full-details";
   orderNumber: string;
   orderDate: string;
+  status: OrderStatus;
   items: OrderItem[];
   subtotal: number;
   deliveryFee: number;
@@ -41,10 +32,8 @@ type Props = {
   shippingAddress?: {
     name: string;
     address: string;
-    city: string;
+    city?: string;
   };
-  fulfillmentSteps?: FulfillmentStep[];
-  heroImage?: string;
   locale: string;
   currency?: string;
 };
@@ -54,54 +43,31 @@ const t = (locale: string, tc: string, en: string, pt: string, ja: string) => {
   return m[locale] || en;
 };
 
-// ============================================================
-// Progress tracker component
-// ============================================================
-function ProgressTracker({ steps }: { steps: FulfillmentStep[] }) {
-  const completedCount = steps.filter((s) => s.status === "completed").length;
-  const currentIndex = steps.findIndex((s) => s.status === "current");
-  const progressPercent = currentIndex >= 0
-    ? ((currentIndex + 0.5) / steps.length) * 100
-    : (completedCount / steps.length) * 100;
-
-  return (
-    <div className="mt-6">
-      {/* Progress bar */}
-      <div className="overflow-hidden rounded-full bg-gray-200">
-        <div
-          className="h-2 rounded-full bg-sf-accent transition-all duration-500"
-          style={{ width: `${Math.min(progressPercent, 100)}%` }}
-        />
-      </div>
-
-      {/* Step labels */}
-      <div className="mt-6 hidden sm:grid" style={{ gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` }}>
-        {steps.map((step, i) => (
-          <div key={i} className={`text-sm font-medium ${step.status === "completed" ? "text-sf-accent" : step.status === "current" ? "text-sf-accent" : "text-gray-500"}`}>
-            <div className="flex items-center gap-1.5">
-              {step.status === "completed" && <CheckIcon className="size-4 text-sf-accent" />}
-              {step.label}
-            </div>
-            {step.date && <p className="mt-0.5 text-xs font-normal text-gray-500">{step.date}</p>}
-          </div>
-        ))}
-      </div>
-
-      {/* Mobile: current step only */}
-      <div className="mt-4 sm:hidden">
-        {steps.map((step, i) =>
-          step.status === "current" ? (
-            <p key={i} className="text-sm font-medium text-sf-accent">{step.label}</p>
-          ) : null
-        )}
-      </div>
-    </div>
-  );
+function statusHeader(locale: string, status: OrderStatus) {
+  switch (status) {
+    case "completed":
+      return {
+        kicker: t(locale, "訂單已確認", "Order confirmed", "Pedido confirmado", "注文確認"),
+        title: t(locale, "感謝您的訂購！", "Thanks for ordering!", "Obrigado pela sua encomenda!", "ご注文ありがとうございます！"),
+      };
+    case "pending":
+      return {
+        kicker: t(locale, "等待付款", "Awaiting payment", "Aguardando pagamento", "支払い待ち"),
+        title: t(locale, "我們正在等待您的付款確認", "We're waiting for your payment to confirm", "Aguardamos a confirmação do seu pagamento", "お支払いの確認をお待ちしています"),
+      };
+    case "voided":
+      return {
+        kicker: t(locale, "訂單已取消", "Order cancelled", "Pedido cancelado", "注文キャンセル"),
+        title: t(locale, "此訂單已取消", "This order has been cancelled", "Este pedido foi cancelado", "この注文はキャンセルされました"),
+      };
+    case "refunded":
+      return {
+        kicker: t(locale, "訂單已退款", "Order refunded", "Pedido reembolsado", "返金済み"),
+        title: t(locale, "此訂單已退款", "This order has been refunded", "Este pedido foi reembolsado", "この注文は返金されました"),
+      };
+  }
 }
 
-// ============================================================
-// Item row — compact
-// ============================================================
 function ItemRowCompact({ item, locale, currency }: { item: OrderItem; locale: string; currency: string }) {
   return (
     <li className="flex space-x-6 py-6">
@@ -134,52 +100,6 @@ function ItemRowCompact({ item, locale, currency }: { item: OrderItem; locale: s
   );
 }
 
-// ============================================================
-// Item row — large image
-// ============================================================
-function ItemRowLarge({ item, locale, currency, steps }: { item: OrderItem; locale: string; currency: string; steps?: FulfillmentStep[] }) {
-  return (
-    <div className="border-b border-gray-200 py-10 last:border-b-0">
-      <div className="flex flex-col sm:flex-row">
-        {/* Large image */}
-        <div className="sm:w-40 sm:shrink-0">
-          <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-gray-100 sm:aspect-[2/3] sm:h-60">
-            {item.image ? (
-              <Image src={item.image} alt={item.name} fill sizes="(max-width: 640px) 100vw, 160px" className="object-cover object-center" />
-            ) : (
-              <div className="size-full flex items-center justify-center text-gray-300">
-                <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1">
-                  <rect width="18" height="18" x="3" y="3" rx="2" /><circle cx="9" cy="9" r="2" /><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
-                </svg>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Details */}
-        <div className="mt-6 flex flex-1 flex-col sm:ml-6 sm:mt-0">
-          <div className="flex justify-between">
-            <div>
-              <h4 className="text-base font-medium text-gray-900">{item.name}</h4>
-              {item.description && <p className="mt-1 text-sm text-gray-500">{item.description}</p>}
-            </div>
-            <p className="ml-4 text-base font-medium text-gray-900">{currency} {(item.unitPrice * item.quantity).toFixed(2)}</p>
-          </div>
-          <p className="mt-2 text-sm text-gray-500">
-            {t(locale, `數量: ${item.quantity}`, `Qty: ${item.quantity}`, `Qtd: ${item.quantity}`, `数量: ${item.quantity}`)}
-          </p>
-
-          {/* Per-item progress tracker */}
-          {steps && <ProgressTracker steps={steps} />}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ============================================================
-// Cost summary block
-// ============================================================
 function CostSummary({ subtotal, deliveryFee, tax, discount, total, locale, currency }: {
   subtotal: number; deliveryFee: number; tax?: number; discount?: number; total: number; locale: string; currency: string;
 }) {
@@ -200,8 +120,7 @@ function CostSummary({ subtotal, deliveryFee, tax, discount, total, locale, curr
         <dd className="text-gray-900">
           {deliveryFee === 0
             ? t(locale, "免費", "Free", "Grátis", "無料")
-            : `${currency} ${deliveryFee.toFixed(2)}`
-          }
+            : `${currency} ${deliveryFee.toFixed(2)}`}
         </dd>
       </div>
       {tax !== undefined && tax > 0 && (
@@ -218,13 +137,10 @@ function CostSummary({ subtotal, deliveryFee, tax, discount, total, locale, curr
   );
 }
 
-// ============================================================
-// Main component
-// ============================================================
 export default function OrderSummary({
-  variant = "with-progress",
   orderNumber,
   orderDate,
+  status,
   items,
   subtotal,
   deliveryFee,
@@ -233,296 +149,76 @@ export default function OrderSummary({
   total,
   paymentMethod,
   shippingAddress,
-  fulfillmentSteps,
-  heroImage,
   locale,
   currency = "MOP",
 }: Props) {
-  const defaultSteps: FulfillmentStep[] = fulfillmentSteps || [
-    { label: t(locale, "訂單已確認", "Order placed", "Pedido feito", "注文確認"), date: orderDate, status: "completed" },
-    { label: t(locale, "處理中", "Processing", "Processando", "処理中"), status: "current" },
-    { label: t(locale, "已出貨", "Shipped", "Enviado", "発送済み"), status: "upcoming" },
-    { label: t(locale, "已送達", "Delivered", "Entregue", "配達済み"), status: "upcoming" },
-  ];
+  const header = statusHeader(locale, status);
+  const kickerColor = status === "completed"
+    ? "text-sf-accent"
+    : status === "pending"
+      ? "text-amber-600"
+      : "text-slate-500";
 
-  // ============================================================
-  // Variant: with-split-image
-  // ============================================================
-  if (variant === "with-split-image") {
-    return (
-      <div className="bg-white">
-        <div className="mx-auto max-w-2xl px-4 py-16 sm:px-6 sm:py-24 lg:grid lg:max-w-7xl lg:grid-cols-2 lg:gap-x-8 lg:px-8 lg:py-32 xl:gap-x-24">
-          {/* Left — Hero image */}
-          <div className="lg:col-start-2">
-            <p className="text-sm font-medium text-sf-accent">
-              {t(locale, "付款成功", "Payment successful", "Pagamento bem-sucedido", "支払い成功")}
-            </p>
-            <h1 className="mt-2 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
-              {t(locale, "感謝您的訂購", "Thanks for ordering", "Obrigado pelo pedido", "ご注文ありがとうございます")}
-            </h1>
-            <p className="mt-2 text-base text-gray-500">
-              {t(locale, `訂單編號 #${orderNumber}`, `Order #${orderNumber}`, `Pedido #${orderNumber}`, `注文番号 #${orderNumber}`)}
-            </p>
-
-            {/* Progress */}
-            <ProgressTracker steps={defaultSteps} />
-
-            {/* Items */}
-            <ul role="list" className="mt-10 divide-y divide-gray-200 border-t border-gray-200 text-sm font-medium text-gray-500">
-              {items.map((item, i) => (
-                <ItemRowCompact key={i} item={item} locale={locale} currency={currency} />
-              ))}
-            </ul>
-
-            {/* Totals */}
-            <CostSummary subtotal={subtotal} deliveryFee={deliveryFee} tax={tax} discount={discount} total={total} locale={locale} currency={currency} />
-
-            {/* Shipping + Payment info */}
-            <dl className="mt-16 grid grid-cols-2 gap-x-4 text-sm text-gray-600">
-              {shippingAddress && (
-                <div>
-                  <dt className="font-medium text-gray-900">{t(locale, "送貨地址", "Shipping address", "Endereço de entrega", "配送先")}</dt>
-                  <dd className="mt-2">
-                    <p>{shippingAddress.name}</p>
-                    <p className="mt-1">{shippingAddress.address}</p>
-                    <p>{shippingAddress.city}</p>
-                  </dd>
-                </div>
-              )}
-              {paymentMethod && (
-                <div>
-                  <dt className="font-medium text-gray-900">{t(locale, "付款方式", "Payment method", "Método de pagamento", "支払い方法")}</dt>
-                  <dd className="mt-2">
-                    <p>{paymentMethod}</p>
-                  </dd>
-                </div>
-              )}
-            </dl>
-
-            <div className="mt-16 border-t border-gray-200 py-6 text-right">
-              <a href={`/${locale}/products`} className="text-sm font-medium text-sf-accent hover:text-sf-accent-hover">
-                {t(locale, "繼續購物", "Continue Shopping", "Continuar", "買い物を続ける")}
-                <span aria-hidden="true"> &rarr;</span>
-              </a>
-            </div>
-          </div>
-
-          {/* Right — Large image */}
-          <div className="mt-12 lg:col-start-1 lg:row-start-1 lg:mt-0">
-            {heroImage ? (
-              <div className="relative aspect-square w-full rounded-lg bg-gray-100 lg:aspect-auto lg:h-full">
-                <Image src={heroImage} alt="" fill sizes="(max-width: 1024px) 100vw, 50vw" className="rounded-lg object-cover" />
-              </div>
-            ) : (
-              <div className="aspect-square w-full rounded-lg bg-gradient-to-br from-sf-accent-light to-sf-accent-light flex items-center justify-center lg:aspect-auto lg:h-full">
-                <CheckIcon className="size-24 text-sf-accent/20" />
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ============================================================
-  // Variant: with-large-images
-  // ============================================================
-  if (variant === "with-large-images") {
-    return (
-      <div className="bg-white">
-        <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-          {/* Header */}
-          <div className="max-w-xl">
-            <p className="text-sm font-medium text-sf-accent">{t(locale, "訂單已確認", "Order confirmed", "Pedido confirmado", "注文確認")}</p>
-            <h1 className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">
-              {t(locale, "即將送達", "It's on the way!", "Está a caminho!", "配送中です！")}
-            </h1>
-            <p className="mt-2 text-base text-gray-500">
-              {t(locale, `訂單 #${orderNumber} 已於 ${orderDate} 確認`, `Order #${orderNumber} confirmed on ${orderDate}`, `Pedido #${orderNumber} confirmado em ${orderDate}`, `注文 #${orderNumber} は ${orderDate} に確認されました`)}
-            </p>
-          </div>
-
-          {/* Items with large images + per-item progress */}
-          <div className="mt-12">
-            {items.map((item, i) => (
-              <ItemRowLarge key={i} item={item} locale={locale} currency={currency} steps={defaultSteps} />
-            ))}
-          </div>
-
-          {/* Cost + Shipping/Payment */}
-          <div className="mt-10 sm:grid sm:grid-cols-2 sm:gap-x-6">
-            {/* Shipping + Payment */}
-            <dl className="text-sm text-gray-600">
-              {shippingAddress && (
-                <div>
-                  <dt className="font-medium text-gray-900">{t(locale, "送貨地址", "Shipping address", "Endereço", "配送先")}</dt>
-                  <dd className="mt-2">
-                    <p>{shippingAddress.name}</p>
-                    <p className="mt-1">{shippingAddress.address}</p>
-                    <p>{shippingAddress.city}</p>
-                  </dd>
-                </div>
-              )}
-              {paymentMethod && (
-                <div className="mt-6">
-                  <dt className="font-medium text-gray-900">{t(locale, "付款方式", "Payment", "Pagamento", "支払い")}</dt>
-                  <dd className="mt-2"><p>{paymentMethod}</p></dd>
-                </div>
-              )}
-            </dl>
-
-            {/* Cost summary */}
-            <CostSummary subtotal={subtotal} deliveryFee={deliveryFee} tax={tax} discount={discount} total={total} locale={locale} currency={currency} />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ============================================================
-  // Variant: simple-full-details
-  // ============================================================
-  if (variant === "simple-full-details") {
-    return (
-      <div className="bg-white">
-        <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-          <div className="max-w-xl">
-            <h1 className="text-base font-medium text-sf-accent">
-              {t(locale, "感謝您！", "Thank you!", "Obrigado!", "ありがとうございます！")}
-            </h1>
-            <p className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">
-              {t(locale, "即將送達", "It's on the way!", "Está a caminho!", "配送中です！")}
-            </p>
-            <p className="mt-2 text-base text-gray-500">
-              {t(locale, `訂單 #${orderNumber}`, `Order #${orderNumber}`, `Pedido #${orderNumber}`, `注文 #${orderNumber}`)}
-            </p>
-          </div>
-
-          {/* Items */}
-          <div className="mt-10 border-t border-gray-200">
-            <h2 className="sr-only">Your order</h2>
-
-            {items.map((item, i) => (
-              <div key={i} className="flex space-x-6 border-b border-gray-200 py-10">
-                <div className="relative size-20 shrink-0 overflow-hidden rounded-lg bg-gray-100 sm:size-40">
-                  {item.image ? (
-                    <Image src={item.image} alt={item.name} fill sizes="(max-width: 640px) 80px, 160px" className="object-cover" />
-                  ) : (
-                    <div className="size-full flex items-center justify-center text-gray-400 text-xs font-bold">
-                      {item.name.charAt(0)}
-                    </div>
-                  )}
-                </div>
-                <div className="flex flex-1 flex-col">
-                  <div>
-                    <h3 className="text-base font-medium text-gray-900">{item.name}</h3>
-                    {item.description && <p className="mt-1 text-sm text-gray-500">{item.description}</p>}
-                  </div>
-                  <div className="mt-auto flex items-center justify-between pt-4">
-                    <p className="text-sm text-gray-500">
-                      {t(locale, `數量: ${item.quantity}`, `Qty: ${item.quantity}`, `Qtd: ${item.quantity}`, `数量: ${item.quantity}`)}
-                    </p>
-                    <p className="text-sm font-medium text-gray-900">{currency} {(item.unitPrice * item.quantity).toFixed(2)}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Summary */}
-          <CostSummary subtotal={subtotal} deliveryFee={deliveryFee} tax={tax} discount={discount} total={total} locale={locale} currency={currency} />
-
-          {/* Shipping + Payment details */}
-          <div className="mt-16 grid grid-cols-1 gap-y-8 sm:grid-cols-2 sm:gap-x-6">
-            {shippingAddress && (
-              <div>
-                <h3 className="text-sm font-medium text-gray-900">{t(locale, "送貨地址", "Shipping address", "Endereço", "配送先")}</h3>
-                <div className="mt-3 text-sm text-gray-500">
-                  <p>{shippingAddress.name}</p>
-                  <p className="mt-1">{shippingAddress.address}</p>
-                  <p>{shippingAddress.city}</p>
-                </div>
-              </div>
-            )}
-            {paymentMethod && (
-              <div>
-                <h3 className="text-sm font-medium text-gray-900">{t(locale, "付款方式", "Payment", "Pagamento", "支払い")}</h3>
-                <div className="mt-3 text-sm text-gray-500">
-                  <p>{paymentMethod}</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Continue shopping */}
-          <div className="mt-16 border-t border-gray-200 pt-6 text-right">
-            <a href={`/${locale}/products`} className="text-sm font-medium text-sf-accent hover:text-sf-accent-hover">
-              {t(locale, "繼續購物", "Continue Shopping", "Continuar", "買い物を続ける")}
-              <span aria-hidden="true"> &rarr;</span>
-            </a>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ============================================================
-  // Default variant: with-progress
-  // ============================================================
   return (
     <div className="bg-white">
-      <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
-        {/* Header */}
+      <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
         <div className="max-w-xl">
-          <p className="text-sm font-medium text-sf-accent">{t(locale, "訂單已確認", "Order confirmed", "Pedido confirmado", "注文確認")}</p>
-          <h1 className="mt-2 text-4xl font-bold tracking-tight sm:text-5xl">
-            {t(locale, "感謝您的訂購！", "Thanks for ordering!", "Obrigado!", "ご注文ありがとうございます！")}
+          <p className={`text-sm font-medium ${kickerColor}`}>{header.kicker}</p>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight sm:text-4xl">
+            {header.title}
           </h1>
           <p className="mt-2 text-base text-gray-500">
             {t(locale, `訂單 #${orderNumber} · ${orderDate}`, `Order #${orderNumber} · ${orderDate}`, `Pedido #${orderNumber} · ${orderDate}`, `注文 #${orderNumber} · ${orderDate}`)}
           </p>
         </div>
 
-        {/* Progress tracker */}
-        <ProgressTracker steps={defaultSteps} />
-
-        {/* Items */}
         <h2 className="sr-only">{t(locale, "訂單商品", "Items ordered", "Itens pedidos", "注文商品")}</h2>
-        <ul role="list" className="mt-12 divide-y divide-gray-200 border-t border-gray-200">
+        <ul role="list" className="mt-10 divide-y divide-gray-200 border-t border-gray-200">
           {items.map((item, i) => (
             <ItemRowCompact key={i} item={item} locale={locale} currency={currency} />
           ))}
         </ul>
 
-        {/* Cost summary */}
-        <CostSummary subtotal={subtotal} deliveryFee={deliveryFee} tax={tax} discount={discount} total={total} locale={locale} currency={currency} />
+        <CostSummary
+          subtotal={subtotal}
+          deliveryFee={deliveryFee}
+          tax={tax}
+          discount={discount}
+          total={total}
+          locale={locale}
+          currency={currency}
+        />
 
-        {/* Shipping + Payment */}
-        <div className="mt-16 grid grid-cols-1 gap-y-8 sm:grid-cols-2 sm:gap-x-6">
-          {shippingAddress && (
-            <div>
-              <h3 className="text-sm font-medium text-gray-900">{t(locale, "送貨地址", "Shipping address", "Endereço", "配送先")}</h3>
-              <div className="mt-3 text-sm text-gray-500">
-                <p>{shippingAddress.name}</p>
-                <p className="mt-1">{shippingAddress.address}</p>
-                <p>{shippingAddress.city}</p>
+        {(shippingAddress || paymentMethod) && (
+          <div className="mt-12 grid grid-cols-1 gap-y-8 sm:grid-cols-2 sm:gap-x-6">
+            {shippingAddress && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-900">
+                  {t(locale, "送貨地址", "Shipping address", "Endereço de entrega", "配送先")}
+                </h3>
+                <div className="mt-3 text-sm text-gray-500">
+                  <p>{shippingAddress.name}</p>
+                  <p className="mt-1">{shippingAddress.address}</p>
+                  {shippingAddress.city && <p>{shippingAddress.city}</p>}
+                </div>
               </div>
-            </div>
-          )}
-          {paymentMethod && (
-            <div>
-              <h3 className="text-sm font-medium text-gray-900">{t(locale, "付款方式", "Payment method", "Pagamento", "支払い方法")}</h3>
-              <div className="mt-3 text-sm text-gray-500">
-                <p>{paymentMethod}</p>
+            )}
+            {paymentMethod && (
+              <div>
+                <h3 className="text-sm font-medium text-gray-900">
+                  {t(locale, "付款方式", "Payment method", "Método de pagamento", "支払い方法")}
+                </h3>
+                <div className="mt-3 text-sm text-gray-500">
+                  <p>{paymentMethod}</p>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
-        {/* Continue shopping */}
-        <div className="mt-16 border-t border-gray-200 pt-6 text-right">
+        <div className="mt-12 border-t border-gray-200 pt-6 text-right">
           <a href={`/${locale}/products`} className="text-sm font-medium text-sf-accent hover:text-sf-accent-hover">
-            {t(locale, "繼續購物", "Continue Shopping", "Continuar", "買い物を続ける")}
+            {t(locale, "繼續購物", "Continue Shopping", "Continuar a comprar", "買い物を続ける")}
             <span aria-hidden="true"> &rarr;</span>
           </a>
         </div>

@@ -6,11 +6,15 @@ import { voidPendingOrder } from "@/lib/actions/void-order";
 
 const PENDING_COOKIE = "pending_payment_order";
 
+const PAYMENT_TTL_MINUTES = 20;
+
 type Copy = {
   heading: string;
   resume: string;
   cancel: string;
   orderLabel: string;
+  minutesLeft: (n: number) => string;
+  expiringSoon: string;
 };
 
 const copyByLocale: Record<string, Copy> = {
@@ -19,30 +23,40 @@ const copyByLocale: Record<string, Copy> = {
     resume: "Resume payment",
     cancel: "Cancel",
     orderLabel: "Order",
+    minutesLeft: (n) => `${n} min left`,
+    expiringSoon: "Expiring soon",
   },
   tc: {
     heading: "您有一筆未完成付款的訂單",
     resume: "繼續付款",
     cancel: "取消",
     orderLabel: "訂單",
+    minutesLeft: (n) => `剩餘 ${n} 分鐘`,
+    expiringSoon: "即將過期",
   },
   sc: {
     heading: "您有一笔未完成付款的订单",
     resume: "继续付款",
     cancel: "取消",
     orderLabel: "订单",
+    minutesLeft: (n) => `剩余 ${n} 分钟`,
+    expiringSoon: "即将过期",
   },
   pt: {
     heading: "Tem um pedido por pagar",
     resume: "Retomar pagamento",
     cancel: "Cancelar",
     orderLabel: "Pedido",
+    minutesLeft: (n) => `${n} min restantes`,
+    expiringSoon: "A expirar",
   },
   ja: {
     heading: "未払いの注文があります",
     resume: "支払いを続ける",
     cancel: "キャンセル",
     orderLabel: "注文",
+    minutesLeft: (n) => `残り ${n} 分`,
+    expiringSoon: "まもなく期限切れ",
   },
 };
 
@@ -66,14 +80,24 @@ export default async function PendingPaymentBar({ locale }: { locale: string }) 
   const currency = pending.currency || "MOP";
   const totalDisplay = `${currency} ${parseFloat(String(pending.total)).toFixed(2)}`;
 
+  // Compute minutes remaining in the 20-min payment window. Server-rendered
+  // so it's exact at page load (no ticking — the user will see a fresher
+  // value on every navigation).
+  const createdAtMs = new Date(pending.createdAt).getTime();
+  const expiresAtMs = createdAtMs + PAYMENT_TTL_MINUTES * 60 * 1000;
+  const minutesLeft = Math.max(0, Math.ceil((expiresAtMs - Date.now()) / 60_000));
+  const countdownLabel =
+    minutesLeft <= 1 ? c.expiringSoon : c.minutesLeft(minutesLeft);
+  const isUrgent = minutesLeft <= 5;
+
   return (
-    <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 bg-amber-500 px-4 py-2.5 text-sm font-medium text-white">
+    <div className={`flex flex-wrap items-center justify-center gap-x-4 gap-y-2 px-4 py-2.5 text-sm font-medium text-white ${isUrgent ? "bg-rose-600" : "bg-amber-500"}`}>
       <span className="flex items-center gap-2">
         <svg className="size-4 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
           <path fillRule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495ZM10 6a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 10 6Zm0 9a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z" clipRule="evenodd" />
         </svg>
         <span>
-          {c.heading} — {c.orderLabel} {pending.orderNumber} · {totalDisplay}
+          {c.heading} — {c.orderLabel} {pending.orderNumber} · {totalDisplay} · {countdownLabel}
         </span>
       </span>
       <span className="flex items-center gap-3">

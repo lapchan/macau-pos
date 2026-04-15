@@ -28,7 +28,13 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  const response = NextResponse.next();
+  // Forward the resolved pathname so server components can decide whether
+  // to render path-sensitive UI (e.g. hide the pending-payment bar on
+  // /checkout, /cart). Next.js doesn't expose pathname to RSC otherwise.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", pathname);
+
+  const response = NextResponse.next({ request: { headers: requestHeaders } });
 
   // Ensure guest cart session token exists
   if (!request.cookies.has("sf_cart_session")) {

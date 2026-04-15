@@ -118,8 +118,11 @@ export async function resumePayment(formData: FormData): Promise<void> {
   const cartMap = new Map<string, number>();
   for (const l of cartLines) cartMap.set(key(l.productId, l.variantId), l.quantity);
 
-  let unchanged = orderMap.size === cartMap.size;
-  if (unchanged) {
+  // Empty cart → user has no fresh cart to compare against, so just resume
+  // the saved payment URL. This mirrors the resume-page logic and avoids the
+  // "double-bounce to /products" UX the action used to produce.
+  let unchanged = cartMap.size === 0 || orderMap.size === cartMap.size;
+  if (unchanged && cartMap.size > 0) {
     for (const [k, qty] of orderMap) {
       if (cartMap.get(k) !== qty) {
         unchanged = false;

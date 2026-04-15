@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { resolveTenant } from "@/lib/tenant-resolver";
 import { getStorefrontConfig, getStorefrontCategories } from "@/lib/storefront-queries";
 import { getCart } from "@/lib/actions/cart";
@@ -56,6 +57,14 @@ export default async function LocaleLayout({
 
   const tenant = await resolveTenant();
   if (!tenant) notFound();
+
+  // Suppress the pending-payment bar on routes where it would be confusing
+  // (the user is already in a checkout flow). Pathname is forwarded by
+  // middleware via x-pathname.
+  const hdrs = await headers();
+  const pathname = hdrs.get("x-pathname") || "";
+  const inCheckoutFlow =
+    pathname.includes("/checkout") || pathname.endsWith("/cart");
 
   const [config, categories, cart, customer] = await Promise.all([
     getStorefrontConfig(tenant.id),
@@ -127,7 +136,7 @@ export default async function LocaleLayout({
 
       <CookieBanner locale={locale} themeId={themeId} />
 
-      <PendingPaymentBar locale={locale} />
+      {!inCheckoutFlow && <PendingPaymentBar locale={locale} />}
 
       {/* Announcement bar — hidden for humanmade theme */}
       {showAnnouncement && themeId !== "humanmade" && (

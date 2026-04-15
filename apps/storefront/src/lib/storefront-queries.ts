@@ -355,7 +355,10 @@ export async function getOrderByNumber(tenantId: string, orderNumber: string) {
   }
 
   const [payment] = await db
-    .select({ method: payments.method })
+    .select({
+      method: payments.method,
+      intellipayPaymentService: payments.intellipayPaymentService,
+    })
     .from(payments)
     .where(eq(payments.orderId, order.id))
     .limit(1);
@@ -371,6 +374,7 @@ export async function getOrderByNumber(tenantId: string, orderNumber: string) {
       image: i.productId ? productImages[i.productId] : null,
     })),
     paymentMethod: payment?.method || null,
+    paymentService: payment?.intellipayPaymentService || null,
   };
 }
 
