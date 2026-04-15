@@ -19,7 +19,6 @@ import { resumePayment } from "@/lib/actions/payment-flow";
 import { voidPendingOrder } from "@/lib/actions/void-order";
 import PaymentCountdown from "@/components/checkout/payment-countdown";
 
-const PENDING_COOKIE = "pending_payment_order";
 const PAYMENT_TTL_MINUTES = 20;
 
 type Copy = {
@@ -165,8 +164,6 @@ export default async function ResumePaymentPage({
 
   if (!orderRow) redirect(`/${locale}`);
   if (orderRow.status !== "pending" || !orderRow.paymentUrl) {
-    const cookieStore = await cookies();
-    cookieStore.delete(PENDING_COOKIE);
     redirect(`/${locale}`);
   }
 
