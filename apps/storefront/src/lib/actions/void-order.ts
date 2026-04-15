@@ -10,7 +10,7 @@ import {
   sql,
 } from "@macau-pos/database";
 import { resolveTenant } from "@/lib/tenant-resolver";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 const PENDING_COOKIE = "pending_payment_order";
@@ -18,9 +18,12 @@ const PENDING_COOKIE = "pending_payment_order";
 export async function voidPendingOrder(formData: FormData): Promise<void> {
   const orderNumber = formData.get("orderNumber") as string | null;
   const redirectTo = (formData.get("redirectTo") as string | null) || "/";
+  const h = await headers();
+  console.log("[voidPendingOrder] host=", h.get("host"), "orderNumber=", orderNumber, "redirectTo=", redirectTo);
   if (!orderNumber) redirect(redirectTo);
 
   const tenant = await resolveTenant();
+  console.log("[voidPendingOrder] resolved tenant=", tenant?.slug);
   if (!tenant) redirect(redirectTo);
 
   const [order] = await db
