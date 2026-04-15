@@ -328,53 +328,45 @@ export default function CheckoutSplit({
       </ul>
   );
 
-  const summaryFooter = (
-    <>
-      {/* Discount code */}
-      <div
-        className={`border-t ${isHumanMade ? "border-[#121212]/10" : "border-gray-200"} pt-6`}
-      >
-        <div className="flex items-end gap-2">
-          <div className="flex-1">
-            <input
-              type="text"
-              value={discountCode}
-              onChange={(e) => {
-                setDiscountCode(e.target.value);
-                if (discountError) setDiscountError(null);
-              }}
-              placeholder={t(
-                locale,
-                "優惠碼或禮品卡",
-                "Discount code or gift card",
-                "Código ou cartão",
-                "割引コードまたはギフトカード"
-              )}
-              className={inputBase}
-            />
-          </div>
-          <button
-            type="button"
-            onClick={handleApplyDiscount}
-            disabled={!discountCode.trim()}
-            className={
-              isHumanMade
-                ? "border border-[#121212] bg-white px-6 py-2 text-[12px] uppercase tracking-[0.1em] text-[#121212] hover:bg-[#f5f5f5] disabled:opacity-30 disabled:cursor-not-allowed"
-                : "rounded-md border border-gray-300 bg-white px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-            }
-          >
-            {t(locale, "套用", "Apply", "Aplicar", "適用")}
-          </button>
-        </div>
-        {discountError && (
-          <p className="mt-2 text-xs text-red-600">{discountError}</p>
-        )}
+  const discountBlock = (
+    <div className="flex items-end gap-2">
+      <div className="flex-1">
+        <input
+          type="text"
+          value={discountCode}
+          onChange={(e) => {
+            setDiscountCode(e.target.value);
+            if (discountError) setDiscountError(null);
+          }}
+          placeholder={t(
+            locale,
+            "優惠碼或禮品卡",
+            "Discount code or gift card",
+            "Código ou cartão",
+            "割引コードまたはギフトカード"
+          )}
+          className={inputBase}
+        />
       </div>
-
-      {/* Totals */}
-      <dl
-        className={`mt-6 space-y-4 border-t ${isHumanMade ? "border-[#121212]/10" : "border-gray-200"} pt-6 text-sm font-medium`}
+      <button
+        type="button"
+        onClick={handleApplyDiscount}
+        disabled={!discountCode.trim()}
+        className={
+          isHumanMade
+            ? "border border-[#121212] bg-white px-6 py-2 text-[12px] uppercase tracking-[0.1em] text-[#121212] hover:bg-[#f5f5f5] disabled:opacity-30 disabled:cursor-not-allowed"
+            : "rounded-md border border-gray-300 bg-white px-6 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+        }
       >
+        {t(locale, "套用", "Apply", "Aplicar", "適用")}
+      </button>
+    </div>
+  );
+
+  const totalsBlock = (
+    <dl
+      className={`space-y-4 border-t ${isHumanMade ? "border-[#121212]/10" : "border-gray-200"} pt-6 text-sm font-medium`}
+    >
         <div className="flex items-center justify-between">
           <dt className={breakdownLabel}>
             {t(locale, "小計", "Subtotal", "Subtotal", "小計")}
@@ -407,7 +399,6 @@ export default function CheckoutSplit({
           </dd>
         </div>
       </dl>
-    </>
   );
 
   // ─── Field error helper ───────────────────────────────────────────────
@@ -475,31 +466,29 @@ export default function CheckoutSplit({
               {mobileSummaryOpen && (
                 <div className="mx-auto max-w-2xl px-4 pb-8">
                   {itemsList}
-                  {summaryFooter}
+                  <div className="mt-6">{totalsBlock}</div>
                 </div>
               )}
             </div>
 
-            {/* Desktop — sticky full-height with scrollable items and pinned footer */}
-            <div className="hidden lg:sticky lg:top-0 lg:flex lg:h-screen lg:flex-col lg:pt-10 lg:pb-6">
-              <div className="mx-auto flex w-full max-w-2xl min-h-0 flex-1 flex-col px-4 lg:max-w-none lg:px-0">
-                <div className="shrink-0">
-                  <h2 id="summary-heading" className={isHumanMade ? sectionHeading + " mb-2" : "sr-only"}>
-                    {isHumanMade
-                      ? t(locale, "訂單摘要", "Order summary", "Resumo", "ご注文内容")
-                      : "Order summary"}
-                  </h2>
-                  <dl>
-                    <dt className={summaryAmountLabel}>
-                      {t(locale, "應付金額", "Amount due", "Valor devido", "お支払い金額")}
-                    </dt>
-                    <dd className={summaryAmountValue}>
-                      {currency} {total.toFixed(2)}
-                    </dd>
-                  </dl>
-                </div>
-                <div className="mt-6 min-h-0 flex-1 overflow-y-auto">{itemsList}</div>
-                <div className="shrink-0">{summaryFooter}</div>
+            {/* Desktop — sticky, single page scroll (no inner overflow) */}
+            <div className="hidden lg:block lg:sticky lg:top-0 lg:self-start lg:pt-10 lg:pb-10">
+              <div className="mx-auto max-w-2xl px-4 lg:max-w-none lg:px-0">
+                <h2 id="summary-heading" className={isHumanMade ? sectionHeading + " mb-2" : "sr-only"}>
+                  {isHumanMade
+                    ? t(locale, "訂單摘要", "Order summary", "Resumo", "ご注文内容")
+                    : "Order summary"}
+                </h2>
+                <dl>
+                  <dt className={summaryAmountLabel}>
+                    {t(locale, "應付金額", "Amount due", "Valor devido", "お支払い金額")}
+                  </dt>
+                  <dd className={summaryAmountValue}>
+                    {currency} {total.toFixed(2)}
+                  </dd>
+                </dl>
+                <div className="mt-6">{itemsList}</div>
+                <div className="mt-6">{totalsBlock}</div>
               </div>
             </div>
           </section>
@@ -1073,6 +1062,17 @@ export default function CheckoutSplit({
                       </button>
                     ))}
                   </div>
+                </section>
+
+                {/* ═══════ DISCOUNT CODE ═══════ */}
+                <section>
+                  <h3 className={sectionHeading}>
+                    {t(locale, "優惠碼", "Discount code", "Código de desconto", "割引コード")}
+                  </h3>
+                  <div className="mt-6">{discountBlock}</div>
+                  {discountError && (
+                    <p className="mt-2 text-xs text-red-600">{discountError}</p>
+                  )}
                 </section>
 
                 {/* ═══════ NOTES ═══════ */}
