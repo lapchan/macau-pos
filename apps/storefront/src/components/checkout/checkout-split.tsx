@@ -476,7 +476,7 @@ export default function CheckoutSplit({
             </div>
 
             {/* Desktop */}
-            <div className="hidden lg:block lg:pb-24">
+            <div className="hidden lg:block lg:sticky lg:top-0 lg:max-h-screen lg:overflow-y-auto lg:pt-10 lg:pb-10">
               <div className="mx-auto max-w-2xl px-4 lg:max-w-none lg:px-0">
                 <h2 id="summary-heading" className={isHumanMade ? sectionHeading + " mb-2" : "sr-only"}>
                   {isHumanMade
