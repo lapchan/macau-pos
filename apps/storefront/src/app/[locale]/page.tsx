@@ -1,7 +1,6 @@
 import { resolveTenant } from "@/lib/tenant-resolver";
 import { getStorefrontConfig } from "@/lib/storefront-queries";
 import { notFound } from "next/navigation";
-import { headers } from "next/headers";
 import SectionRenderer, { type SectionConfig } from "@/components/sections/section-renderer";
 import { getThemeById, getDefaultTheme } from "@/lib/themes";
 
@@ -158,10 +157,7 @@ export default async function HomePage({
   params: Promise<{ locale: string }>;
 }) {
   const { locale } = await params;
-  const h = await headers();
-  console.log("[HomePage] all headers=", JSON.stringify(Object.fromEntries(h.entries())));
   const tenant = await resolveTenant();
-  console.log("[HomePage] host=", h.get("host"), "locale=", locale, "resolved tenant=", tenant?.slug);
   if (!tenant) notFound();
 
   const config = await getStorefrontConfig(tenant.id);

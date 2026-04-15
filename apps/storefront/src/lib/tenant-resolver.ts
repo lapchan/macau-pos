@@ -21,9 +21,13 @@ export async function resolveTenant(slug?: string) {
     return findBySlug(slug);
   }
 
-  // 2–3. Resolve from hostname
+  // 2–3. Resolve from hostname.
+  // Prefer x-forwarded-host: during server-action internal re-renders
+  // Next.js uses the container's loopback hostname in `host`, but passes
+  // the real external host via x-forwarded-host. Nginx also sets it.
   const headersList = await headers();
-  const host = headersList.get("host") || "";
+  const host =
+    headersList.get("x-forwarded-host") || headersList.get("host") || "";
   const hostname = host.split(":")[0]; // strip port
 
   // Tenant subdomain: mybrand.store.hkretailai.com

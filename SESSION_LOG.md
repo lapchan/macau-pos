@@ -1222,3 +1222,31 @@ Yahoo JP was the planned fallback for barcodes Rakuten misses (e.g. `45454035726
 - **Product variant slide transition** on HUMAN MADE PDP — direction-aware translateX animation, only images animate (name/price static)
 - **Consolidated 2 HUMAN MADE products into 1 with variants** using `product_variants` table
 - **Added full product descriptions** from humanmade.jp reference (specs, size chart)
+
+## Intellipay CPM + Refund Unblock + BarcodePlus/UPCItemDB Fixes (2026-04-15)
+
+### What was done
+1. **Intellipay CPM debugged and working end-to-end.** Customer-presented scan payments (Alipay/WeChat/UnionPay auth codes) now route through `/v1/retailai/payments/cp-mode/create`. Root cause was a silent field-name mismatch: simpaylicity reads the scan code from `payment_authorization_code`, NOT `auth_code`. Every wrong-name request returned a canned `{code: missing_parameter, details: null, request_id: null}` with no diagnostic info, which made bisecting impossible until simpaylicity confirmed the name. Verified end-to-end with a real wallet scan at the cashier terminal — MPM, CPM, and refund are all green on POS.
+2. **Auto-detect wallet scan in review state.** Added `isWalletAuthCode()` helper (regex `/^\d{16,24}$/`) in `use-barcode-scanner.ts` and a second `useBarcodeScanner` in `checkout-modal.tsx` gated on `state === "review"`. Cashier can now scan a customer's wallet QR from the checkout review screen without pressing F5 first. The 16-24 digit range is strictly longer than any EAN/UPC so product barcodes cleanly drop through.
+3. **BarcodePlus PRD.CD006 fix.** Treat `PRD.CD006` as "registered but no metadata" (same semantics as `PRD.CD015`) in `lookupBarcodePlus` so the temp-product-create path triggers instead of the misleading "barcode database unavailable" error for HK 489 barcodes without details.
+4. **UPCItemDB provider added for GS1 US/CA (prefixes 000-139).** New `lookupUpcItemDb` hits `api.upcitemdb.com/prod/trial/lookup` (free 100 req/day/IP, no key), maps 429 to `missing`, and threads a new `gs1us` source through `ExternalLookupSource`, `barcode-providers.ts`, `pos-client.tsx`, `scan-feedback.tsx` and all 5 locales. 200-299 (in-store reserved) is still skipped.
+
+### Key files
+- `packages/database/src/intellipay/client.ts` — `createCpmPayment` now renames `auth_code → payment_authorization_code` and drops the ignored `payment_type: terminalc2b`
+- `apps/cashier/src/lib/use-barcode-scanner.ts` — `isWalletAuthCode()` helper
+- `apps/cashier/src/components/checkout/checkout-modal.tsx` — second barcode listener for review state
+- `apps/cashier/src/lib/actions.ts` — CD006 fix + new `lookupUpcItemDb`
+- `apps/cashier/src/lib/barcode-providers.ts` — upcitemdb provider for US/CA prefix range
+- `apps/cashier/src/app/pos-client.tsx`, `scan-feedback.tsx`, `i18n/locales.ts` — `gs1us` source label threading + 5 locales
+
+### Commits
+- `100009d` — BarcodePlus CD006 + UPCItemDB
+- `392cf69` — auto-detect wallet QR in review state
+- `d98d6ce` — (earlier attempted fix that added `payment_service` on CPM — kept, still needed)
+- `838d56d` — added `raw` field to CPM error log to surface upstream details
+- `651a0f2` — **the real CPM fix**: `payment_authorization_code` rename
+
+### Notes
+- Extensive 40+ variant probe script (`/tmp/cpm-probe*.mjs`) confirmed the `cp-mode/create` endpoint returned identical `missing_parameter` regardless of body shape — the distinguishing sign was that `request_id` was null and `details` was null, meaning simpaylicity's handler was short-circuiting before reaching the normal request path. Simpaylicity acknowledged two bugs on their side: (a) validation errors on cp-mode are missing field names / request_ids, and (b) missing `order_id`/`order_amount` get mis-bucketed as `502 provider_error` instead of `missing_parameter`. They'll fix both.
+- The wrapper `createCpmPayment(...)` still accepts `auth_code` as the friendly input name; only the upstream body is renamed.
+- Parked for next session: **storefront intellipay checkout integration** (the `mpay`-hardcoded 500 on storefront). POS side is fully complete now.
