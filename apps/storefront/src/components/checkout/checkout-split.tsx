@@ -288,21 +288,21 @@ export default function CheckoutSplit({
       className={`divide-y ${isHumanMade ? "divide-[#121212]/10" : "divide-gray-200"} text-sm font-medium`}
     >
         {items.map((item) => (
-          <li key={item.id} className="flex items-start space-x-4 py-6">
+          <li key={item.id} className="flex items-start space-x-3 py-4">
             <div className="relative shrink-0">
               <div
-                className={`relative size-20 overflow-hidden ${isHumanMade ? "" : "rounded-md"} bg-[#f5f5f5]`}
+                className={`relative size-14 overflow-hidden ${isHumanMade ? "" : "rounded-md"} bg-[#f5f5f5]`}
               >
                 {item.image ? (
                   <StoreThumb
                     src={item.image}
                     alt={item.name}
                     fill
-                    sizes="80px"
+                    sizes="56px"
                     className="object-contain object-center"
                   />
                 ) : (
-                  <div className="size-full flex items-center justify-center text-[#121212]/30 text-xs font-bold">
+                  <div className="size-full flex items-center justify-center text-[#121212]/30 text-[10px] font-bold">
                     {item.name.charAt(0)}
                   </div>
                 )}
@@ -310,7 +310,7 @@ export default function CheckoutSplit({
               {item.quantity > 1 && (
                 <span
                   aria-label={`Quantity ${item.quantity}`}
-                  className="absolute -right-2 -top-2 flex size-6 items-center justify-center rounded-full bg-[#121212] text-[12px] font-medium tabular-nums text-white shadow-sm"
+                  className="absolute -right-1.5 -top-1.5 flex size-5 items-center justify-center rounded-full bg-[#121212] text-[10px] font-medium tabular-nums text-white shadow-sm"
                 >
                   {item.quantity}
                 </span>
