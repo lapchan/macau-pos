@@ -111,6 +111,8 @@ type TranslationKeys = {
   updateAvailableBody: string;
   updateAvailableReload: string;
   updateAvailableLater: string;
+  updateAvailableUpdating: string;
+  updateAvailableWait: string;
 
   // Misc
   receiptDiscount: string;
@@ -410,6 +412,8 @@ const translations: Record<Locale, TranslationKeys> = {
     updateAvailableBody: "請重新載入以繼續使用。",
     updateAvailableReload: "重新載入",
     updateAvailableLater: "稍後",
+    updateAvailableUpdating: "正在更新…",
+    updateAvailableWait: "請稍候，即將完成",
     receiptDiscount: "折扣",
     startShiftToSeeDrawer: "開始班次以查看錢櫃",
     comingSoon: "即將推出",
@@ -683,6 +687,8 @@ const translations: Record<Locale, TranslationKeys> = {
     updateAvailableBody: "请重新加载以继续使用。",
     updateAvailableReload: "重新加载",
     updateAvailableLater: "稍后",
+    updateAvailableUpdating: "正在更新…",
+    updateAvailableWait: "请稍候，即将完成",
     receiptDiscount: "折扣",
     startShiftToSeeDrawer: "开始班次以查看钱柜",
     comingSoon: "即将推出",
@@ -956,6 +962,8 @@ const translations: Record<Locale, TranslationKeys> = {
     updateAvailableBody: "Reload to continue using the POS.",
     updateAvailableReload: "Reload",
     updateAvailableLater: "Later",
+    updateAvailableUpdating: "Updating…",
+    updateAvailableWait: "Please wait, almost done",
     receiptDiscount: "Discount",
     startShiftToSeeDrawer: "Start a shift to see drawer",
     comingSoon: "Coming soon",
@@ -1229,6 +1237,8 @@ const translations: Record<Locale, TranslationKeys> = {
     updateAvailableBody: "Recarregue para continuar a usar o POS.",
     updateAvailableReload: "Recarregar",
     updateAvailableLater: "Mais tarde",
+    updateAvailableUpdating: "A atualizar…",
+    updateAvailableWait: "Aguarde, quase pronto",
     receiptDiscount: "Desconto",
     startShiftToSeeDrawer: "Iniciar turno para ver caixa",
     comingSoon: "Em breve",
@@ -1502,6 +1512,8 @@ const translations: Record<Locale, TranslationKeys> = {
     updateAvailableBody: "POS を使い続けるには再読み込みしてください。",
     updateAvailableReload: "再読み込み",
     updateAvailableLater: "後で",
+    updateAvailableUpdating: "更新中…",
+    updateAvailableWait: "少々お待ちください",
     receiptDiscount: "割引",
     startShiftToSeeDrawer: "シフトを開始してドロワーを表示",
     comingSoon: "近日公開",
