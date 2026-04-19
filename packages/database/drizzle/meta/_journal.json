@@ -29,6 +29,13 @@
       "when": 1776146008494,
       "tag": "0003_zippy_yellowjacket",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1776615263208,
+      "tag": "0004_add_new_order_status",
+      "breakpoints": true
     }
   ]
 }

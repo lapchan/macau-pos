@@ -12,6 +12,7 @@ import {
   and,
   desc,
   inArray,
+  ne,
   sql,
   logCashEvent,
   refundPayment,
@@ -71,6 +72,9 @@ export async function fetchFilteredOrders(
   if (session.terminalId) {
     conditions.push(eq(orders.terminalId, session.terminalId));
   }
+  // Pre-payment orders ("new") are ephemeral — they live only while the
+  // cashier has the checkout modal open and get voided on close.
+  conditions.push(ne(orders.status, "new"));
 
   // Shift filter
   if (filters.dateRange === "thisShift" && filters.shiftId) {

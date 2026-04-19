@@ -10,10 +10,16 @@ import {
   ChevronLeft, Minus, Plus, Sun, Moon, Receipt, ScanLine,
 } from "lucide-react";
 import CloseButton from "@/components/shared/close-button";
-import { createOrder, type OrderDiscount } from "@/lib/actions";
 import {
-  createMpmPayment,
-  createCpmPayment,
+  createOrder,
+  createPrePaymentOrder,
+  completePrePaymentOrder,
+  cancelPrePaymentOrder,
+  type OrderDiscount,
+} from "@/lib/actions";
+import {
+  initiateMpmPayment,
+  initiateCpmPayment,
   getMpmPaymentStatus,
   cancelMpmPayment,
 } from "@/lib/intellipay-actions";
@@ -63,8 +69,14 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
   });
   const [cashCents, setCashCents] = useState("0");
   const [orderNum, setOrderNum] = useState("");
+  // Pre-payment order id. Set once per modal session (when the cashier opens
+  // checkout) and cleared after the order reaches a terminal state. Closing
+  // the modal while this is set triggers cancelPrePaymentOrder to restore
+  // stock. When null (network down at mount time) the modal falls back to the
+  // legacy one-shot createOrder path, which in turn can queue offline.
+  const [prePaymentOrderId, setPrePaymentOrderId] = useState<string | null>(null);
   // Intellipay MPM state. Populated when the cashier picks the QR tile and
-  // we successfully create an MPM payment.
+  // we successfully initiate an MPM payment.
   const [mpmQrDataUrl, setMpmQrDataUrl] = useState<string | null>(null);
   const [mpmPaymentId, setMpmPaymentId] = useState<string | null>(null);
   const [mpmError, setMpmError] = useState<string | null>(null);
@@ -72,9 +84,14 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
   const [cpqrScanning, setCpqrScanning] = useState(false);
 
   const handleClose = useCallback(() => {
+    // Fire-and-forget: the pre-payment order (if any) is still in "new" and
+    // needs to be voided so stock rolls back. We don't block the UI on it.
+    if (prePaymentOrderId) {
+      cancelPrePaymentOrder(prePaymentOrderId).catch(() => {});
+    }
     setClosing(true);
     setTimeout(() => onClose(), 350);
-  }, [onClose]);
+  }, [onClose, prePaymentOrderId]);
 
   const rawSubtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const subtotal = subtotalProp ?? rawSubtotal;
@@ -84,6 +101,65 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
   const cashValue = parseInt(cashCents, 10) / 100;
   const cashDisplay = (parseInt(cashCents, 10) / 100).toFixed(2);
   const changeDue = cashValue - total;
+
+  // Create the pre-payment order as soon as the modal mounts so stock is
+  // reserved while the cashier picks a method. Offline cashiers skip this
+  // and rely on the legacy createOrder → enqueueOrder fallback below.
+  useEffect(() => {
+    if (!isOnline) return;
+    let cancelled = false;
+    (async () => {
+      const result = await createPrePaymentOrder({
+        cart: cart.map((item) => {
+          const isCustom = item.id.startsWith("custom_");
+          const [productId, variantId] = isCustom
+            ? [undefined, undefined]
+            : item.id.split("__");
+          const rawTotal = item.price * item.quantity;
+          const itemDiscountAmt = item.discount
+            ? item.discount.type === "percent"
+              ? Math.round((rawTotal * item.discount.value) / 100 * 100) / 100
+              : Math.min(item.discount.value, rawTotal)
+            : 0;
+          const itemDiscountNote = item.discount
+            ? item.discount.type === "percent"
+              ? `${item.discount.value}%`
+              : `${currency} ${item.discount.value}`
+            : undefined;
+          return {
+            productId,
+            variantId: variantId || undefined,
+            variantName: variantId ? item.name : undefined,
+            name: item.name,
+            translations: item.translations || undefined,
+            unitPrice: item.price,
+            quantity: item.quantity,
+            discountAmount: itemDiscountAmt || undefined,
+            discountNote: itemDiscountNote,
+          };
+        }),
+        subtotal,
+        discountAmount,
+        taxAmount,
+        total,
+        customerId,
+        discountMeta: orderDiscount,
+      });
+      if (cancelled) return;
+      if (result.success) {
+        setPrePaymentOrderId(result.orderId);
+        setOrderNum(result.orderNumber);
+      }
+      // If createPrePaymentOrder fails (network error, stale session) the
+      // modal silently falls back to the legacy path on payment confirm.
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // We intentionally only run this once per modal mount — cart/totals are
+    // locked in at the moment the cashier opens checkout.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const cartForAction = useCallback(() => cart.map((item) => {
     const isCustom = item.id.startsWith("custom_");
@@ -150,13 +226,50 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
     setState("processing");
     const orderInput = buildOrderInput(method);
 
-    // Wrap in a promise to prevent Next.js dev overlay from catching the network error
+    // Fast path: we successfully created a pre-payment order at mount time,
+    // so just flip it to completed and attach a payment row.
+    if (prePaymentOrderId) {
+      const result = await new Promise<
+        | { success: true; orderNumber: string }
+        | { success: false; error: string }
+        | null
+      >((resolve) => {
+        completePrePaymentOrder({
+          orderId: prePaymentOrderId,
+          paymentMethod: method,
+          cashReceived: method === "cash" ? cashValue : undefined,
+          changeGiven:
+            method === "cash" && cashValue > total ? cashValue - total : undefined,
+        })
+          .then(resolve)
+          .catch(() => resolve(null));
+      });
+
+      if (result === null) {
+        // Network dropped mid-complete. Fall back to the offline queue — the
+        // pre-payment order will be voided on next shift reconcile.
+        const pending = enqueueOrder(orderInput);
+        setOrderNum(pending.tempOrderNumber);
+        setPrePaymentOrderId(null);
+        setState("saved-offline");
+      } else if (result.success) {
+        setOrderNum(result.orderNumber);
+        setPrePaymentOrderId(null);
+        setState("success");
+      } else {
+        setState("failed");
+      }
+      return;
+    }
+
+    // Fallback: pre-payment order never got created (offline at mount or
+    // createPrePaymentOrder errored). Use the legacy one-shot createOrder,
+    // which enqueues offline on network failure.
     const result = await new Promise<{ success: true; orderNumber: string } | { success: false; error: string } | null>((resolve) => {
       createOrder(orderInput).then(resolve).catch(() => resolve(null));
     });
 
     if (result === null) {
-      // Network failure — save locally
       const pending = enqueueOrder(orderInput);
       setOrderNum(pending.tempOrderNumber);
       setState("saved-offline");
@@ -166,31 +279,29 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
     } else {
       setState("failed");
     }
-  }, [buildOrderInput]);
+  }, [buildOrderInput, prePaymentOrderId, cashValue, total]);
 
   const handleCashConfirm = useCallback(() => {
     if (cashValue >= total) processPayment("cash");
   }, [cashValue, total, processPayment]);
 
-  // Start an Intellipay MPM payment: create the pending order + QR, then
-  // poll the DB until the webhook flips the order to a terminal state.
+  // Start an Intellipay MPM payment against the pre-payment order. Gateway
+  // call flips order "new" → "pending" and returns the QR; a polling effect
+  // then waits for the webhook to flip it to completed/voided/refunded.
   const startMpmPayment = useCallback(async () => {
     setMpmError(null);
     setMpmQrDataUrl(null);
     setMpmPaymentId(null);
     setState("qr");
 
-    const result = await createMpmPayment({
-      cart: cartForAction(),
-      // simplepay = user picks the wallet in their own app at scan time
-      paymentService: "simplepay",
-      subtotal,
-      discountAmount,
-      taxAmount,
-      total,
-      customerId,
-      discountMeta: orderDiscount,
-    });
+    if (!prePaymentOrderId) {
+      setMpmError("QR payment requires an online connection.");
+      setState("failed");
+      return;
+    }
+
+    // simplepay = user picks the wallet in their own app at scan time
+    const result = await initiateMpmPayment(prePaymentOrderId, "simplepay");
 
     if (!result.success) {
       setMpmError(result.error);
@@ -199,8 +310,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
     }
     setMpmQrDataUrl(result.qrCodeDataUrl);
     setMpmPaymentId(result.paymentId);
-    setOrderNum(result.orderNumber);
-  }, [cartForAction, subtotal, discountAmount, taxAmount, total, customerId, orderDiscount]);
+  }, [prePaymentOrderId]);
 
   // Poll the payment row every 2s while we're on the QR screen with an
   // active payment. Bail out when we reach a terminal order status.
@@ -213,11 +323,16 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
       if (cancelled) return;
       if (!res.success) return;
       if (res.data.orderStatus === "completed") {
+        // Webhook/poller settled the order — stock is already reserved and
+        // the order row is owned by intellipay. Clear the pre-payment handle
+        // so closing the modal doesn't try to void a completed order.
+        setPrePaymentOrderId(null);
         setState("success");
       } else if (
         res.data.orderStatus === "voided" ||
         res.data.orderStatus === "refunded"
       ) {
+        setPrePaymentOrderId(null);
         setMpmError(res.data.intellipayStatusDesc || "Payment did not complete.");
         setState("failed");
       }
@@ -230,6 +345,26 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
     };
   }, [state, mpmPaymentId]);
 
+  // Mint a fresh pre-payment order for the current cart so the modal can
+  // keep going after an MPM cancel or CPM decline voided the previous one.
+  const refreshPrePaymentOrder = useCallback(async () => {
+    const result = await createPrePaymentOrder({
+      cart: cartForAction(),
+      subtotal,
+      discountAmount,
+      taxAmount,
+      total,
+      customerId,
+      discountMeta: orderDiscount,
+    });
+    if (result.success) {
+      setPrePaymentOrderId(result.orderId);
+      setOrderNum(result.orderNumber);
+    } else {
+      setPrePaymentOrderId(null);
+    }
+  }, [cartForAction, subtotal, discountAmount, taxAmount, total, customerId, orderDiscount]);
+
   const handleMpmCancel = useCallback(async () => {
     if (!mpmPaymentId) {
       setState("review");
@@ -238,8 +373,12 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
     await cancelMpmPayment(mpmPaymentId);
     setMpmPaymentId(null);
     setMpmQrDataUrl(null);
+    // The pending order was just voided server-side; mint a replacement so
+    // the cashier can still pick another method.
+    setPrePaymentOrderId(null);
+    await refreshPrePaymentOrder();
     setState("review");
-  }, [mpmPaymentId]);
+  }, [mpmPaymentId, refreshPrePaymentOrder]);
 
   // CPM: customer shows wallet QR, cashier scans with POS barcode scanner.
   // On scan we call Intellipay synchronously. Status 2 = paid (go to success);
@@ -247,32 +386,35 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
   // payment id and transitioning to "qr" state.
   const handleCpmScan = useCallback(async (authCode: string) => {
     if (cpqrScanning) return;
+    if (!prePaymentOrderId) {
+      setMpmError("Wallet scan requires an online connection.");
+      setState("failed");
+      return;
+    }
     setCpqrScanning(true);
     setMpmError(null);
     setState("processing");
 
-    const result = await createCpmPayment({
-      cart: cartForAction(),
+    const result = await initiateCpmPayment(
+      prePaymentOrderId,
       authCode,
-      paymentService: "simplepay",
-      subtotal,
-      discountAmount,
-      taxAmount,
-      total,
-      customerId,
-      discountMeta: orderDiscount,
-    });
+      "simplepay",
+    );
 
     setCpqrScanning(false);
 
     if (!result.success) {
+      // Gateway decline already voided the pre-payment order server-side;
+      // mint a replacement in the background so retry is seamless.
+      setPrePaymentOrderId(null);
+      refreshPrePaymentOrder();
       setMpmError(result.error);
       setState("failed");
       return;
     }
 
-    setOrderNum(result.orderNumber);
     if (result.immediate) {
+      setPrePaymentOrderId(null);
       setState("success");
       return;
     }
@@ -280,7 +422,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
     setMpmPaymentId(result.paymentId);
     setMpmQrDataUrl(null);
     setState("qr");
-  }, [cpqrScanning, cartForAction, subtotal, discountAmount, taxAmount, total, customerId, orderDiscount]);
+  }, [cpqrScanning, prePaymentOrderId, refreshPrePaymentOrder]);
 
   useBarcodeScanner({
     enabled: state === "cpqr" && !cpqrScanning,
@@ -894,7 +1036,7 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
                     {t(locale, "tryAgain")}
                   </button>
                   <button
-                    onClick={onClose}
+                    onClick={handleClose}
                     className={cn("h-12 px-6 rounded-[var(--radius-md)] text-[15px] font-medium border transition-all active:scale-[0.97]", border, textSec, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
                   >
                     {t(locale, "cancel")}

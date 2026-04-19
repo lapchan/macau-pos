@@ -15,6 +15,7 @@ export const productStatusEnum = pgEnum("product_status", [
 ]);
 
 export const orderStatusEnum = pgEnum("order_status", [
+  "new",
   "pending",
   "completed",
   "refunded",

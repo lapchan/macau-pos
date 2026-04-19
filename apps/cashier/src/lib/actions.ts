@@ -53,6 +53,39 @@ type CreateOrderResult =
   | { success: true; orderNumber: string }
   | { success: false; error: string };
 
+// ─── Pre-payment order lifecycle ─────────────────────────────
+// When the cashier opens checkout we persist the order with status="new",
+// decrementing stock immediately so concurrent cashiers can't oversell while
+// the customer decides how to pay. The order transitions to "pending" when a
+// gateway call starts (MPM/CPM), or jumps straight to "completed" for cash and
+// card taps that settle offline. Closing the modal without paying voids the
+// order and restores stock.
+
+type CreatePrePaymentOrderInput = {
+  cart: CartItemInput[];
+  subtotal: number;
+  discountAmount?: number;
+  taxAmount?: number;
+  total: number;
+  customerId?: string;
+  discountMeta?: OrderDiscount;
+};
+
+type CreatePrePaymentOrderResult =
+  | { success: true; orderId: string; orderNumber: string }
+  | { success: false; error: string };
+
+type CompletePrePaymentOrderInput = {
+  orderId: string;
+  paymentMethod: "tap" | "insert" | "cash";
+  cashReceived?: number;
+  changeGiven?: number;
+};
+
+type CompletePrePaymentOrderResult =
+  | { success: true; orderNumber: string }
+  | { success: false; error: string };
+
 function buildDatePrefix(): string {
   const now = new Date();
   const yy = String(now.getFullYear()).slice(-2);
@@ -217,6 +250,285 @@ export async function createOrder(
     return { success: true, orderNumber: result.orderNumber };
   } catch (error) {
     console.error("Failed to create order:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+export async function createPrePaymentOrder(
+  input: CreatePrePaymentOrderInput,
+): Promise<CreatePrePaymentOrderResult> {
+  try {
+    const session = await getAuthSession();
+    if (!session?.tenantId) {
+      return { success: false, error: "No active session. Please log in." };
+    }
+    const tenantId = session.tenantId;
+    const locationId = session.locationId;
+    const datePrefix = buildDatePrefix();
+    const itemCount = input.cart.reduce((sum, item) => sum + item.quantity, 0);
+
+    const activeShift = await getActiveShift();
+
+    const result = await db.transaction(async (tx) => {
+      const [lastOrder] = await tx
+        .select({ orderNumber: orders.orderNumber })
+        .from(orders)
+        .where(
+          sql`${orders.tenantId} = ${tenantId} AND ${orders.orderNumber} LIKE ${datePrefix + "-%"}`
+        )
+        .orderBy(sql`${orders.orderNumber} DESC`)
+        .limit(1);
+
+      let seq = 1;
+      if (lastOrder) {
+        const lastSeq = parseInt(lastOrder.orderNumber.split("-").pop() || "0");
+        seq = lastSeq + 1;
+      }
+      const orderNumber = `${datePrefix}-${String(seq).padStart(4, "0")}`;
+
+      const [order] = await tx
+        .insert(orders)
+        .values({
+          tenantId,
+          locationId: locationId!,
+          orderNumber,
+          status: "new",
+          subtotal: input.subtotal.toFixed(2),
+          discountAmount: (input.discountAmount ?? 0).toFixed(2),
+          taxAmount: (input.taxAmount ?? 0).toFixed(2),
+          total: input.total.toFixed(2),
+          notes: input.discountMeta
+            ? `Discount: ${input.discountMeta.type === "percent" ? `${input.discountMeta.value}%` : `${session.tenantCurrency || "MOP"} ${input.discountMeta.value}`}`
+            : null,
+          itemCount,
+          currency: session.tenantCurrency || "MOP",
+          cashierId: session.userId,
+          terminalId: session.terminalId || null,
+          shiftId: activeShift?.id || null,
+          customerId: input.customerId || null,
+        })
+        .returning({ id: orders.id, orderNumber: orders.orderNumber });
+
+      await tx.insert(orderItems).values(
+        input.cart.map((item) => {
+          const rawTotal = item.unitPrice * item.quantity;
+          const itemDiscount = item.discountAmount ?? 0;
+          return {
+            orderId: order.id,
+            productId: item.productId || null,
+            name: item.name,
+            translations: item.translations || {},
+            unitPrice: item.unitPrice.toFixed(2),
+            quantity: item.quantity,
+            discountAmount: itemDiscount.toFixed(2),
+            discountNote: item.discountNote || null,
+            lineTotal: (rawTotal - itemDiscount).toFixed(2),
+            variantId: item.variantId || null,
+            variantName: item.variantName || null,
+            optionCombo: item.optionCombo || null,
+          };
+        })
+      );
+
+      for (const item of input.cart) {
+        if (item.variantId) {
+          await tx
+            .update(productVariants)
+            .set({ stock: sql`${productVariants.stock} - ${item.quantity}` })
+            .where(
+              and(
+                eq(productVariants.id, item.variantId),
+                sql`${productVariants.stock} IS NOT NULL`
+              )
+            );
+        } else if (item.productId) {
+          await tx
+            .update(products)
+            .set({ stock: sql`${products.stock} - ${item.quantity}` })
+            .where(
+              and(
+                eq(products.id, item.productId),
+                sql`${products.stock} IS NOT NULL`
+              )
+            );
+        }
+      }
+
+      return { orderId: order.id, orderNumber: order.orderNumber };
+    });
+
+    return { success: true, orderId: result.orderId, orderNumber: result.orderNumber };
+  } catch (error) {
+    console.error("Failed to create pre-payment order:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+export async function completePrePaymentOrder(
+  input: CompletePrePaymentOrderInput,
+): Promise<CompletePrePaymentOrderResult> {
+  try {
+    const session = await getAuthSession();
+    if (!session?.tenantId) {
+      return { success: false, error: "No active session. Please log in." };
+    }
+    const tenantId = session.tenantId;
+    const locationId = session.locationId;
+    const activeShift = await getActiveShift();
+
+    const txResult = await db.transaction(async (tx) => {
+      const [row] = await tx
+        .select({
+          id: orders.id,
+          orderNumber: orders.orderNumber,
+          status: orders.status,
+          total: orders.total,
+        })
+        .from(orders)
+        .where(and(eq(orders.id, input.orderId), eq(orders.tenantId, tenantId)))
+        .limit(1);
+      if (!row) return { ok: false as const, error: "Order not found." };
+      if (row.status !== "new") {
+        return { ok: false as const, error: `Order is ${row.status}, cannot complete.` };
+      }
+
+      const total = Number(row.total);
+      await tx
+        .update(orders)
+        .set({ status: "completed" })
+        .where(eq(orders.id, row.id));
+
+      const [payment] = await tx
+        .insert(payments)
+        .values({
+          orderId: row.id,
+          method: input.paymentMethod,
+          amount: total.toFixed(2),
+          cashReceived: input.cashReceived?.toFixed(2) ?? null,
+          changeGiven: input.changeGiven?.toFixed(2) ?? null,
+        })
+        .returning({ id: payments.id });
+
+      return {
+        ok: true as const,
+        orderNumber: row.orderNumber,
+        orderId: row.id,
+        paymentId: payment.id,
+        total,
+      };
+    });
+
+    if (!txResult.ok) return { success: false, error: txResult.error };
+
+    if (input.paymentMethod === "cash" && activeShift) {
+      const cashIn = input.cashReceived || txResult.total;
+      const changeOut = input.changeGiven || 0;
+
+      await logCashEvent({
+        tenantId,
+        locationId: locationId!,
+        shiftId: activeShift.id,
+        terminalId: session.terminalId || null,
+        eventType: "cash_sale",
+        creditAmount: cashIn,
+        orderId: txResult.orderId,
+        paymentId: txResult.paymentId,
+        recordedBy: session.userId,
+        reason: `Order ${txResult.orderNumber}`,
+      });
+
+      if (changeOut > 0) {
+        await logCashEvent({
+          tenantId,
+          locationId: locationId!,
+          shiftId: activeShift.id,
+          terminalId: session.terminalId || null,
+          eventType: "cash_change",
+          debitAmount: changeOut,
+          orderId: txResult.orderId,
+          paymentId: txResult.paymentId,
+          recordedBy: session.userId,
+          reason: `Change for ${txResult.orderNumber}`,
+        });
+      }
+    }
+
+    return { success: true, orderNumber: txResult.orderNumber };
+  } catch (error) {
+    console.error("Failed to complete pre-payment order:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
+export async function cancelPrePaymentOrder(
+  orderId: string,
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const session = await getAuthSession();
+    if (!session?.tenantId) {
+      return { success: false, error: "No active session." };
+    }
+    const tenantId = session.tenantId;
+
+    await db.transaction(async (tx) => {
+      const [row] = await tx
+        .select({ id: orders.id, status: orders.status })
+        .from(orders)
+        .where(and(eq(orders.id, orderId), eq(orders.tenantId, tenantId)))
+        .limit(1);
+      if (!row) return;
+      // Only cancel if still in the pre-payment stage. Pending MPM/CPM orders
+      // go through cancelMpmPayment so the gateway is told to drop the QR too.
+      if (row.status !== "new") return;
+
+      await tx.update(orders).set({ status: "voided" }).where(eq(orders.id, row.id));
+
+      const items = await tx
+        .select({
+          productId: orderItems.productId,
+          variantId: orderItems.variantId,
+          quantity: orderItems.quantity,
+        })
+        .from(orderItems)
+        .where(eq(orderItems.orderId, row.id));
+
+      for (const item of items) {
+        if (item.variantId) {
+          await tx
+            .update(productVariants)
+            .set({ stock: sql`${productVariants.stock} + ${item.quantity}` })
+            .where(
+              and(
+                eq(productVariants.id, item.variantId),
+                sql`${productVariants.stock} IS NOT NULL`
+              )
+            );
+        } else if (item.productId) {
+          await tx
+            .update(products)
+            .set({ stock: sql`${products.stock} + ${item.quantity}` })
+            .where(
+              and(
+                eq(products.id, item.productId),
+                sql`${products.stock} IS NOT NULL`
+              )
+            );
+        }
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to cancel pre-payment order:", error);
     return {
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
