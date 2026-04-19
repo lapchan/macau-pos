@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, terminals, eq } from "@macau-pos/database";
+import { getBuildId } from "@/lib/build-id";
 
 export async function POST(request: NextRequest) {
   try {
     const { terminalId } = await request.json();
+    const buildId = getBuildId();
 
     if (!terminalId) {
-      return NextResponse.json({ success: false }, { status: 400 });
+      return NextResponse.json({ success: false, buildId }, { status: 400 });
     }
 
     // Fetch terminal to check status before updating heartbeat
@@ -22,12 +24,12 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (!terminal) {
-      return NextResponse.json({ success: false, error: "not-found" });
+      return NextResponse.json({ success: false, error: "not-found", buildId });
     }
 
     // Terminal was unlinked — don't update heartbeat
     if (!terminal.activatedAt) {
-      return NextResponse.json({ success: false, error: "unlinked" });
+      return NextResponse.json({ success: false, error: "unlinked", buildId });
     }
 
     // Terminal was disabled
@@ -36,6 +38,7 @@ export async function POST(request: NextRequest) {
         success: false,
         error: "disabled",
         terminalName: terminal.name,
+        buildId,
       });
     }
 
@@ -45,8 +48,8 @@ export async function POST(request: NextRequest) {
       .set({ lastHeartbeatAt: new Date() })
       .where(eq(terminals.id, terminalId));
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, buildId });
   } catch {
-    return NextResponse.json({ success: false }, { status: 500 });
+    return NextResponse.json({ success: false, buildId: getBuildId() }, { status: 500 });
   }
 }

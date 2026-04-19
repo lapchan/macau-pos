@@ -3,10 +3,11 @@
 import { useEffect } from "react";
 import { Unplug, ShieldOff } from "lucide-react";
 import TerminalGuard from "./terminal-guard";
+import UpdateBanner from "./update-banner";
 import { useHeartbeat } from "@/lib/use-heartbeat";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const { forcedLogout } = useHeartbeat();
+  const { forcedLogout, needsReload } = useHeartbeat();
 
   // When forced logout is detected, clear all terminal state and redirect after delay
   useEffect(() => {
@@ -52,5 +53,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <TerminalGuard>{children}</TerminalGuard>;
+  return (
+    <>
+      <UpdateBanner visible={needsReload} />
+      <TerminalGuard>{children}</TerminalGuard>
+    </>
+  );
 }

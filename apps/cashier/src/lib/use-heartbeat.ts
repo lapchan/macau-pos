@@ -8,11 +8,15 @@ export type ForcedLogoutReason = "unlinked" | "disabled" | null;
 
 /**
  * Sends periodic heartbeat pings to keep the terminal "online" in admin dashboard.
- * Also detects if the terminal has been unlinked or disabled by admin.
+ * Also detects if the terminal has been unlinked or disabled by admin, and whether
+ * the server is running a newer build than the one this tab loaded (stale JS →
+ * server action hash mismatches).
  */
 export function useHeartbeat() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const initialBuildIdRef = useRef<string | null>(null);
   const [forcedLogout, setForcedLogout] = useState<ForcedLogoutReason>(null);
+  const [needsReload, setNeedsReload] = useState(false);
 
   const sendHeartbeat = useCallback(() => {
     const terminalId = localStorage.getItem("pos_terminal_id");
@@ -30,6 +34,17 @@ export function useHeartbeat() {
           setForcedLogout("unlinked");
         } else if (data.error === "disabled") {
           setForcedLogout("disabled");
+        }
+
+        // Build-ID drift detection. First successful response sets the baseline;
+        // any subsequent mismatch means the server was redeployed and our
+        // cached JS (incl. server-action hashes) is stale.
+        if (typeof data.buildId === "string" && data.buildId !== "dev") {
+          if (initialBuildIdRef.current === null) {
+            initialBuildIdRef.current = data.buildId;
+          } else if (initialBuildIdRef.current !== data.buildId) {
+            setNeedsReload(true);
+          }
         }
       })
       .catch(() => {
@@ -49,5 +64,5 @@ export function useHeartbeat() {
     };
   }, [sendHeartbeat]);
 
-  return { forcedLogout };
+  return { forcedLogout, needsReload };
 }

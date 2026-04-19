@@ -106,6 +106,12 @@ type TranslationKeys = {
   preloadImages: string;
   preloadSkip: string;
 
+  // Update banner
+  updateAvailableTitle: string;
+  updateAvailableBody: string;
+  updateAvailableReload: string;
+  updateAvailableLater: string;
+
   // Misc
   receiptDiscount: string;
   startShiftToSeeDrawer: string;
@@ -392,6 +398,10 @@ const translations: Record<Locale, TranslationKeys> = {
     preloadTitle: "正在準備商品資料",
     preloadImages: "張圖片",
     preloadSkip: "跳過",
+    updateAvailableTitle: "有新版本可用",
+    updateAvailableBody: "請重新載入以繼續使用。",
+    updateAvailableReload: "重新載入",
+    updateAvailableLater: "稍後",
     receiptDiscount: "折扣",
     startShiftToSeeDrawer: "開始班次以查看錢櫃",
     comingSoon: "即將推出",
@@ -653,6 +663,10 @@ const translations: Record<Locale, TranslationKeys> = {
     preloadTitle: "正在准备商品资料",
     preloadImages: "张图片",
     preloadSkip: "跳过",
+    updateAvailableTitle: "有新版本可用",
+    updateAvailableBody: "请重新加载以继续使用。",
+    updateAvailableReload: "重新加载",
+    updateAvailableLater: "稍后",
     receiptDiscount: "折扣",
     startShiftToSeeDrawer: "开始班次以查看钱柜",
     comingSoon: "即将推出",
@@ -914,6 +928,10 @@ const translations: Record<Locale, TranslationKeys> = {
     preloadTitle: "Preparing product data",
     preloadImages: "images",
     preloadSkip: "Skip",
+    updateAvailableTitle: "New version available",
+    updateAvailableBody: "Reload to continue using the POS.",
+    updateAvailableReload: "Reload",
+    updateAvailableLater: "Later",
     receiptDiscount: "Discount",
     startShiftToSeeDrawer: "Start a shift to see drawer",
     comingSoon: "Coming soon",
@@ -1175,6 +1193,10 @@ const translations: Record<Locale, TranslationKeys> = {
     preloadTitle: "A preparar dados dos produtos",
     preloadImages: "imagens",
     preloadSkip: "Saltar",
+    updateAvailableTitle: "Nova versão disponível",
+    updateAvailableBody: "Recarregue para continuar a usar o POS.",
+    updateAvailableReload: "Recarregar",
+    updateAvailableLater: "Mais tarde",
     receiptDiscount: "Desconto",
     startShiftToSeeDrawer: "Iniciar turno para ver caixa",
     comingSoon: "Em breve",
@@ -1436,6 +1458,10 @@ const translations: Record<Locale, TranslationKeys> = {
     preloadTitle: "商品データを準備中",
     preloadImages: "枚の画像",
     preloadSkip: "スキップ",
+    updateAvailableTitle: "新しいバージョンがあります",
+    updateAvailableBody: "POS を使い続けるには再読み込みしてください。",
+    updateAvailableReload: "再読み込み",
+    updateAvailableLater: "後で",
     receiptDiscount: "割引",
     startShiftToSeeDrawer: "シフトを開始してドロワーを表示",
     comingSoon: "近日公開",
