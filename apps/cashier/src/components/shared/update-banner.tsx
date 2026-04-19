@@ -60,27 +60,26 @@ export default function UpdateBanner({ visible }: Props) {
 
   return (
     <div className="fixed inset-x-0 top-0 z-[9998] flex justify-center px-3 pt-3 pointer-events-none">
-      <div
-        className="pointer-events-auto flex items-center gap-3 rounded-xl px-4 py-2.5 shadow-lg max-w-md w-full text-white"
-        style={{ backgroundColor: "var(--color-pos-accent, #0071e3)" }}
-      >
-        <RefreshCw className="h-4 w-4 shrink-0" />
+      <div className="pointer-events-auto flex items-center gap-3 rounded-[var(--radius-lg)] px-4 py-2.5 shadow-lg max-w-md w-full bg-pos-surface border border-pos-border">
+        <span className="h-8 w-8 rounded-full flex items-center justify-center shrink-0 bg-pos-accent-light text-pos-accent">
+          <RefreshCw className="h-4 w-4" />
+        </span>
         <div className="flex-1 text-[13px] leading-tight">
-          <div className="font-semibold">{t(locale, "updateAvailableTitle")}</div>
-          <div className="text-white/80 text-[12px]">
+          <div className="font-semibold text-pos-text">{t(locale, "updateAvailableTitle")}</div>
+          <div className="text-pos-text-secondary text-[12px]">
             {t(locale, "updateAvailableBody")}
           </div>
         </div>
         <button
           onClick={reload}
-          className="text-[12px] font-semibold bg-white/15 hover:bg-white/25 rounded-lg px-3 py-1.5 transition-colors"
+          className="text-[12px] font-semibold text-white rounded-[var(--radius-md)] px-3 py-1.5 transition-colors bg-pos-accent hover:bg-pos-accent-hover"
         >
           {t(locale, "updateAvailableReload")}
         </button>
         <button
           onClick={() => setDismissed(true)}
           aria-label={t(locale, "updateAvailableLater")}
-          className="text-white/70 hover:text-white transition-colors"
+          className="text-pos-text-muted hover:text-pos-text transition-colors"
         >
           <X className="h-4 w-4" />
         </button>

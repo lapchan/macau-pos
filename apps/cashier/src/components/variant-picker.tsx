@@ -206,7 +206,7 @@ export default function VariantPicker({
             <h3 className="text-[17px] font-bold text-gray-900 leading-tight">{productName}</h3>
             <div className="flex items-baseline gap-2 mt-1.5">
               {allSelected && matchingVariant ? (
-                <span className="text-[20px] font-bold text-blue-600 tabular-nums">
+                <span className="text-[20px] font-bold text-pos-accent tabular-nums">
                   {currency} {displayPrice.toFixed(displayPrice % 1 === 0 ? 0 : 1)}
                 </span>
               ) : hasPriceRange ? (
@@ -214,7 +214,7 @@ export default function VariantPicker({
                   {currency} {minPrice.toFixed(0)} – {maxPrice.toFixed(0)}
                 </span>
               ) : (
-                <span className="text-[20px] font-bold text-blue-600 tabular-nums">
+                <span className="text-[20px] font-bold text-pos-accent tabular-nums">
                   {currency} {basePrice.toFixed(basePrice % 1 === 0 ? 0 : 1)}
                 </span>
               )}
@@ -295,7 +295,7 @@ export default function VariantPicker({
                           "min-h-[44px] rounded-2xl text-[14px] font-medium transition-all border-2 flex items-center gap-2.5",
                           hasSwatch ? "pl-2.5 pr-5" : "px-5",
                           isValSelected
-                            ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm"
+                            ? "border-pos-accent bg-pos-accent-light text-pos-accent shadow-sm"
                             : hasStock
                             ? "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50 active:scale-[0.97]"
                             : "border-gray-100 bg-gray-50 text-gray-300 cursor-not-allowed line-through"
@@ -305,7 +305,7 @@ export default function VariantPicker({
                           <span
                             className={cn(
                               "h-7 w-7 rounded-full shrink-0 overflow-hidden border",
-                              isValSelected ? "border-blue-400 ring-2 ring-blue-200" : "border-gray-200"
+                              isValSelected ? "border-pos-accent ring-2 ring-pos-accent/30" : "border-gray-200"
                             )}
                           >
                             {swatchImage ? (
@@ -377,7 +377,7 @@ export default function VariantPicker({
           {hasNoVariants ? (
             <button
               onClick={() => { onAddDirect!(); handleClose(); }}
-              className="w-full h-14 rounded-2xl text-[16px] font-bold transition-all flex items-center justify-center gap-2.5 bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] shadow-lg shadow-blue-600/20"
+              className="w-full h-14 rounded-2xl text-[16px] font-bold transition-all flex items-center justify-center gap-2.5 bg-pos-accent text-white hover:bg-pos-accent-hover active:scale-[0.98] shadow-lg shadow-pos-accent/20"
             >
               <Check className="h-5 w-5" />
               {t(locale, "addToCartWith").replace("{currency}", currency).replace("{price}", basePrice.toFixed(basePrice % 1 === 0 ? 0 : 1))}
@@ -389,7 +389,7 @@ export default function VariantPicker({
               className={cn(
                 "w-full h-14 rounded-2xl text-[16px] font-bold transition-all flex items-center justify-center gap-2.5",
                 allSelected && matchingVariant && inStock
-                  ? "bg-blue-600 text-white hover:bg-blue-700 active:scale-[0.98] shadow-lg shadow-blue-600/20"
+                  ? "bg-pos-accent text-white hover:bg-pos-accent-hover active:scale-[0.98] shadow-lg shadow-pos-accent/20"
                   : "bg-gray-100 text-gray-400 cursor-not-allowed"
               )}
             >

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, X, Clock, CheckCircle2, AlertCircle, RotateCcw, Ban, Banknote, CreditCard, QrCode, Calendar, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, X, Clock, CheckCircle2, AlertCircle, RotateCcw, Ban, Banknote, CreditCard, QrCode, Calendar, ChevronDown, ChevronLeft, ChevronRight, CircleDashed } from "lucide-react";
 import CloseButton from "@/components/shared/close-button";
 import { cn } from "@/lib/cn";
 import { type Locale, t } from "@/i18n/locales";
@@ -47,6 +47,7 @@ export default function HistoryFilters({ filters, onChange, locale, hasShift }: 
   ];
 
   const statusChips: Chip[] = [
+    { key: "new", label: t(locale, "status_new"), icon: CircleDashed, group: "status", value: "new" },
     { key: "completed", label: t(locale, "status_completed"), icon: CheckCircle2, group: "status", value: "completed" },
     { key: "pending", label: t(locale, "status_pending"), icon: AlertCircle, group: "status", value: "pending" },
     { key: "refunded", label: t(locale, "status_refunded"), icon: RotateCcw, group: "status", value: "refunded" },

@@ -259,6 +259,7 @@ type TranslationKeys = {
   historyItems: string;
   historyItem: string;
   historyPayment: string;
+  status_new: string;
   status_completed: string;
   status_pending: string;
   status_refunded: string;
@@ -532,6 +533,7 @@ const translations: Record<Locale, TranslationKeys> = {
     historyItems: "件",
     historyItem: "件",
     historyPayment: "付款方式",
+    status_new: "待付款",
     status_completed: "已完成",
     status_pending: "處理中",
     status_refunded: "已退款",
@@ -797,6 +799,7 @@ const translations: Record<Locale, TranslationKeys> = {
     historyItems: "件",
     historyItem: "件",
     historyPayment: "付款方式",
+    status_new: "待付款",
     status_completed: "已完成",
     status_pending: "处理中",
     status_refunded: "已退款",
@@ -1062,6 +1065,7 @@ const translations: Record<Locale, TranslationKeys> = {
     historyItems: "items",
     historyItem: "item",
     historyPayment: "Payment",
+    status_new: "Awaiting payment",
     status_completed: "Completed",
     status_pending: "Pending",
     status_refunded: "Refunded",
@@ -1327,6 +1331,7 @@ const translations: Record<Locale, TranslationKeys> = {
     historyItems: "itens",
     historyItem: "item",
     historyPayment: "Pagamento",
+    status_new: "A aguardar pagamento",
     status_completed: "Concluído",
     status_pending: "Pendente",
     status_refunded: "Reembolsado",
@@ -1592,6 +1597,7 @@ const translations: Record<Locale, TranslationKeys> = {
     historyItems: "点",
     historyItem: "点",
     historyPayment: "支払い方法",
+    status_new: "支払い待ち",
     status_completed: "完了",
     status_pending: "保留中",
     status_refunded: "返金済み",
