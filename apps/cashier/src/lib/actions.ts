@@ -548,6 +548,201 @@ export async function cancelPrePaymentOrder(
   }
 }
 
+// Parse a stored order note (e.g. "Discount: 10%" or "Discount: MOP 5") back
+// into the OrderDiscount shape used by the client. Returns null if the note
+// is missing or doesn't match the discount format.
+function parseDiscountNote(note: string | null): OrderDiscount {
+  if (!note) return null;
+  const match = note.match(/^Discount:\s*(.+)$/);
+  if (!match) return null;
+  const body = match[1].trim();
+  // "10%" → percent 10
+  const pct = body.match(/^(\d+(?:\.\d+)?)%$/);
+  if (pct) return { type: "percent", value: parseFloat(pct[1]) };
+  // "MOP 5" / "HKD 12.50" / "5" → fixed 5 (currency prefix optional)
+  const fixed = body.match(/^(?:[A-Z]{2,4}\s+)?(\d+(?:\.\d+)?)$/);
+  if (fixed) return { type: "fixed", value: parseFloat(fixed[1]) };
+  return null;
+}
+
+export type ResumedCartItem = {
+  id: string; // "productId" | "productId__variantId" | "custom_..."
+  name: string;
+  translations?: Record<string, string>;
+  price: number;
+  quantity: number;
+  category: string;
+  image?: string;
+  inStock: boolean;
+  hasVariants?: boolean;
+  variantOptions?: string[];
+  discount: { type: "percent" | "fixed"; value: number } | null;
+};
+
+export type ResumedCustomer = {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+};
+
+type ResumePrePaymentOrderResult =
+  | {
+      success: true;
+      orderId: string;
+      orderNumber: string;
+      cart: ResumedCartItem[];
+      orderDiscount: OrderDiscount;
+      customer: ResumedCustomer | null;
+      subtotal: number;
+      discountAmount: number;
+      taxAmount: number;
+      total: number;
+    }
+  | { success: false; error: string };
+
+// Rehydrate a status='new' pre-payment order so the cashier can reopen the
+// checkout modal with the original cart intact. Stock is still reserved on the
+// order (from createPrePaymentOrder), so we just return the rows — no mutation.
+export async function resumePrePaymentOrder(
+  orderId: string,
+): Promise<ResumePrePaymentOrderResult> {
+  try {
+    const session = await getAuthSession();
+    if (!session?.tenantId) {
+      return { success: false, error: "No active session." };
+    }
+    const tenantId = session.tenantId;
+
+    const [order] = await db
+      .select({
+        id: orders.id,
+        orderNumber: orders.orderNumber,
+        status: orders.status,
+        subtotal: orders.subtotal,
+        discountAmount: orders.discountAmount,
+        taxAmount: orders.taxAmount,
+        total: orders.total,
+        notes: orders.notes,
+        customerId: orders.customerId,
+      })
+      .from(orders)
+      .where(and(eq(orders.id, orderId), eq(orders.tenantId, tenantId)))
+      .limit(1);
+
+    if (!order) return { success: false, error: "Order not found." };
+    if (order.status !== "new") {
+      return { success: false, error: `Order is ${order.status}, cannot resume.` };
+    }
+
+    const rows = await db
+      .select({
+        itemId: orderItems.id,
+        productId: orderItems.productId,
+        variantId: orderItems.variantId,
+        variantName: orderItems.variantName,
+        optionCombo: orderItems.optionCombo,
+        name: orderItems.name,
+        translations: orderItems.translations,
+        unitPrice: orderItems.unitPrice,
+        quantity: orderItems.quantity,
+        discountAmount: orderItems.discountAmount,
+        discountNote: orderItems.discountNote,
+        productImage: products.image,
+        productHasVariants: products.hasVariants,
+        productCategoryId: products.categoryId,
+      })
+      .from(orderItems)
+      .leftJoin(products, eq(orderItems.productId, products.id))
+      .where(eq(orderItems.orderId, order.id));
+
+    const cart: ResumedCartItem[] = rows.map((r) => {
+      const isCustom = !r.productId;
+      const id = isCustom
+        ? `custom_${r.itemId}`
+        : r.variantId
+          ? `${r.productId}__${r.variantId}`
+          : (r.productId as string);
+
+      const discountAmt = parseFloat(r.discountAmount || "0");
+      const unitPrice = parseFloat(r.unitPrice);
+      const rawTotal = unitPrice * r.quantity;
+      let discount: ResumedCartItem["discount"] = null;
+      if (discountAmt > 0 && r.discountNote) {
+        const pct = r.discountNote.match(/^(\d+(?:\.\d+)?)%$/);
+        if (pct) {
+          discount = { type: "percent", value: parseFloat(pct[1]) };
+        } else {
+          const fixed = r.discountNote.match(/^(?:[A-Z]{2,4}\s+)?(\d+(?:\.\d+)?)$/);
+          if (fixed) discount = { type: "fixed", value: parseFloat(fixed[1]) };
+        }
+      } else if (discountAmt > 0) {
+        // No note → reconstruct as fixed amount
+        discount = { type: "fixed", value: Math.min(discountAmt, rawTotal) };
+      }
+
+      const variantOptions = r.optionCombo
+        ? Object.values(r.optionCombo as Record<string, string>)
+        : undefined;
+
+      return {
+        id,
+        name: r.name,
+        translations: (r.translations as Record<string, string>) || undefined,
+        price: unitPrice,
+        quantity: r.quantity,
+        category: r.productCategoryId || "all",
+        image: r.productImage || undefined,
+        inStock: true,
+        hasVariants: !!r.productHasVariants,
+        variantOptions,
+        discount,
+      };
+    });
+
+    let customer: ResumedCustomer | null = null;
+    if (order.customerId) {
+      const [c] = await db
+        .select({
+          id: customers.id,
+          name: customers.name,
+          phone: customers.phone,
+          email: customers.email,
+        })
+        .from(customers)
+        .where(and(eq(customers.id, order.customerId), eq(customers.tenantId, tenantId)))
+        .limit(1);
+      if (c) {
+        customer = {
+          id: c.id,
+          name: c.name,
+          phone: c.phone || undefined,
+          email: c.email || undefined,
+        };
+      }
+    }
+
+    return {
+      success: true,
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      cart,
+      orderDiscount: parseDiscountNote(order.notes),
+      customer,
+      subtotal: parseFloat(order.subtotal),
+      discountAmount: parseFloat(order.discountAmount),
+      taxAmount: parseFloat(order.taxAmount),
+      total: parseFloat(order.total),
+    };
+  } catch (error) {
+    console.error("Failed to resume pre-payment order:", error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Unknown error",
+    };
+  }
+}
+
 // 10-minute TTL for pre-payment orders. Stale 'new' rows hold stock without
 // ever reaching a payment, so on the next checkout we clean them up.
 const PRE_PAYMENT_TTL_MINUTES = 10;

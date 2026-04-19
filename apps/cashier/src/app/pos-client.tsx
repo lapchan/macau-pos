@@ -33,7 +33,8 @@ import { getLookupProvider } from "@/lib/barcode-providers";
 import CustomerSearchSpotlight from "@/components/customer/customer-search-spotlight";
 import CustomerDetailSheet, { type LinkedCustomer } from "@/components/customer/customer-detail-sheet";
 import ProductSearchSpotlight from "@/components/search/product-search-spotlight";
-import { fetchProductVariants, lookupBarcode, lookupBarcodePlus, lookupGdsCn, lookupJanJp, lookupUpcItemDb, type OrderDiscount } from "@/lib/actions";
+import { fetchProductVariants, lookupBarcode, lookupBarcodePlus, lookupGdsCn, lookupJanJp, lookupUpcItemDb, resumePrePaymentOrder, type OrderDiscount } from "@/lib/actions";
+import type { OrderRow, OrderItemRow } from "@/lib/history-actions";
 import { useBarcodeScanner, wasRecentBarcodeScan } from "@/lib/use-barcode-scanner";
 import { useCatalogSync } from "@/lib/use-catalog-sync";
 import { resolveImageSrc } from "@/lib/catalog-image-sync";
@@ -325,6 +326,9 @@ export default function POSClient({ initialProducts, initialCategories, userName
   const [searchTags, setSearchTags] = useState<string[]>([]);
   const [spotlightInput, setSpotlightInput] = useState("");
   const [showCheckout, setShowCheckout] = useState(false);
+  // When set, CheckoutModal reuses an existing status='new' pre-payment order
+  // instead of creating a fresh one (resume-payment flow from order history).
+  const [resumeOrder, setResumeOrder] = useState<{ id: string; number: string } | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [menuLevel, setMenuLevel] = useState<"main" | "theme" | "language">("main");
@@ -685,9 +689,38 @@ export default function POSClient({ initialProducts, initialCategories, userName
     setLinkedCustomer(null);
     setOrderDiscount(null);
     setShowCheckout(false);
+    setResumeOrder(null);
     setPendingCount(getPendingCount());
     knownCartIdsRef.current.clear();
   }, []);
+
+  // Resume a parked/unpaid order — pulls the server-side snapshot (items,
+  // discount, customer link) back into local state and reopens CheckoutModal
+  // with the existing orderId so we don't create a duplicate row.
+  const handleResumeOrder = useCallback(async (order: OrderRow, _items: OrderItemRow[]) => {
+    const result = await resumePrePaymentOrder(order.id);
+    if (!result.success) return;
+
+    setCart(result.cart.map((item) => ({
+      id: item.id,
+      name: item.name,
+      translations: item.translations,
+      price: item.price,
+      quantity: item.quantity,
+      category: item.category,
+      image: item.image,
+      inStock: item.inStock,
+      hasVariants: item.hasVariants,
+      variantOptions: item.variantOptions,
+      discount: item.discount,
+    })));
+    setOrderDiscount(result.orderDiscount);
+    setLinkedCustomer(result.customer);
+    setResumeOrder({ id: result.orderId, number: result.orderNumber });
+    setShowHistory(false);
+    setActiveTab("cashier");
+    setShowCheckout(true);
+  }, [setCart]);
 
   // ─── Barcode scanner ───────────────────────────────────────
   const showScanFeedback = useCallback(
@@ -1467,6 +1500,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
                 locale={locale}
                 currency={currency}
                 embedded
+                onResumeOrder={handleResumeOrder}
               />
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-center">
@@ -1791,7 +1825,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
           cart={cart}
           locale={locale}
           currency={currency}
-          onClose={() => setShowCheckout(false)}
+          onClose={() => { setShowCheckout(false); setResumeOrder(null); }}
           onComplete={handleCheckoutComplete}
           customerId={linkedCustomer?.id}
           subtotal={subtotal}
@@ -1801,6 +1835,8 @@ export default function POSClient({ initialProducts, initialCategories, userName
           total={total}
           orderDiscount={orderDiscount}
           isOnline={isOnline}
+          resumeOrderId={resumeOrder?.id}
+          resumeOrderNumber={resumeOrder?.number}
         />
       )}
 
@@ -1919,6 +1955,7 @@ export default function POSClient({ initialProducts, initialCategories, userName
         shiftId={shiftId}
         locale={locale}
         currency={currency}
+        onResumeOrder={handleResumeOrder}
       />
     </div>
     </>

@@ -53,11 +53,15 @@ type Props = {
   orderDiscount?: OrderDiscount;
   isOnline?: boolean;
   currency?: string;
+  // When set, the modal resumes an existing status='new' pre-payment order
+  // instead of creating a fresh one. Stock is already reserved on the server.
+  resumeOrderId?: string;
+  resumeOrderNumber?: string;
 };
 
 const CASH_PRESETS = [10, 20, 50, 100, 200, 500];
 
-export default function CheckoutModal({ cart, locale, onClose, onComplete, customerId, subtotal: subtotalProp, discountAmount = 0, taxAmount = 0, taxRate = 0, total: totalProp, orderDiscount, isOnline = true, currency = "MOP" }: Props) {
+export default function CheckoutModal({ cart, locale, onClose, onComplete, customerId, subtotal: subtotalProp, discountAmount = 0, taxAmount = 0, taxRate = 0, total: totalProp, orderDiscount, isOnline = true, currency = "MOP", resumeOrderId, resumeOrderNumber }: Props) {
   const [state, setState] = useState<CheckoutState>("review");
   const [closing, setClosing] = useState(false);
   const [darkMode, setDarkMode] = useState(() => {
@@ -67,12 +71,14 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
     return false;
   });
   const [cashCents, setCashCents] = useState("0");
-  const [orderNum, setOrderNum] = useState("");
+  const [orderNum, setOrderNum] = useState(resumeOrderNumber ?? "");
   // Pre-payment order id. Created on mount; the row stays as status='new'
   // even after the modal closes and is swept by a 10-min lazy janitor on the
   // next createPrePaymentOrder call. When null (network down at mount) the
   // modal falls back to the legacy one-shot createOrder path (offline queue).
-  const [prePaymentOrderId, setPrePaymentOrderId] = useState<string | null>(null);
+  const [prePaymentOrderId, setPrePaymentOrderId] = useState<string | null>(
+    resumeOrderId ?? null,
+  );
   // Intellipay MPM state. Populated when the cashier picks the QR tile and
   // we successfully initiate an MPM payment.
   const [mpmQrDataUrl, setMpmQrDataUrl] = useState<string | null>(null);
@@ -101,7 +107,10 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
   // Create the pre-payment order as soon as the modal mounts so stock is
   // reserved while the cashier picks a method. Offline cashiers skip this
   // and rely on the legacy createOrder → enqueueOrder fallback below.
+  // When resuming a parked order, stock is already reserved server-side —
+  // skip the create call and reuse the passed-in orderId/orderNumber.
   useEffect(() => {
+    if (resumeOrderId) return;
     if (!isOnline) return;
     let cancelled = false;
     (async () => {
