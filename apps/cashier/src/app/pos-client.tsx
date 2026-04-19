@@ -1753,8 +1753,8 @@ export default function POSClient({ initialProducts, initialCategories, userName
         }}
         icon={
           reloading
-            ? <Loader2 className="h-10 w-10 text-[#007aff] mx-auto animate-spin" />
-            : <RefreshCw className="h-10 w-10 text-[#007aff] mx-auto" />
+            ? <Loader2 className="h-10 w-10 text-pos-accent mx-auto animate-spin" />
+            : <RefreshCw className="h-10 w-10 text-pos-accent mx-auto" />
         }
         title={t(locale, "lockReloadTitle")}
         message={reloading ? t(locale, "lockReloadChecking") : t(locale, "lockReloadMessage")}

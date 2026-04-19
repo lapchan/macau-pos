@@ -46,7 +46,7 @@ export default function ConfirmDialog({
             className={`flex-1 h-10 rounded-[var(--radius-md)] text-[13px] font-medium text-white transition-colors disabled:opacity-40 ${
               variant === "danger"
                 ? "bg-pos-danger hover:bg-pos-danger/90"
-                : "bg-[#007aff] hover:bg-[#0066d6]"
+                : "bg-pos-accent hover:bg-pos-accent-hover"
             }`}
           >
             {confirmLabel}
