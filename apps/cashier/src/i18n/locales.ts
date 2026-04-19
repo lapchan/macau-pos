@@ -266,11 +266,16 @@ type TranslationKeys = {
   status_voided: string;
   voidOrder: string;
   refundOrder: string;
+  resumePayment: string;
+  parkOrder: string;
+  comingSoonToast: string;
   voidConfirmTitle: string;
   refundConfirmTitle: string;
   voidConfirmBody: string;
   refundConfirmBody: string;
   cashRefundAmount: string;
+  voidUnpaidConfirmTitle: string;
+  voidUnpaidConfirmBody: string;
 
   // History filters
   filterThisShift: string;
@@ -540,11 +545,16 @@ const translations: Record<Locale, TranslationKeys> = {
     status_voided: "已作廢",
     voidOrder: "作廢訂單",
     refundOrder: "退款",
+    resumePayment: "繼續付款",
+    parkOrder: "掛單",
+    comingSoonToast: "即將推出",
     voidConfirmTitle: "確定作廢此訂單？",
     refundConfirmTitle: "確定退款此訂單？",
     voidConfirmBody: "訂單將被取消，庫存將恢復",
     refundConfirmBody: "將退還全額，庫存將恢復",
     cashRefundAmount: "需退還現金",
+    voidUnpaidConfirmTitle: "取消此未付款訂單？",
+    voidUnpaidConfirmBody: "訂單將被刪除，庫存將恢復",
     filterThisShift: "本班",
     filterToday: "今天",
     filterYesterday: "昨天",
@@ -806,11 +816,16 @@ const translations: Record<Locale, TranslationKeys> = {
     status_voided: "已作废",
     voidOrder: "作废订单",
     refundOrder: "退款",
+    resumePayment: "继续付款",
+    parkOrder: "挂单",
+    comingSoonToast: "即将推出",
     voidConfirmTitle: "确定作废此订单？",
     refundConfirmTitle: "确定退款此订单？",
     voidConfirmBody: "订单将被取消，库存将恢复",
     refundConfirmBody: "将退还全额，库存将恢复",
     cashRefundAmount: "需退还现金",
+    voidUnpaidConfirmTitle: "取消此未付款订单？",
+    voidUnpaidConfirmBody: "订单将被删除，库存将恢复",
     filterThisShift: "本班",
     filterToday: "今天",
     filterYesterday: "昨天",
@@ -1072,11 +1087,16 @@ const translations: Record<Locale, TranslationKeys> = {
     status_voided: "Voided",
     voidOrder: "Void",
     refundOrder: "Refund",
+    resumePayment: "Resume payment",
+    parkOrder: "Park",
+    comingSoonToast: "Coming soon",
     voidConfirmTitle: "Void this order?",
     refundConfirmTitle: "Refund this order?",
     voidConfirmBody: "Order will be cancelled, stock restored",
     refundConfirmBody: "Full amount will be refunded, stock restored",
     cashRefundAmount: "Cash to return",
+    voidUnpaidConfirmTitle: "Cancel this unpaid order?",
+    voidUnpaidConfirmBody: "Order will be deleted and stock restored",
     filterThisShift: "This Shift",
     filterToday: "Today",
     filterYesterday: "Yesterday",
@@ -1338,11 +1358,16 @@ const translations: Record<Locale, TranslationKeys> = {
     status_voided: "Anulado",
     voidOrder: "Anular",
     refundOrder: "Reembolso",
+    resumePayment: "Retomar pagamento",
+    parkOrder: "Estacionar",
+    comingSoonToast: "Em breve",
     voidConfirmTitle: "Anular este pedido?",
     refundConfirmTitle: "Reembolsar este pedido?",
     voidConfirmBody: "Pedido sera cancelado, stock restaurado",
     refundConfirmBody: "Valor total sera reembolsado, stock restaurado",
     cashRefundAmount: "Dinheiro a devolver",
+    voidUnpaidConfirmTitle: "Cancelar este pedido não pago?",
+    voidUnpaidConfirmBody: "O pedido sera eliminado e o stock restaurado",
     filterThisShift: "Este Turno",
     filterToday: "Hoje",
     filterYesterday: "Ontem",
@@ -1604,11 +1629,16 @@ const translations: Record<Locale, TranslationKeys> = {
     status_voided: "無効",
     voidOrder: "取消",
     refundOrder: "返金",
+    resumePayment: "支払いを再開",
+    parkOrder: "保留",
+    comingSoonToast: "近日公開",
     voidConfirmTitle: "この注文を取消しますか？",
     refundConfirmTitle: "この注文を返金しますか？",
     voidConfirmBody: "注文がキャンセルされ、在庫が復元されます",
     refundConfirmBody: "全額返金され、在庫が復元されます",
     cashRefundAmount: "返金する現金",
+    voidUnpaidConfirmTitle: "この未払い注文を取消しますか？",
+    voidUnpaidConfirmBody: "注文が削除され、在庫が復元されます",
     filterThisShift: "このシフト",
     filterToday: "今日",
     filterYesterday: "昨日",

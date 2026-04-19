@@ -4,9 +4,11 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { cn } from "@/lib/cn";
 import { type Locale, t, getProductName } from "@/i18n/locales";
 import { fetchFilteredOrders, voidOrRefundOrder, type OrderRow, type OrderItemRow } from "@/lib/history-actions";
+import { cancelPrePaymentOrder } from "@/lib/actions";
 import HistoryFilters, { type FilterState } from "./history-filters";
 import PrintReceipt from "@/components/receipt/print-receipt";
 import VoidRefundDialog from "./void-refund-dialog";
+import ConfirmDialog from "@/components/shared/confirm-dialog";
 import { PAYMENT_METHOD_KEYS, PAYMENT_METHOD_ICONS, STATUS_COLORS } from "@/lib/constants";
 import {
   Receipt,
@@ -19,6 +21,9 @@ import {
   Loader2,
   Ban,
   RotateCcw,
+  Play,
+  Archive,
+  AlertTriangle,
 } from "lucide-react";
 import CloseButton from "@/components/shared/close-button";
 
@@ -29,6 +34,7 @@ type Props = {
   locale: Locale;
   embedded?: boolean;
   currency?: string;
+  onResumeOrder?: (order: OrderRow, items: OrderItemRow[]) => void;
 };
 
 function formatCurrency(value: string | number, currency = "MOP") {
@@ -53,7 +59,7 @@ const DEFAULT_FILTERS: FilterState = {
   search: "",
 };
 
-export default function HistorySheet({ open, onClose, shiftId, locale, embedded = false, currency = "MOP" }: Props) {
+export default function HistorySheet({ open, onClose, shiftId, locale, embedded = false, currency = "MOP", onResumeOrder }: Props) {
   const fmt = (value: string | number) => formatCurrency(value, currency);
   const [closing, setClosing] = useState(false);
   const [orders, setOrders] = useState<OrderRow[]>([]);
@@ -62,6 +68,8 @@ export default function HistorySheet({ open, onClose, shiftId, locale, embedded 
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [dialogState, setDialogState] = useState<{ open: boolean; action: "void" | "refund"; order: OrderRow | null }>({ open: false, action: "void", order: null });
+  const [voidUnpaidState, setVoidUnpaidState] = useState<{ open: boolean; order: OrderRow | null }>({ open: false, order: null });
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<OrderRow | null>(null);
   const [closingDetail, setClosingDetail] = useState(false);
@@ -142,6 +150,33 @@ export default function HistorySheet({ open, onClose, shiftId, locale, embedded 
       fetchOrders(filters);
     }
   };
+
+  const handleVoidUnpaid = async () => {
+    if (!voidUnpaidState.order) return;
+    setIsProcessing(true);
+    const result = await cancelPrePaymentOrder(voidUnpaidState.order.id);
+    setIsProcessing(false);
+    if (result.success) {
+      setVoidUnpaidState({ open: false, order: null });
+      if (selectedOrder?.id === voidUnpaidState.order.id) {
+        setSelectedOrder(null);
+      }
+      fetchOrders(filters);
+    }
+  };
+
+  const showComingSoon = useCallback(() => {
+    setToastMessage(t(locale, "comingSoonToast"));
+    setTimeout(() => setToastMessage(null), 1800);
+  }, [locale]);
+
+  const handleResume = useCallback((order: OrderRow) => {
+    if (!onResumeOrder) {
+      showComingSoon();
+      return;
+    }
+    onResumeOrder(order, items[order.id] ?? []);
+  }, [onResumeOrder, items, showComingSoon]);
 
   const renderOrderList = () => (
     <>
@@ -449,6 +484,29 @@ export default function HistorySheet({ open, onClose, shiftId, locale, embedded 
 
                   {/* Actions */}
                   <div className="mt-5 flex items-center gap-2">
+                    {order.status === "new" && (
+                      <>
+                        <button
+                          onClick={() => { handleCloseDetail(); setTimeout(() => setVoidUnpaidState({ open: true, order }), 300); }}
+                          className="flex-1 h-11 flex items-center justify-center gap-2 rounded-[var(--radius-md)] text-[14px] font-medium text-pos-text-secondary border border-pos-border hover:border-pos-danger/30 hover:text-pos-danger hover:bg-pos-danger-light transition-colors"
+                        >
+                          <Ban className="h-4 w-4" />{t(locale, "voidOrder")}
+                        </button>
+                        <button
+                          onClick={showComingSoon}
+                          className="flex-1 h-11 flex items-center justify-center gap-2 rounded-[var(--radius-md)] text-[14px] font-medium text-pos-text-secondary border border-pos-border hover:bg-pos-surface-hover hover:text-pos-text transition-colors"
+                        >
+                          <Archive className="h-4 w-4" />{t(locale, "parkOrder")}
+                        </button>
+                        <button
+                          onClick={() => { handleResume(order); handleCloseDetail(); }}
+                          className="flex-1 h-11 flex items-center justify-center gap-2 rounded-[var(--radius-md)] text-[14px] font-medium text-white transition-colors"
+                          style={{ backgroundColor: "var(--color-pos-accent)" }}
+                        >
+                          <Play className="h-4 w-4" />{t(locale, "resumePayment")}
+                        </button>
+                      </>
+                    )}
                     {order.status === "completed" && (
                       <>
                         <button
@@ -465,18 +523,20 @@ export default function HistorySheet({ open, onClose, shiftId, locale, embedded 
                         </button>
                       </>
                     )}
-                    <PrintReceipt orderNumber={order.orderNumber} locale={locale}>
-                      {({ onPrint, isPrinting }) => (
-                        <button
-                          onClick={onPrint}
-                          disabled={isPrinting}
-                          className="flex-1 h-11 flex items-center justify-center gap-2 rounded-[var(--radius-md)] text-[14px] font-medium text-white transition-colors disabled:opacity-50"
-                          style={{ backgroundColor: "var(--color-pos-accent)" }}
-                        >
-                          <Printer className="h-4 w-4" />{isPrinting ? t(locale, "receiptPrinting") : t(locale, "receiptReprint")}
-                        </button>
-                      )}
-                    </PrintReceipt>
+                    {order.status !== "new" && (
+                      <PrintReceipt orderNumber={order.orderNumber} locale={locale}>
+                        {({ onPrint, isPrinting }) => (
+                          <button
+                            onClick={onPrint}
+                            disabled={isPrinting}
+                            className="flex-1 h-11 flex items-center justify-center gap-2 rounded-[var(--radius-md)] text-[14px] font-medium text-white transition-colors disabled:opacity-50"
+                            style={{ backgroundColor: "var(--color-pos-accent)" }}
+                          >
+                            <Printer className="h-4 w-4" />{isPrinting ? t(locale, "receiptPrinting") : t(locale, "receiptReprint")}
+                          </button>
+                        )}
+                      </PrintReceipt>
+                    )}
                   </div>
                 </div>
               </div>
@@ -495,6 +555,26 @@ export default function HistorySheet({ open, onClose, shiftId, locale, embedded 
           isProcessing={isProcessing}
           locale={locale}
         />
+
+        <ConfirmDialog
+          open={voidUnpaidState.open}
+          onClose={() => setVoidUnpaidState({ open: false, order: null })}
+          onConfirm={handleVoidUnpaid}
+          icon={<div className="h-12 w-12 rounded-full bg-pos-danger-light flex items-center justify-center mx-auto"><AlertTriangle className="h-6 w-6 text-pos-danger" /></div>}
+          title={t(locale, "voidUnpaidConfirmTitle")}
+          message={t(locale, "voidUnpaidConfirmBody")}
+          cancelLabel={t(locale, "cancel")}
+          confirmLabel={t(locale, "voidOrder")}
+          variant="danger"
+          loading={isProcessing}
+          zIndex={60}
+        />
+
+        {toastMessage && (
+          <div className="fixed left-1/2 -translate-x-1/2 bottom-10 z-[70] bg-pos-text text-pos-bg text-[13px] font-medium px-4 py-2 rounded-[var(--radius-md)] shadow-lg animate-[fadeIn_0.2s_ease-out]">
+            {toastMessage}
+          </div>
+        )}
       </div>
     );
   }
@@ -569,6 +649,26 @@ export default function HistorySheet({ open, onClose, shiftId, locale, embedded 
         isProcessing={isProcessing}
         locale={locale}
       />
+
+      <ConfirmDialog
+        open={voidUnpaidState.open}
+        onClose={() => setVoidUnpaidState({ open: false, order: null })}
+        onConfirm={handleVoidUnpaid}
+        icon={<div className="h-12 w-12 rounded-full bg-pos-danger-light flex items-center justify-center mx-auto"><AlertTriangle className="h-6 w-6 text-pos-danger" /></div>}
+        title={t(locale, "voidUnpaidConfirmTitle")}
+        message={t(locale, "voidUnpaidConfirmBody")}
+        cancelLabel={t(locale, "cancel")}
+        confirmLabel={t(locale, "voidOrder")}
+        variant="danger"
+        loading={isProcessing}
+        zIndex={60}
+      />
+
+      {toastMessage && (
+        <div className="fixed left-1/2 -translate-x-1/2 bottom-10 z-[70] bg-pos-text text-pos-bg text-[13px] font-medium px-4 py-2 rounded-[var(--radius-md)] shadow-lg animate-[fadeIn_0.2s_ease-out]">
+          {toastMessage}
+        </div>
+      )}
     </>
   );
 }
