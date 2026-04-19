@@ -531,9 +531,11 @@ export async function cancelPrePaymentOrder(
         }
       }
 
-      // Hard-delete: a 'new' order never saw a payment attempt, so there's
-      // nothing auditable to retain. order_items + payments cascade.
-      await tx.delete(orders).where(eq(orders.id, row.id));
+      // Soft-cancel: manual abort of an unpaid cart. Stock restored above.
+      await tx
+        .update(orders)
+        .set({ status: "cancelled" })
+        .where(eq(orders.id, row.id));
     });
 
     return { success: true };
@@ -601,7 +603,8 @@ export async function cleanupStalePrePaymentOrders(
       }
 
       await tx
-        .delete(orders)
+        .update(orders)
+        .set({ status: "expired" })
         .where(and(eq(orders.id, id), eq(orders.status, "new")));
     });
   }

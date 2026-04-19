@@ -264,6 +264,8 @@ type TranslationKeys = {
   status_pending: string;
   status_refunded: string;
   status_voided: string;
+  status_cancelled: string;
+  status_expired: string;
   voidOrder: string;
   refundOrder: string;
   resumePayment: string;
@@ -543,6 +545,8 @@ const translations: Record<Locale, TranslationKeys> = {
     status_pending: "處理中",
     status_refunded: "已退款",
     status_voided: "已作廢",
+    status_cancelled: "已取消",
+    status_expired: "已逾時",
     voidOrder: "作廢訂單",
     refundOrder: "退款",
     resumePayment: "繼續付款",
@@ -814,6 +818,8 @@ const translations: Record<Locale, TranslationKeys> = {
     status_pending: "处理中",
     status_refunded: "已退款",
     status_voided: "已作废",
+    status_cancelled: "已取消",
+    status_expired: "已逾时",
     voidOrder: "作废订单",
     refundOrder: "退款",
     resumePayment: "继续付款",
@@ -1085,6 +1091,8 @@ const translations: Record<Locale, TranslationKeys> = {
     status_pending: "Pending",
     status_refunded: "Refunded",
     status_voided: "Voided",
+    status_cancelled: "Cancelled",
+    status_expired: "Expired",
     voidOrder: "Void",
     refundOrder: "Refund",
     resumePayment: "Resume payment",
@@ -1356,6 +1364,8 @@ const translations: Record<Locale, TranslationKeys> = {
     status_pending: "Pendente",
     status_refunded: "Reembolsado",
     status_voided: "Anulado",
+    status_cancelled: "Cancelado",
+    status_expired: "Expirado",
     voidOrder: "Anular",
     refundOrder: "Reembolso",
     resumePayment: "Retomar pagamento",
@@ -1627,6 +1637,8 @@ const translations: Record<Locale, TranslationKeys> = {
     status_pending: "保留中",
     status_refunded: "返金済み",
     status_voided: "無効",
+    status_cancelled: "キャンセル済み",
+    status_expired: "期限切れ",
     voidOrder: "取消",
     refundOrder: "返金",
     resumePayment: "支払いを再開",

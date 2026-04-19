@@ -24,4 +24,6 @@ export const STATUS_COLORS: Record<string, string> = {
   pending: "bg-amber-50 text-amber-700 border-amber-200",
   refunded: "bg-red-50 text-red-700 border-red-200",
   voided: "bg-gray-100 text-gray-500 border-gray-200",
+  cancelled: "bg-gray-100 text-gray-500 border-gray-200",
+  expired: "bg-gray-50 text-gray-400 border-gray-200",
 };
