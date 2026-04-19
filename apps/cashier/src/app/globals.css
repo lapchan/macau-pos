@@ -12,6 +12,9 @@ html, body {
   -webkit-tap-highlight-color: transparent;
   /* Fix iOS Safari 100vh issue — use dvh for actual visible height */
   height: 100%;
+  /* Lock the root from scrolling on mouse/trackpad — only inner panels scroll */
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 /* Override h-screen to use dvh on iOS Safari */
