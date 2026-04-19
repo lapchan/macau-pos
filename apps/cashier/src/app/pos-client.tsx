@@ -407,6 +407,9 @@ export default function POSClient({ initialProducts, initialCategories, userName
     if (mounted) {
       localStorage.setItem("pos-locale", locale);
       document.cookie = `pos-locale=${locale};path=/;max-age=31536000`;
+      window.dispatchEvent(
+        new CustomEvent("pos-locale-changed", { detail: locale }),
+      );
     }
   }, [locale, mounted]);
 
