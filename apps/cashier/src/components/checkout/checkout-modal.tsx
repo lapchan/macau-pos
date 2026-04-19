@@ -14,7 +14,6 @@ import {
   createOrder,
   createPrePaymentOrder,
   completePrePaymentOrder,
-  cancelPrePaymentOrder,
   type OrderDiscount,
 } from "@/lib/actions";
 import {
@@ -69,11 +68,10 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
   });
   const [cashCents, setCashCents] = useState("0");
   const [orderNum, setOrderNum] = useState("");
-  // Pre-payment order id. Set once per modal session (when the cashier opens
-  // checkout) and cleared after the order reaches a terminal state. Closing
-  // the modal while this is set triggers cancelPrePaymentOrder to restore
-  // stock. When null (network down at mount time) the modal falls back to the
-  // legacy one-shot createOrder path, which in turn can queue offline.
+  // Pre-payment order id. Created on mount; the row stays as status='new'
+  // even after the modal closes and is swept by a 10-min lazy janitor on the
+  // next createPrePaymentOrder call. When null (network down at mount) the
+  // modal falls back to the legacy one-shot createOrder path (offline queue).
   const [prePaymentOrderId, setPrePaymentOrderId] = useState<string | null>(null);
   // Intellipay MPM state. Populated when the cashier picks the QR tile and
   // we successfully initiate an MPM payment.
@@ -84,14 +82,12 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
   const [cpqrScanning, setCpqrScanning] = useState(false);
 
   const handleClose = useCallback(() => {
-    // Fire-and-forget: the pre-payment order (if any) is still in "new" and
-    // needs to be voided so stock rolls back. We don't block the UI on it.
-    if (prePaymentOrderId) {
-      cancelPrePaymentOrder(prePaymentOrderId).catch(() => {});
-    }
+    // Leave any "new" pre-payment order in place — the lazy janitor
+    // (cleanupStalePrePaymentOrders) will sweep it after the 10-min TTL on
+    // the next checkout. This paves the way for future park/resume.
     setClosing(true);
     setTimeout(() => onClose(), 350);
-  }, [onClose, prePaymentOrderId]);
+  }, [onClose]);
 
   const rawSubtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const subtotal = subtotalProp ?? rawSubtotal;

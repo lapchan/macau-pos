@@ -270,6 +270,14 @@ export async function createPrePaymentOrder(
     const datePrefix = buildDatePrefix();
     const itemCount = input.cart.reduce((sum, item) => sum + item.quantity, 0);
 
+    // Janitor: free stock held by abandoned pre-payment orders before we
+    // reserve more. Keeps the ttl window small without a background job.
+    try {
+      await cleanupStalePrePaymentOrders(tenantId);
+    } catch (e) {
+      console.error("cleanupStalePrePaymentOrders failed (non-fatal):", e);
+    }
+
     const activeShift = await getActiveShift();
 
     const result = await db.transaction(async (tx) => {
@@ -490,8 +498,6 @@ export async function cancelPrePaymentOrder(
       // go through cancelMpmPayment so the gateway is told to drop the QR too.
       if (row.status !== "new") return;
 
-      await tx.update(orders).set({ status: "voided" }).where(eq(orders.id, row.id));
-
       const items = await tx
         .select({
           productId: orderItems.productId,
@@ -524,6 +530,10 @@ export async function cancelPrePaymentOrder(
             );
         }
       }
+
+      // Hard-delete: a 'new' order never saw a payment attempt, so there's
+      // nothing auditable to retain. order_items + payments cascade.
+      await tx.delete(orders).where(eq(orders.id, row.id));
     });
 
     return { success: true };
@@ -533,6 +543,67 @@ export async function cancelPrePaymentOrder(
       success: false,
       error: error instanceof Error ? error.message : "Unknown error",
     };
+  }
+}
+
+// 10-minute TTL for pre-payment orders. Stale 'new' rows hold stock without
+// ever reaching a payment, so on the next checkout we clean them up.
+const PRE_PAYMENT_TTL_MINUTES = 10;
+
+export async function cleanupStalePrePaymentOrders(
+  tenantId: string,
+): Promise<void> {
+  const stale = await db
+    .select({ id: orders.id })
+    .from(orders)
+    .where(
+      and(
+        eq(orders.tenantId, tenantId),
+        eq(orders.status, "new"),
+        sql`${orders.createdAt} < NOW() - (${PRE_PAYMENT_TTL_MINUTES} * INTERVAL '1 minute')`,
+      ),
+    );
+  if (stale.length === 0) return;
+
+  for (const { id } of stale) {
+    await db.transaction(async (tx) => {
+      const items = await tx
+        .select({
+          productId: orderItems.productId,
+          variantId: orderItems.variantId,
+          quantity: orderItems.quantity,
+        })
+        .from(orderItems)
+        .where(eq(orderItems.orderId, id));
+
+      for (const item of items) {
+        if (item.variantId) {
+          await tx
+            .update(productVariants)
+            .set({ stock: sql`${productVariants.stock} + ${item.quantity}` })
+            .where(
+              and(
+                eq(productVariants.id, item.variantId),
+                sql`${productVariants.stock} IS NOT NULL`,
+              ),
+            );
+        } else if (item.productId) {
+          await tx
+            .update(products)
+            .set({ stock: sql`${products.stock} + ${item.quantity}` })
+            .where(
+              and(
+                eq(products.id, item.productId),
+                sql`${products.stock} IS NOT NULL`,
+              ),
+            );
+        }
+      }
+
+      await tx
+        .delete(orders)
+        .where(and(eq(orders.id, id), eq(orders.status, "new")));
+    });
   }
 }
 
