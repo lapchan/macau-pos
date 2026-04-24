@@ -31,6 +31,7 @@ import {
   Receipt,
   LogOut,
   User,
+  Printer,
 } from "lucide-react";
 import { logout } from "@/lib/auth-actions";
 
@@ -54,6 +55,7 @@ export function AppSidebar({ collapsed, onToggle, userName, userRole }: AppSideb
     { icon: Users, label: t(locale, "sidebar.customers"), href: "/customers", id: "customers" },
     { icon: BarChart3, label: t(locale, "sidebar.reports"), href: "/reports", id: "reports" },
     { icon: Monitor, label: t(locale, "sidebar.terminals"), href: "/terminals", id: "terminals" },
+    { icon: Printer, label: t(locale, "sidebar.printers") || "Printers", href: "/printers", id: "printers" },
     { icon: Clock, label: t(locale, "sidebar.shifts") || "Shifts", href: "/shifts", id: "shifts" },
     { icon: MapPin, label: t(locale, "sidebar.locations") || "Locations", href: "/locations", id: "locations" },
     { icon: DollarSign, label: "Pricing", href: "/pricing-strategies", id: "pricing-strategies" },

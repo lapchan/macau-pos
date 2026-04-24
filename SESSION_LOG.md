@@ -1250,3 +1250,535 @@ Yahoo JP was the planned fallback for barcodes Rakuten misses (e.g. `45454035726
 - Extensive 40+ variant probe script (`/tmp/cpm-probe*.mjs`) confirmed the `cp-mode/create` endpoint returned identical `missing_parameter` regardless of body shape — the distinguishing sign was that `request_id` was null and `details` was null, meaning simpaylicity's handler was short-circuiting before reaching the normal request path. Simpaylicity acknowledged two bugs on their side: (a) validation errors on cp-mode are missing field names / request_ids, and (b) missing `order_id`/`order_amount` get mis-bucketed as `502 provider_error` instead of `missing_parameter`. They'll fix both.
 - The wrapper `createCpmPayment(...)` still accepts `auth_code` as the friendly input name; only the upstream body is renamed.
 - Parked for next session: **storefront intellipay checkout integration** (the `mpay`-hardcoded 500 on storefront). POS side is fully complete now.
+
+## Storefront Checkout UX Overhaul (2026-04-15 → 2026-04-18)
+
+Major rewrite of the storefront checkout page, iterating through several rounds of user feedback to reach the final single-page layout.
+
+### Changes (in order)
+1. **Checkout product review fixes committed + deployed** — 14 items (B1 blocker + M1-M5 major + m1-m6 minor + s1-s4 suggestions) as a single batch commit `8b0f529`.
+2. **Cart popup on add-to-cart** (`b46dd0d`) — window CustomEvent `storefront:cart-open` dispatched from PDP `handleAddToCart`, listened by CartPopover. Decoupled pattern, no prop threading.
+3. **Gate removal** (`6a15599`) — deleted `checkout/gate.tsx` interstitial. Login link moved inline to the checkout form contact section ("Have an account? Log in").
+4. **Shopify-style 3-step wizard** (`31ae149`) — full rewrite of `checkout-split.tsx` (548→1361 lines). Breadcrumb (Cart › Information › Shipping › Payment), review cards with [Change] links, controlled state for field persistence, mobile collapsible summary, discount code UI, field-level validation. Skipped express pay + address autocomplete (blocked on external infra).
+5. **Flatten to single page** (`a599a10`) — user wanted single-page, not wizard. Removed breadcrumb/Continue buttons/review cards, all sections render together, single Pay button, combined `validateAll()` with scroll-to-first-error via `data-field` anchors.
+6. **Sticky summary** (`720bd65`) — desktop order summary sticks to viewport top.
+7. **Fix cut-off totals** (`3dd4337`) — split summaryContent into scrollable items list + pinned footer with flex-col layout.
+8. **Discount code to left + no double scroll** (`98b15b0`) — discount block moved to the form side as its own section. Right panel reverted to simple sticky without internal overflow.
+9. **30% smaller item cards** (`dbbf4f4`) — images 80→56px, tighter padding/spacing/badges.
+
+### Key files
+- `apps/storefront/src/components/checkout/checkout-split.tsx` — the main checkout form (~1080 lines final)
+- `apps/storefront/src/components/cart/cart-popover.tsx` — `storefront:cart-open` event listener
+- `apps/storefront/src/components/product/product-overview-expandable.tsx` — dispatches `storefront:cart-open`
+- `apps/storefront/src/app/[locale]/checkout/page.tsx` — server component, gate logic removed
+- `apps/storefront/src/app/[locale]/checkout/client.tsx` — passes `isLoggedIn` to CheckoutSplit
+
+### Architecture decisions
+- **Window CustomEvent for cart popup** — avoids prop drilling through header/layout. Only one CartPopover mounted at a time per theme.
+- **Single-page over wizard** — user explicitly chose this after testing the wizard. All sections visible, one submit action.
+- **Discount block on form side** — keeps right panel compact (items + totals only), avoids sticky overflow issues.
+- **Sticky without internal scroll** — `lg:sticky lg:top-0 lg:self-start` on the desktop panel. No `max-h-screen` or `overflow-y-auto`.
+
+### Pending
+- **Style consistency across all storefront pages** — user's last request before save. Needs design audit of cart, checkout, product, home pages for consistent typography/spacing/buttons.
+
+## Cashier Deploy-Drift Banner + Scroll Lock (2026-04-20)
+
+User reported MPM payment couldn't load on pos.hkretailai.com. Production logs showed `Failed to find Server Action "x". This request might be from an older or newer deployment.` — classic Next.js server-action hash mismatch. Root cause: the cashier SW (`public/sw.js`) caches `/_next/static/*` cache-first, so after rebuilds the browser keeps running old JS whose action hashes are gone from the server.
+
+### Changes
+- **BUILD_ID plumbing** — `apps/cashier/src/lib/build-id.ts` (new): memoized read of `.next/BUILD_ID` with dev + Docker-cwd fallbacks. `/api/terminals/heartbeat` (`route.ts`) returns `buildId` on every response path.
+- **Drift detection** — `apps/cashier/src/lib/use-heartbeat.ts`: first heartbeat stores baseline in a ref; any later mismatch flips `needsReload`. Added to hook return.
+- **Banner component** — `apps/cashier/src/components/shared/update-banner.tsx` (new): top-fixed pill. Reload button calls `serviceWorker.getRegistrations() → unregister()` and `caches.keys() → caches.delete()` before `window.location.reload()`, guaranteeing fresh JS after the click.
+- **Theme-reactive** — banner bg switched from hardcoded `bg-blue-600` to inline `backgroundColor: var(--color-pos-accent)` so it follows the active merchant theme.
+- **Locale-reactive** — banner listens to `pos-locale-changed` custom event, cross-tab `storage` event, and `visibilitychange`. `pos-client.tsx` now dispatches `new CustomEvent("pos-locale-changed", { detail: locale })` inside the existing locale-persist effect.
+- **i18n** — 4 new keys (`updateAvailableTitle/Body/Reload/Later`) × 5 locales (tc/sc/en/pt/ja) in `i18n/locales.ts`.
+- **App shell** — `components/shared/app-shell.tsx` reads `needsReload` from `useHeartbeat` and mounts `<UpdateBanner visible={needsReload} />` alongside `<TerminalGuard>`.
+- **Scroll lock** — `apps/cashier/src/app/globals.css`: added `overflow: hidden` and `overscroll-behavior: none` to the `html, body` block (body already had `overflow: hidden`; html was not locked, so mouse-wheel on desktop could scroll the root).
+
+### Commits
+- `cf1dc91` feat(cashier): detect new deploy via heartbeat, prompt cashier to reload
+- `a15d417` feat(cashier): theme-tint the update banner and react to locale changes
+- `c2c4303` fix(cashier): lock root from scrolling on desktop mouse
+
+### Deploy method
+Forced fresh BUILD_ID via `docker compose build --build-arg BUILD_ID=$(date +%s) cashier`, then `up -d cashier`. Without this, Docker cached the builder layer and next build kept emitting the same BUILD_ID. Verified via `curl /api/terminals/heartbeat` — buildId sequence confirmed drift across rebuilds (`7Qa-Kgp-HELcUdDf2_FNw` → `afHx5Y7U6uWRz8M4G7GQC` → `vzdsjOiNeLeBFnxWEtoTj` → `SJgMV1GOiOZ27nyTMKMqB`).
+
+### Notes
+- Self-upgrading gotcha: the first banner the user sees after deploying a banner change is rendered by the PRE-change JS. Theme + locale reactivity only appears after the user clicks Reload through the stale-code banner. Explained to user.
+- `[cancelMpmPayment] intellipay cancel failed: provider_error` noise in logs is unrelated — fires on cancels of already-paid or missing orders upstream. Harmless console.warn.
+- User confirmed MPM QR loads green after first reload. Theme + locale verified after second reload. Scroll lock verified on desktop.
+
+### Pending
+- **Storefront style consistency** — unchanged from previous session. Next priority.
+- **Storefront intellipay online/hosted checkout** — unchanged.
+
+## Unpaid-Order Lifecycle: Soft-Void + Resume Payment (2026-04-20)
+
+Extended the new-order detail sheet with Void/Park/Resume actions, redefined the void taxonomy, and wired the Resume-payment round-trip so a cashier can close the checkout modal and come back to the same cart later without creating a duplicate order.
+
+### Status taxonomy change
+Original enum: `new → pending → completed | refunded | voided`. User observed that voiding an unpaid `new` order and voiding a completed order both collapsed to `voided`, losing the audit distinction. Also wanted nothing to ever hard-delete. Added two values via migration `packages/database/drizzle/0005_add_cancelled_expired_status.sql`:
+
+- `cancelled` — cashier explicitly aborted an unpaid cart (manual)
+- `expired` — 10-min TTL lazy janitor swept the abandoned `new` row
+
+`voided` is now reserved for completed orders voided after the fact. Migration applied to dev (`docker exec macau-pos-db psql ...`) and prod (ssh + psql) with a manual row inserted into `drizzle.__drizzle_migrations` for tracking.
+
+### Soft-void invariant
+Both `cancelPrePaymentOrder` and `cleanupStalePrePaymentOrders` in `apps/cashier/src/lib/actions.ts` now restore stock then `UPDATE orders SET status = 'cancelled'/'expired'` instead of `DELETE`. Nothing is hard-deleted so history-sheet filtering by status can surface every lifecycle state.
+
+### Detail-sheet actions
+`apps/cashier/src/components/history/history-sheet.tsx` 85vh bottom-detail sheet now renders three buttons when `order.status === 'new'`:
+
+- **Void** — `ConfirmDialog` → `cancelPrePaymentOrder(order.id)` → refetch + dismiss
+- **Park** — coming-soon toast (`t(locale, "comingSoonToast")`, 1.8s)
+- **Resume payment** — fires `onResumeOrder(order, items)` callback up to `pos-client.tsx`
+
+Status chip colors in `lib/constants.ts` added for the new enum values (grey). Filter chips in `history-filters.tsx` gained XCircle (cancelled) + TimerOff (expired) icons.
+
+### Resume payment wiring
+Backend: `resumePrePaymentOrder(orderId)` in `lib/actions.ts` — validates tenant + `status='new'`, joins `order_items` with `products` for image/hasVariants metadata, parses the stored `orders.notes` field back into an `OrderDiscount` via `parseDiscountNote` (regex "Discount: 10%" or "Discount: MOP 5"), and hydrates the linked customer row. Returns `{ cart, orderDiscount, customer, subtotal, discountAmount, taxAmount, total, orderId, orderNumber }`.
+
+CheckoutModal: added `resumeOrderId` + `resumeOrderNumber` props. The mount effect that calls `createPrePaymentOrder` now short-circuits when `resumeOrderId` is set — the row already exists server-side with stock reserved. `orderNum` + `prePaymentOrderId` state init from the props directly.
+
+pos-client: added `resumeOrder` state (`{ id, number } | null`) and `handleResumeOrder` callback:
+1. Calls `resumePrePaymentOrder(order.id)`
+2. Rebuilds `CartItem[]` from the returned rows (preserving the `productId__variantId` id encoding for variants, `custom_${orderItemId}` for custom-priced items)
+3. Sets `orderDiscount`, `linkedCustomer`, `resumeOrder`
+4. Closes history, switches to cashier tab, opens CheckoutModal with the resume props
+
+Wired `onResumeOrder={handleResumeOrder}` to both HistorySheet instances (embedded orders tab + modal).
+
+### Update banner loading state
+`apps/cashier/src/components/shared/update-banner.tsx` — added `updating` state so the reload button shows `<Loader2 animate-spin />` + accent-filled bg and swaps title/body to `updateAvailableUpdating` / `updateAvailableWait` during service-worker unregister + cache purge. Buttons hidden while updating. Added i18n keys for the new copy across 5 locales.
+
+### Commits
+- `1a83b46` feat(cashier): add Void/Park/Resume buttons to new-order detail
+- `42e61f8` feat(cashier): split voided into cancelled/expired for unpaid orders
+- `e7b98d8` feat(cashier): add loading state to update banner reload
+- `b9fd5b1` feat(cashier): wire Resume payment for unpaid orders
+
+### Deploy
+Rebuilt cashier with `BUILD_ID=$(git rev-parse --short HEAD)` build-arg. Heartbeat confirmed fresh `buildId=UCeBxSwcIQ-SamlVIap9t`. pos + admin both 200.
+
+### Notes
+- `OrderItemRow` from history-actions doesn't carry `productId`/`variantId`, so Resume couldn't rely on it — the backend action re-queries with the product join. The client-side `items` param in `onResumeOrder` is kept for symmetry but unused in the current handler.
+- Parse regex for discount note allows a currency prefix ("MOP 5", "HKD 12.50") or bare number, matching createPrePaymentOrder's output format.
+- Discount reconstruction per item: stored `discountNote` is "10%" or "MOP 5"; if absent but amount > 0 (shouldn't happen in practice) falls back to `{ type: 'fixed', value: discountAmt }`.
+
+### Pending
+- **Park order** still a toast stub; needs its own status transition (possibly `parked` enum value or reuse `new` with a flag) and a "Parked orders" UI entry point.
+- **Storefront style consistency** — unchanged.
+- **Storefront intellipay online/hosted checkout** — unchanged.
+
+## Network Printer — Phase E Kickoff (Sub-phases A–C) (2026-04-24)
+
+Phase D pre-coding gate signed off; coding began. Three sub-phases landed: shared ESC/POS package, DB migration + Drizzle schema, and the bridge daemon skeleton. 80 tests pass across the two packages; all typecheck clean.
+
+### Cloudflare setup (done before coding sub-phase I)
+User signed up for CF. Original plan was Option A (move `hkretailai.com` DNS fully to CF); user declined the cutover risk. Tried Option B (subdomain delegation, `print.hkretailai.com`) — CF rejected: subdomain zones require Business plan ($200/mo). Switched to **Option C: dedicated printer domain `shanhoi.com`** registered at Namecheap. Namecheap nameservers → CF (`remy.ns.cloudflare.com` + pair), CF zone went active in ~15 min (faster than the usual up-to-24h window).
+
+CF credentials verified via API:
+- `CF_ZONE_ID=8c172b9fa4a4d8a50cd40aa051f12def` (shanhoi.com)
+- `CF_ACCOUNT_ID=bd7dea3b24de760f5d7f87761350942b`
+- `CF_API_TOKEN` — custom token, scopes `Account:Cloudflare Tunnel:Edit` + `Zone:DNS:Edit` on shanhoi.com. Token verified against `/user/tokens/verify`, `/zones/<id>`, and `/accounts/<id>/cfd_tunnel` — all 200. **Rotate after sub-phase I** (token was pasted in chat during setup).
+
+`hkretailai.com` DNS is untouched; admin/pos/store keep serving from Aliyun → ECS exactly as before.
+
+### Sub-phase A — `@macau-pos/escpos-shared`
+New package `packages/escpos-shared/`. Pure TypeScript (no runtime Node deps besides `iconv-lite`), builds to `dist/`.
+- **Drivers** (`src/drivers/`): `generic`, `star`, `epson`. Each implements `PrinterDriverDef` (init/align/emphasis/doubleSize/selectCodePage/feed/cut/kickDrawer/queryStatus/parseStatus/columns). Star overrides cut (ESC d n) + drawer (BEL). Epson overrides cut (GS V A/B 3) + queryStatus (DLE EOT 1).
+- **Codepages** (`src/codepages/`): `cp437`, `big5`, `gb18030`, `shift-jis`. Each exposes `encode(text) → Uint8Array` via `iconv-lite` + `escposPage` (the number for `ESC t n`) + `requiresChineseMode` (whether `FS &` precedes).
+- **Builder** (`src/builder/`): `buildReceipt`, `buildTestPage`, + helpers (`concat`, `visualWidth`, `padRight/Left`, `wrapToWidth`, `twoColRow`, `selectCodePageBytes`, `encodeLine/Block`). Receipt layout: center+double-size shop name, address/phone, double divider, order info, line items with optional discount row, subtotal/discount/tax, double-size TOTAL, payment method with cash+change, centered locale-aware footer, feed, optional drawer kick, partial cut.
+- **Locale footers:** en "Thank you!", tc "多謝光臨！", sc "感谢光临！", pt "Obrigado!", ja "ありがとうございました".
+- **Tests (58 passing):** 23 generic-driver byte-level tests (matches blueprint U-ESC-01..15 exactly), 5 star, 6 epson, 11 codepage encoding (Big5 "中文" → `A4 A4 A4 E5`, GB18030 → `D6 D0 CE C4`, Shift_JIS "あいう" → `82 A0 82 A2 82 A4`, unmappable → `?`, 10KB ASCII no OOM, Portuguese accents in CP437), 9 receipt (Big5 determinism, kickDrawer append, cash+change rendering, custom footer, JP locale, empty items, 50-char wrap), 4 test-page (all 4 codepages, Big5 CJK bytes present, empty shop name safe, ends with cut).
+- **Decision:** `iconv-lite` added as runtime dep. Blueprint said "zero deps" but deterministic Big5/GB18030/Shift_JIS encoding across Node+browser requires it. ~80KB tree-shaken, works in both environments.
+
+### Sub-phase B — Migration 0006 + Drizzle schema
+- `packages/database/drizzle/0006_add_location_printer_settings.sql` — 4 new enums (`printer_driver`, `printer_code_page`, `printer_status`, `printer_location_status`), 1 table (`location_printer_settings`, PK on `location_id` FK cascade to `locations`), 2 partial indexes, 3 CHECK constraints (paper_width ∈ {58,80}, default_copies ∈ [1,10], pending_command_type ∈ rotate_token/force_update/reload_config).
+- `packages/database/src/schema/location-printer-settings.ts` — Drizzle definition, types (`LocationPrinterSettings`, `NewLocationPrinterSettings`, enum string unions, `PrinterPendingCommandType`).
+- `packages/database/src/schema/index.ts` — re-export added alongside terminals.
+- `packages/database/drizzle/meta/_journal.json` — entry `idx:6 tag:0006_add_location_printer_settings` appended, matches 0005 hand-written pattern.
+- **Deviations from blueprint (intentional):** dropped duplicate `location_printer_stale_idx` (blueprint accidentally defined it identically to `location_printer_offline_idx`); dropped `trigger_set_timestamp` DB trigger (not in repo — using Drizzle `$onUpdate(() => new Date())` like `terminals.ts`).
+- **Verified:** typecheck clean via in-source smoke import (package has a pre-existing `import-yp.ts` TS error unrelated to this work); SQL runs cleanly on local dev DB inside `BEGIN; … ROLLBACK;` — all 9 statements green, no persisted changes.
+- **Not yet applied to dev DB.** Next session, or whenever user wants, use the team's manual pattern from 2026-04-20 session.
+
+### Sub-phase C — `@macau-pos/printer-bridge` skeleton
+`packages/print-server/` rewritten (package renamed `print-server` → `printer-bridge`). Old `src/printer.ts` + `src/server.ts` deleted — receipt-build logic moved to escpos-shared, server rewritten as structured daemon.
+- **CLI** (`bin/printer-bridge.ts`): dispatches `start`; `stop`/`install`/`uninstall`/`upgrade`/`status`/`rotate-token` exit 2 with "not yet implemented — sub-phase J/K/L" until those phases land. `--help` prints usage.
+- **Daemon** (`src/daemon.ts`): Node `http.createServer` on 127.0.0.1:3901 (port env-overridable), route table with auth-gated + rate-limited `/print`, auth-gated `/health` + `/test`, unauthenticated `/version` (so admin can ping remotely via tunnel without knowing the token). Graceful shutdown on SIGTERM/SIGINT. Per-request logging at accessStart/accessEnd.
+- **Config** (`src/config.ts`): platform paths (`/etc/printer-bridge/config.json` Linux, `/Library/Application Support/printer-bridge/config.json` macOS, `%PROGRAMDATA%\printer-bridge\config.json` Windows), atomic write via tmp+bak+rename, `ConfigStore` class, `devConfig()` for `PRINTER_BRIDGE_DEV=1` mode. Validation at load/write.
+- **Middleware:**
+  - `bearer-auth.ts` — constant-time token compare (timingSafeEqual with length-equalized buffers); accepts both primary and pending tokens (rotation-overlap window).
+  - `rate-limit.ts` — token bucket, `rps: 10, burst: 20` defaults, keyed by first 16 chars of bearer token (falls back to socket.remoteAddress). `RateLimiter.peek()` exposed for tests.
+  - `idempotency.ts` — `IdempotencyCache` LRU + TTL, get bumps recency, maxEntries default 10k, set evicts oldest on overflow.
+  - `logging.ts` — request access logging; structured JSON to stderr for systemd/launchd.
+- **Transport** (`src/transport/`): `adapter.ts` defines `TransportAdapter` interface + `PrinterProbeResult` + a `NoopTransport` dev fallback. `detect.ts` currently returns `NoopTransport` with a warn log; real linux-lp/node-usb/cups adapters arrive in sub-phase D.
+- **Handlers:** `version` + `health` fully wired (version returns daemon version, tenant slug, location id, transport name, uptimeMs); `print` + `test` return 501 `not_implemented phase: E` so auth/rate-limit pipeline can still be tested.
+- **Heartbeat + update-check:** both start a logged no-op timer (`setInterval + .unref()`); env flags `PRINTER_BRIDGE_NO_HEARTBEAT=1` / `PRINTER_BRIDGE_NO_UPDATE_CHECK=1` disable them (used by test suite).
+- **Errors** (`src/errors.ts`): typed `BridgeError` class with `code: PrinterErrorCode` + HTTP `status`; subclasses `PrinterOfflineError`, `PrinterTimeoutError`, `PrinterPaperOutError`, `PrinterCoverOpenError`, `TransportUnavailableError`.
+- **Semaphore** (`src/util/semaphore.ts`): FIFO counting semaphore for serializing USB writes in sub-phase D.
+- **`usb` npm package:** moved from dependencies → optionalDependencies. Install on macOS without libusb works again; on real bridge devices, sub-phase J install scripts will ensure libusb is present before `npm install`.
+- **Tests (22 passing):** 6 bearer-auth (U-AUTH-01..05 + pending-token path), 6 rate-limit (U-RL-01..05 + partial-refill), 5 idempotency (U-IDEM-01..04 + LRU-bump), 5 integration (daemon boots on ephemeral port, GET /version JSON, POST /print no-auth → 401, POST /print with Bearer → 501 skeleton response, GET /health → 200, 404 on unknown path). vitest configured with `pool: "forks"`, `singleFork: true` so integration tests don't race on ports.
+
+### Files created / changed
+```
+docs/01-planning/PLANNING_NETWORK_PRINTER.md                    (new, phases 0–4)
+docs/01-planning/PLANNING_NETWORK_PRINTER_SUMMARY.md            (new)
+docs/01-planning/PRODUCT_REVIEW_NETWORK_PRINTER.md              (new)
+docs/02-implementation/PLAN-12-network-printer.md               (new, blueprint)
+docs/02-implementation/PLAN-12-network-printer-PHASE-A.md       (new, Phase A)
+docs/02-implementation/PLAN-12-network-printer-TESTS.md         (new, test plan)
+docs/02-implementation/PLAN-12-network-printer-GATE.md          (new, Phase D gate)
+packages/escpos-shared/**                                        (new package)
+packages/database/drizzle/0006_add_location_printer_settings.sql (new migration)
+packages/database/src/schema/location-printer-settings.ts        (new schema)
+packages/database/src/schema/index.ts                            (edited: add re-export)
+packages/database/drizzle/meta/_journal.json                     (edited: +entry 6)
+packages/print-server/**                                         (renamed to @macau-pos/printer-bridge, full rewrite)
+  - package.json, tsconfig.json, vitest.config.ts                 (rewrite)
+  - bin/printer-bridge.ts                                         (new CLI)
+  - src/daemon.ts, config.ts, types.ts, errors.ts                 (new)
+  - src/util/{semaphore.ts, logging.ts}                           (new)
+  - src/middleware/{bearer-auth,rate-limit,idempotency,logging}.ts (new)
+  - src/transport/{adapter.ts, detect.ts}                         (new, noop)
+  - src/handlers/{version,health,print,test}.ts                   (new; print/test are skeletons)
+  - src/{heartbeat,update-check}.ts                               (new, timer stubs)
+  - tests/unit/{bearer-auth,idempotency,rate-limit}.test.ts       (new)
+  - tests/integration/daemon-boot.test.ts                         (new)
+  - src/printer.ts, src/server.ts                                 (DELETED)
+```
+
+### Not yet done
+- Migration 0006 is not applied to dev DB. Files + dry-run OK; awaiting user's go to flip it on.
+- `APP_PEPPER` and `BOOTSTRAP_JWT_SECRET` not generated. Needed only from sub-phase E/I onwards.
+- `CF_API_TOKEN` not stored in `.env*`. User has the value locally; sub-phase I wiring will consume it from `apps/admin/.env.production`.
+
+### Next session — sub-phase D
+Transport adapters. Files to create in `packages/print-server/src/transport/`:
+- `linux-lp.ts` — scan `/dev/usb/lp0..3`, fs.open + write with timeout, probe via `fs.access`.
+- `node-usb.ts` — `import('usb')` lazily (optional dep), find printer-class USB device, claim interface, pipe to OUT endpoint, probe via `GS r 1` status query. Handle C4 (paper out bit).
+- `cups.ts` — spawn `lp -d <printerName> -o raw` with bytes on stdin; probe via `lpstat -p <name>`.
+- Update `detect.ts` to try them in the order from §4.8. Wave back to noop only if all three fail.
+- 7 unit tests (U-TX-01..07) — mock `node:fs`, `child_process.spawn`, and a fake USB device that returns `0x04` → paperOut flag.
+
+### Pending (unchanged from prior sessions)
+- **Storefront style consistency** — still queued.
+- **Storefront intellipay online/hosted checkout** — still queued.
+
+## Network Printer — Phase E Sub-phases D–G (2026-04-24 cont.)
+
+Continued straight from the A–C session without a break. Bridge daemon is now functionally complete end-to-end for everything it does standalone — only admin/installer/cashier sides remain. Test total climbed from 80 → 130 across two packages (58 escpos-shared + 72 printer-bridge).
+
+### Sub-phase D — Transport adapters
+Three real adapters + priority-aware detect, replacing the `NoopTransport` placeholder (noop still used as dev fallback when `PRINTER_BRIDGE_DEV=1` and nothing else works).
+
+- `src/transport/linux-lp.ts` — scans `/dev/usb/lp0..3` for writable devices, opens with `fs.open`, writes bytes in a `Promise.race` with a `setTimeout` so stuck writes reject as `PrinterTimeoutError`. Defaults to `DEFAULT_LP_PATHS` but accepts `lpPaths` opt for testability (real temp files).
+- `src/transport/node-usb.ts` — lazy `import("usb")` so the optional dep doesn't crash dev installs without libusb. Finds `bInterfaceClass === 0x07` (printer class), claims interface, pipes to first OUT endpoint, probes via `GS r 1` (`0x1d 0x72 0x01`) on bidirectional interfaces. Parses response byte: `(b & 0x04) → paperOut`, `(b & 0x20) → coverOpen`. Exposes `UsbModuleLike`/`UsbDeviceLike`/`UsbInterfaceLike`/`UsbEndpointLike` so tests inject fakes without libusb. Honors `vendorId`/`productId` opts if the operator pins them.
+- `src/transport/cups.ts` — spawns `lp -d <name> -o raw` with payload on stdin; probes via `lpstat -p <name>` and greps for `idle`/`disabled`. Throws typed `BridgeError`s (`PrinterOfflineError`, `PrinterTimeoutError`, `TransportUnavailableError`).
+- `src/transport/detect.ts` — auto order `linux → lp/usb/cups`, `darwin/win32 → usb/cups`; pinned transport in config never falls through; `PRINTER_BRIDGE_DEV=1` falls back to noop when all three fail, production throws.
+- **Tests (26):** 5 linux-lp with temp files (find, write, probe), 1 linux-lp timeout with isolated `vi.mock("node:fs")` (never-resolving write → `PrinterTimeoutError`), 7 node-usb (status byte 0x04/0x20/0x00, unidirectional interface, no-printer path, vendorId filter), 5 cups via `vi.mock("node:child_process")` spawn intercept, 8 detect covering every platform/failure/fall-through combination.
+
+### Sub-phase E — /print + /test handlers
+Real implementations replace the 501 skeletons.
+
+- Added `zod` as a dep. `src/schemas.ts` exports `PrintRequestSchema` (strict: bytesBase64 non-empty, char-limit-capped for 64 KiB decoded ceiling; copies 1–10; timeoutMs 100–60k; kickDrawer bool; driver str informational) and `TestRequestSchema` (all optional; defaults from config).
+- `src/util/http.ts` — `readJson` with explicit `PayloadTooLarge`/`InvalidJson` errors, 128 KiB body cap (above Zod's so typed errors surface).
+- `src/handlers/print.ts` — full pipeline per §5.2.2: require `Idempotency-Key`, serve cached replay (different bodies share the key — per HTTP idempotency semantics), refuse with 503 when `ctx.mode === "maintenance"` (M4), Zod validate, base64 decode (guard `length > 64 KiB` and empty), serialize writes through `ctx.writeLock`, loop `copies` times, append `driver.kickDrawer()` after the last copy when `kickDrawer: true`, return `{ok, jobId, durationMs, printerStatus}`, map internal `PrinterErrorCode` → public `no_paper`/`printer_offline`/`printer_timeout`/`bridge_internal` with `retryable` hints.
+- `src/handlers/test.ts` — same pattern, calls `buildTestPage` from escpos-shared; fills missing fields from config; accepts missing Idempotency-Key (synthesizes id) since /test is admin-triggered and doesn't need strict dedup.
+- `src/handlers/version.ts` — plain-text per §5.2.5 (was JSON in sub-phase C; fixed to match spec since it's unauthenticated tunnel-liveness).
+- `src/handlers/health.ts` — full §5.2.4 body (`ok, bridgeUp, printerUp, printerStatus, printerModel, lastError, uptimeSec, version, jobsServedTotal, transport`).
+- `src/middleware/logging.ts` — null-check `req.socket` in `accessEnd`; aborted requests (payload-too-large) can tear down the socket before the `finally` block runs.
+- **Tests (10 integration):** valid print → 200 with jobId echo, idempotency replay returns cached body even if retry has different body, missing Idempotency-Key → 400 bad_request, empty/invalid base64 → 400, copies > 10 → 400, huge payload → 413, strict schema rejects unknown fields, kickDrawer:true smoke, /test with explicit options → 200, /test with empty body uses config defaults.
+
+### Sub-phase F — Heartbeat loop (bridge-side)
+Real POST loop replaces the debug-log ticker.
+
+- `BridgeContext` gained `mode: 'enabled' | 'maintenance' | 'disabled'`, `lastHeartbeatAt`, `lastHeartbeatError`.
+- `src/heartbeat.ts` — 30 s default interval, respects server-provided `nextHeartbeatIn` (seconds) for subsequent ticks, AbortController 10 s request timeout, dependency-injectable `fetchFn`/`onFatal`/`intervalMs` for tests, exposes a `triggerOnce()` hook so unit tests don't chase wall-clock timers. Body shape matches §5.4.1 exactly: `{locationId, bridgeVersion, printerStatus (ok/out_of_paper/error/offline from probe), printerModel, lastError, uptimeSec, jobsServedTotal, ackedCommandId?}`.
+- Status-code handling: 410 → `ctx.mode = "disabled"` + `onFatal("printer_disabled")` + loop stopped; 404/401 → record `lastHeartbeatError`, keep ticking; network errors → same; 200 → apply `commands[]` via `applyCommands`, set `ctx.pendingAck` to last-applied ID for the next heartbeat to ACK; server acknowledging our previous ACK clears `pendingAck` so we don't re-send.
+- `commands/apply.ts` — dispatch + chain. On first failed command, stops and returns last-successful ID so we don't ACK downstream commands that never ran.
+- **Tests (8):** POST body shape verified against `fetchFn.mock.calls[0]`, `rotate_token` command → new token in config + old kept as `pendingToken` + next heartbeat ACKs + uses new token on wire, 410 → `onFatal + mode=disabled`, 401/404/network non-fatal, `nextHeartbeatIn` respected, `mode=maintenance` from server toggles ctx, `printerStatus=out_of_paper` when probe.paperOut.
+
+### Sub-phase G — Command channel
+Filled in the three real command appliers behind `apply.ts`.
+
+- `src/commands/rotate-token.ts` — M1 rotation-overlap. On `rotate_token`: write `newToken` to `config.token` atomically, copy old `token` to `pendingToken`, store `effectiveAt` as `rotationOverlapUntil`. `bearer-auth` already accepts both tokens, so requests in flight succeed across the rotation. Next heartbeat ACKs and admin promotes pending→primary on the server side, clearing overlap.
+- `src/commands/reload-config.ts` — re-reads `config.json` from disk and swaps in `ConfigStore`, applies new log level. Support-only tool; normal changes flow through `rotate_token`.
+- `src/commands/force-update.ts` — calls `performUpdate(ctx, targetVersion)`. Rejects with a throw so the command doesn't ACK if the update fails, letting admin re-send next heartbeat.
+- `src/self-update.ts` — stub returning `{ok:false, reason: "self_update_not_implemented_phase_L"}`. Plumbing verified end-to-end in the commands test; real npm install + restart + health-check + rollback lands in sub-phase L.
+- Config validation relaxed: `listenPort ∈ [0, 65535]` (0 = OS-ephemeral, legitimate for tests and some container setups). Was `> 0`.
+- **Tests (6):** U-CMD-01 rotate_token with effectiveAt → token + pendingToken + rotationOverlapUntil all set; missing newToken throws with no config mutation; U-CMD-02 reload_config picks up disk changes made by external writer; U-CMD-03 force_update fails gracefully with L stub (no ACK, correct behavior); U-CMD-04 unknown command type logs + no ACK; U-CMD-05 chain stops on first failure, successful-so-far returned for ACK.
+
+### Files created / changed (D–G)
+```
+packages/print-server/
+  package.json                                             (+zod dep; keep usb as optionalDependency)
+  src/
+    config.ts                                              (validate() relaxed for listenPort=0)
+    daemon.ts                                              (BridgeContext +mode/lastHeartbeatAt/lastHeartbeatError)
+    heartbeat.ts                                           (REWRITE from stub to real loop)
+    self-update.ts                                         (NEW — L-pending stub)
+    schemas.ts                                             (NEW — Zod schemas for /print, /test)
+    util/http.ts                                           (NEW — readJson, sendJson, typed errors)
+    middleware/logging.ts                                  (null-check req.socket in accessEnd)
+    handlers/print.ts                                      (REWRITE from skeleton to real + maintenance-mode guard)
+    handlers/test.ts                                       (REWRITE from skeleton to real)
+    handlers/version.ts                                    (plain-text per §5.2.5)
+    handlers/health.ts                                     (full §5.2.4 body)
+    transport/linux-lp.ts                                  (NEW — real lp scan + timeout write)
+    transport/node-usb.ts                                  (NEW — dyn-import usb + printer-class + GS r 1 probe)
+    transport/cups.ts                                      (NEW — spawn lp + lpstat)
+    transport/detect.ts                                    (REWRITE — priority + pinned + DEV fallback)
+    commands/apply.ts                                      (REWRITE from stub — dispatch + chain)
+    commands/rotate-token.ts                               (NEW)
+    commands/reload-config.ts                              (NEW)
+    commands/force-update.ts                               (NEW)
+  tests/
+    unit/transport-linux-lp.test.ts                        (NEW — 5 real-fs tests)
+    unit/transport-linux-lp-timeout.test.ts                (NEW — 1 isolated fs-mock test)
+    unit/transport-node-usb.test.ts                        (NEW — 7 fake-usb tests)
+    unit/transport-cups.test.ts                            (NEW — 5 spawn-mock tests)
+    unit/transport-detect.test.ts                          (NEW — 8 factory-override tests)
+    unit/heartbeat.test.ts                                 (NEW — 8 fetchFn-injection tests)
+    unit/commands.test.ts                                  (NEW — 6 command dispatch tests)
+    integration/print-handler.test.ts                      (NEW — 10 print/test handler tests)
+    integration/daemon-boot.test.ts                        (UPDATED — /version plain-text, 400 bad_request for missing Idempotency-Key, richer /health assertions)
+```
+
+### Known deviations / stubs to close later
+- `src/self-update.ts` — returns `ok:false, reason: "self_update_not_implemented_phase_L"`. force_update command fails (by design until L).
+- `/api/printers/heartbeat` admin route — not written yet (lands in H). Bridge currently POSTs into a void during development.
+- `/api/printers/bootstrap` admin route — not written yet (lands in I, needs `BOOTSTRAP_JWT_SECRET`).
+- CUPS default queue name is hardcoded to "Xprinter" in `detect.ts#fallbackCupsName`. Operator override arrives through `config.cupsPrinterName` set by the admin UI in sub-phase H.
+- Migration 0006 still only dry-run-validated on dev DB; not applied. Required before H can query.
+
+### Sub-phase dependency graph snapshot
+- A ✅ → C ✅, M (cashier)
+- B ✅ → C ✅, F, H (admin DB queries)
+- C ✅ → D ✅, E ✅, F ✅
+- D ✅ → E ✅
+- E ✅ → M (cashier calls /print)
+- F ✅ → G ✅, H (admin heartbeat route)
+- G ✅ → L (self-update real impl)
+- H = next decision point (requires APP_PEPPER + migration 0006 applied)
+
+### Pending (unchanged from prior sessions)
+- **Storefront style consistency** — still queued.
+- **Storefront intellipay online/hosted checkout** — still queued.
+
+## Network Printer — Phase E sub-phase H (admin UI + heartbeat route) (2026-04-24)
+
+Closed the bridge-admin loop. Migration 0006 is now applied on dev; `APP_PEPPER` and `BOOTSTRAP_JWT_SECRET` generated in `.env`. Admin app gains `/api/printers/heartbeat`, `/locations/[id]/printer`, and `/printers` (fleet dashboard, linked from sidebar).
+
+### Prereqs
+- Applied `drizzle/0006_add_location_printer_settings.sql` inside a single transaction via `psql -1`; recorded as `manual-backfill-0006-add_location_printer_settings` in `drizzle.__drizzle_migrations`. Table shape verified (4 enums, 3 check constraints, 2 partial indexes, FK → `locations.id` ON DELETE CASCADE).
+- Generated `APP_PEPPER` + `BOOTSTRAP_JWT_SECRET` via `openssl rand -hex 32` and appended to root `.env`. `BOOTSTRAP_JWT_SECRET` is unused until sub-phase I but wired in now so we don't forget.
+
+### Files created / changed
+```
+apps/admin/
+  src/
+    lib/
+      printer-hash.ts                                      (NEW — HMAC-SHA256 hashToken + verifyHashConstantTime + generateRawToken)
+      printer-actions.ts                                   (NEW — B1/B2/B3/B6/B7/B9 real + B4/B5/B8 stubs + devSeedLocationPrinter + listStaleLocationPrinters)
+      fleet-alert-job.ts                                   (NEW — runFleetAlertCheck, console.warn ship; Sentry bridge lands in sub-phase N)
+    app/
+      api/printers/heartbeat/route.ts                      (NEW — POST; bearer+X-Location-Id auth; primary+pending-overlap; cmd ACK promotes rotate_token, clears others; returns {ok,nextHeartbeatIn,serverTime,mode,commands[]})
+      (dashboard)/locations/[id]/printer/page.tsx          (NEW — Server Component; fetches row+health; renders PrinterClient)
+      (dashboard)/locations/[id]/printer/printer-client.tsx (NEW — StatusCard + ConfigForm + ActionsCard + DangerZone; TokenReveal on rotation; dev-only seed row panel when unprovisioned)
+      (dashboard)/locations/[id]/location-detail-client.tsx (EDIT — inline "Network Printer" link in header)
+      (dashboard)/printers/page.tsx                        (NEW — Fleet table: Location, State, Health, Printer, Last seen, Bridge; alert badges)
+    components/sidebar/app-sidebar.tsx                     (EDIT — Printers nav entry, Printer icon)
+    i18n/locales.ts                                        (EDIT — +sidebar.printers × 5 locales + type key)
+```
+
+### Design notes & intentional deviations
+- **B5 `testLocationPrinter` is a freshness check, not a real /test RPC.** The bridge's `/test` endpoint requires the raw bearer token, which is only stored hashed-at-rest after provisioning. B5 reports `connected` iff `lastSeenAt < 90s` AND `printerStatus === "ok"`. A real admin-side test print needs either (a) short-lived cached raw token (like bootstrapTokenCache from I), (b) a dedicated "test_print" pending command the bridge self-runs, or (c) an admin-shared secret as a second bridge-side credential. Decision deferred to sub-phase I or M — the knob is in the planning doc but not formally picked.
+- **Command ID** computed deterministically via `sha1(type + payload).slice(0,12)` so the bridge can ACK the same logical command across heartbeats without schema additions. Different payload → different ID, so a second rotation isn't confused with the prior one.
+- **B3 stores the new raw token in `pending_command_payload`.** Intended by the blueprint — the bridge needs the raw value in its config. After ACK, `pendingCommandPayload` is cleared. Window: up to `rotationOverlapUntil` (default 10 min). Admin DB is assumed trusted; this is consistent with §10.2.
+- **Dev-only `devSeedLocationPrinter` server action** lets an operator stand up a local stub row pointing at `http://127.0.0.1:9321/print` without CF provisioning. Gated on `NODE_ENV !== "production"`. Surfaces in the unprovisioned view only.
+- **`/api/printers/bootstrap` deliberately not added here.** The STATE.md H brief mentioned it but the blueprint's sub-phase matrix puts §5.6 (bootstrap route) under sub-phase I alongside the CF API wrapper + JWT signer. Following the matrix.
+- **Sidebar i18n:** added `sidebar.printers` to the type + all 5 locales (EN/TC/SC/PT/JP) rather than fallback-cast. Keeps strict-mode type happy.
+
+### Acceptance verified
+Seeded a printer row for Airport Kiosk directly via psql, started `pnpm --filter admin dev`, exercised via curl:
+
+| # | Scenario | Result |
+|---|---|---|
+| 1 | Valid heartbeat | `200 {ok, mode:"enabled", commands:[]}`; `last_seen_at` + `bridge_version` + `printer_status` + `last_printer_model` updated |
+| 2 | Bad token | `401 {"error":"unauthorized"}` |
+| 3 | Unknown location | `404 {"error":"location_not_found"}` |
+| 4 | Missing Authorization | `401 {"error":"unauthorized"}` |
+| 5 | `status='maintenance'` | `200 mode:"maintenance"` (bridge will 503 /print per F) |
+| 6 | `status='disabled'` | `410 {"error":"printer_disabled"}` |
+| 7 | Invalid body shape | `400 {"error":"validation", message:"bridgeVersion required"}` |
+| 8 | Header/body locationId mismatch | `400 {"error":"location_mismatch"}` |
+| 9 | Rotate-token round trip | Command returned with deterministic id → both old+new token accepted during overlap → ACK promotes pending to primary + clears pending slot + bumps `tokenRotatedAt` → old token rejected thereafter |
+
+- `pnpm --filter admin build` green. New routes listed: `/api/printers/heartbeat`, `/locations/[id]/printer`, `/printers`. Pre-existing TS errors in `reports-client`, `settings-client`, `variant-editor` untouched (not in H scope).
+- `pnpm --filter @macau-pos/printer-bridge test` still 72/72 green.
+
+### Still pending after H
+- **Sub-phase I (server-side CF provisioning):** `printer-cf.ts`, `printer-jwt.ts`, `/api/printers/bootstrap`, real `provisionLocationPrinter` B4, `migrateLocationPrinterBridge` B8. Needs the CF_API_TOKEN env wired on admin + short-TTL in-memory `bootstrapTokenCache`.
+- **Sub-phase L (self-update + rollback):** convert `src/self-update.ts` stub into real npm install/restart/health-check/rollback so `force_update` command actually does something.
+- **Test-print UX:** decision needed on how admin authenticates to `/test` on the bridge (see Design notes above).
+- **Vercel/ops Cron for `runFleetAlertCheck`:** function is built and tested-ready but no scheduler binding yet. Ship with sub-phase N.
+
+### Sub-phase dependency graph snapshot
+- H ✅ → enables I (bootstrap route shares infra), M (cashier print needs per-location endpointUrl + token loaded in its context from settings API)
+- B1/B3/B7 admin actions ready for direct UI driver; B5 weak until test-print auth decision
+- Heartbeat-rotate loop end-to-end verified; bridge-side identical path not yet exercised against a running bridge (next: point a dev bridge at the admin and watch it tick)
+
+## Network Printer — Live-fire against real Xprinter POS-80 (2026-04-25)
+
+Immediately after sub-phase H: pointed the bridge at the admin on `localhost:3100` with `PRINTER_BRIDGE_CONFIG_DIR=/tmp/bridge-config`, plugged in the shop's Xprinter POS-80 (USB), and ran the `/test` endpoint end-to-end. Heartbeat loop, rotate-token round trip, and real paper-out all confirmed on hardware.
+
+### Live-run acceptance (all ✅)
+
+| Scenario | Evidence |
+|---|---|
+| `node-usb` claims the printer | Bridge log `"transport selected" name:"node-usb"` + `"node-usb init" model:"USB Printer Port"` |
+| Heartbeat every 30s, DB updates | `last_seen_at` moved from stale → fresh; `bridge_version` → `0.1.0-dev`; admin log shows 200s |
+| Rotate-token round trip | Enqueued `rotate_token` in DB; bridge log `"config updated"` then `"rotate_token applied"`; next heartbeat carried ACK; admin promoted pending → primary (`tokenRotatedAt` bumped, old token rejected thereafter) |
+| `/test` → real paper | jobId returned; shop header + config lines + 4 language samples + cut — all ink on paper |
+
+### Firmware quirks discovered on Xprinter POS-80 (vendor name "XPrinter", product "USB Printing")
+
+This model drove four real protocol behaviors that every generic-ESC/POS implementation should handle. All four are now encoded in `@macau-pos/escpos-shared`:
+
+1. **Default post-power-on and post-`ESC @` state is DBCS (Chinese), not Latin.** A bare `FS .` is a no-op unless the printer has first seen `FS &`. To reliably select a single-byte page (CP437/CP860/…) the bridge must emit `FS & FS .` before the `ESC t N`. Verified across 8 candidate exit sequences — only `FS . ` AFTER a prior `FS &` exited correctly. Fix: `commands.ts#selectCodePageBytes` always pairs `FS & + FS .` for `requiresChineseMode=false` pages.
+
+2. **Emitting `ESC t N` for an unsupported DBCS page poisons subsequent command processing.** On a GB18030-only firmware, `ESC t 8` (Shift-JIS) looks harmless but leaves the printer in a state where later `FS . + ESC t N` transitions are partially ignored. Symptom: Portuguese bytes emitted *after* a Japanese line rendered as digit-like gibberish (`0807010703 0904`) despite the test-page code path being byte-identical to a probe row that worked standalone. Fix: test page encodes **all** CJK in GB18030 — never sends `ESC t 8`.
+
+3. **GB18030 on this printer covers the full CJK Unified Ideographs block.** Traditional Chinese (`測試`) renders correctly when encoded in GB18030 even though the printer advertises only a "Chinese" font. Japanese kana render too (our `テスト` sample came out clean). This may be firmware-specific — some GBK-only clones only have Simplified glyphs and would fall back. Fix: `build-test-page.ts` uses GB18030 for all three CJK samples; Big5 stays in the enum for operators with genuine Big5-capable printers but the test page no longer depends on it.
+
+4. **CP437 lacks uppercase accented letters.** `À É Í Ó Ú` are only in CP850/CP858/CP860 etc. — iconv silently substitutes them with `?` when told to encode CP437. For Portuguese, the printer's PC860 table (ESC t 3) + iconv `cp860` encoding is the minimal correct combination. Fix: added `packages/escpos-shared/src/codepages/cp860.ts` (not in the public `PrinterCodePage` union — used internally by the test page for Portuguese samples).
+
+### Files changed on 2026-04-25
+
+```
+packages/escpos-shared/
+  src/
+    builder/
+      commands.ts                        (paired FS & + FS . for Latin pages)
+      build-test-page.ts                 (GB18030 for all CJK; CP860 for PT)
+    codepages/
+      cp860.ts                           (NEW — PC860 Portugal, escposPage=3)
+  tests/
+    build-receipt.test.ts                (U-RCP-02 adjusted for FS & + FS . prefix)
+    build-test-page.test.ts              (U-TP-02 now asserts GB18030-encoded 中文測試)
+
+packages/print-server/
+  src/transport/detect.ts                (new env var: PRINTER_BRIDGE_ALLOW_NOOP=1
+                                          enables noop fallback without overriding
+                                          the loaded config — useful for dev Macs
+                                          running real bridge config but no printer)
+```
+
+Tests: `@macau-pos/escpos-shared` 58/58 green, `@macau-pos/printer-bridge` 72/72 green (130 combined).
+
+### Known limitations (tracked, not fixed)
+
+- **`printerStatus: "offline"` false negative.** After every print the response includes `printerStatus:"offline"` — the `node-usb` probe sends `DLE EOT` and the Xprinter POS-80 doesn't answer on its IN endpoint. Bytes are actually being written successfully. Cosmetic bug; proper fix is a per-driver "quirks" config where `skipStatusProbe: true` for generic/Xprinter.
+- **True Shift-JIS Japanese rendering** (kana + kanji per the JIS X 0208 layout) requires a printer with that font table; workaround via GB18030 covers kanji + most kana but not half-width katakana.
+- **True Big5 rendering** requires a Taiwan/HK market printer; GB18030 workaround gets correct glyphs *on this specific firmware* but fallback behavior on GBK-only clones will be dialect-wrong (Simplified for Traditional). Biggest risk for a multi-vendor Macau rollout.
+- **Admin "Test print" button (B5)** is still a freshness check only (sub-phase H deviation). A real admin-driven `/test` RPC needs either a cached raw token (I), a `test_print` heartbeat command, or an admin-shared bridge secret.
+- **Raw CUPS queues are gone on macOS 14+.** For dev, use the `PRINTER_BRIDGE_ALLOW_NOOP=1` escape hatch or `node-usb`. For production OpenWRT/Linux bridge hosts this is a non-issue — lp raw works there.
+
+### Operational state at end of session
+
+- Bridge (`tsx bin/printer-bridge.ts start`) running on `127.0.0.1:9321` against the real Xprinter.
+- Admin dev server (`next dev --port 3100`) up with migration 0006 applied and dev seed row (`a3693602-972d-425d-b539-dd5d79b143ca` / Airport Kiosk) in DB.
+- Current raw printer token in `/tmp/next-printer-token.txt` matches DB `token_hash` after one completed rotation.
+- `APP_PEPPER` + `BOOTSTRAP_JWT_SECRET` in `.env` (dev only).
+- CF API token still unused until sub-phase I — rotate after that sub-phase ships.
+
+## Network Printer — Sub-phase M prototype + receipt i18n + unpaid-order bug fix (2026-04-25, extended session)
+
+Continuation of the live-fire session. Built a minimum-viable cashier→bridge path (sub-phase M prototype), hardened it against React Strict Mode's mount-effect double-invoke, and closed gaps in receipt formatting / i18n that surfaced when real Macau-shop data hit paper.
+
+### Sub-phase M prototype (cashier → bridge server action)
+
+- **New:** `apps/cashier/src/lib/network-printer.ts` — `printReceiptToNetwork(orderNumber, locale)` server action. Reads `PRINTER_BRIDGE_URL` + `PRINTER_BRIDGE_TOKEN` from server env (never exposed to browser), calls `getReceiptData` → maps to `ReceiptInput` → `buildReceipt` → POST to bridge with `Idempotency-Key`. Returns typed success/error for UI handling.
+- **Edit:** `apps/cashier/src/components/receipt/print-receipt.tsx` — the existing `onPrint` now tries network-print first. On any failure (bridge down, token missing, HTTP error) it falls back to the legacy browser iframe `window.print()` path so cashiers never lose receipt capability.
+- **Dep:** `@macau-pos/escpos-shared` added to `apps/cashier/package.json` as `workspace:*`. `transpilePackages` extended in `next.config.ts` to include it. `allowedDevOrigins` extended to `["127.0.0.1", "10.10.14.81", "localhost"]` so the iPad on the LAN can hit the dev server.
+- **Env:** `PRINTER_BRIDGE_URL` + `PRINTER_BRIDGE_TOKEN` in root `.env` (dev wiring — temporary until the settings API arrives in sub-phase I).
+
+### Double-pre-payment-row bug (React Strict Mode)
+
+Symptom: every checkout produced two `orders` rows — one `new` (orphan) + one `completed` — when the blueprint calls for a single row that flips `new → completed` in place. Live log proved `createPrePaymentOrder` was firing **twice** per modal mount.
+
+Root cause: React Strict Mode (enabled by default in Next.js dev) double-invokes the mount effect. The initial `useEffect(..., [])` ran twice, each invocation hit the server action, each insert added a row.
+
+Fix in `apps/cashier/src/components/checkout/checkout-modal.tsx`:
+- `prePaymentInvokedRef` — ref guard so only the first effect invocation actually creates the order.
+- `prePaymentPromiseRef` — holds the in-flight `createPrePaymentOrder` promise so `processPayment` can await it if the cashier taps a payment method before React's state update round-trips (fast-click race that existed independent of Strict Mode).
+- **Key subtlety:** the cleanup function's `cancelled = true` must gate the setState only, NOT the promise's return value. First attempt returned `null` from the promise when cancelled, which made `processPayment` fall through to legacy `createOrder` (a new `completed` row, not a flip). Separated the two concerns: ref promise always resolves with the orderId; setState gated behind cancelled.
+
+Verified via live monitoring: single `createPrePaymentOrder` + single `completePrePaymentOrder` per checkout; DB shows one row per order, status transitions in place.
+
+### Receipt formatting overhaul
+
+Driven by printing real Macau orders (Traditional Chinese product names, Portuguese accents, Japanese kana) against the shop's actual Xprinter.
+
+| Change | File | Reason |
+|---|---|---|
+| `fmtMoney` no longer divides by 100 | `build-receipt.ts` | DB stores decimal MOP in `numeric(10,2)`, not cents. Old code showed MOP 3.87 for what should've been MOP 387.00. |
+| Full label i18n (`LABELS` + `PAYMENT_KEY` per-locale records) | `build-receipt.ts` | Only `THANK_YOU` footer was localized. Now: Order / Date / Staff / Subtotal / Discount / Tax / TOTAL / Received / Change / Cash / Card / QR — all five locales (EN / TC / SC / PT / JA). |
+| Product name localization | `network-printer.ts`, `receipt-queries.ts` | `order_items.translations` JSONB was being ignored. Now picks by active locale with fallback to stored `name`. Historical orders preserve whatever translations were saved at checkout time. |
+| Cashier name threading | `receipt-queries.ts`, `network-printer.ts`, `types.ts`, `build-receipt.ts` | Added `cashierName` to `ReceiptInput` + `ReceiptData`; `receipt-queries` joins `users` via `orders.cashier_id`; builder renders "Staff: X" line after Date. |
+| Shop name / address / footer wrap | `build-receipt.ts` | Shop name used `wrapToWidth(cols/2)` (double-width font); address uses full-width wrap; footer wraps too. Prevents clipping on long Macau-Portuguese addresses. |
+| Bold item names | `build-receipt.ts` | Visual hierarchy — customers scan item lines first. |
+| Footer emphasized | `build-receipt.ts` | "多謝光臨！" etc. now bold. |
+| feed(3) → feed(5) before cut | `build-receipt.ts` | Xprinter POS-80 cut blade clips ~10mm above the head — 3 lines wasn't enough, last footer line was being eaten. |
+
+### Firmware quirks captured (Xprinter POS-80)
+
+Four real behaviors, now encoded in `@macau-pos/escpos-shared` with comments explaining each:
+
+1. **Default post-`ESC @` state is DBCS/Chinese.** Bare `FS .` is a no-op unless the printer first sees `FS &`. `commands.ts#selectCodePageBytes` now pairs `FS & + FS .` for single-byte pages to force-exit DBCS regardless of prior state.
+2. **Emitting `ESC t N` for an unsupported DBCS page (e.g. `ESC t 8` Shift-JIS on a GB18030-only firmware) corrupts subsequent command processing.** `build-test-page.ts` now encodes **all** CJK samples in GB18030 — never emits `ESC t 8`.
+3. **GB18030 font covers the full CJK Unified Ideographs block on this specific unit.** Traditional Chinese + Japanese kana render correctly when encoded in GB18030. GBK-only clones would fall back to Simplified glyphs for Traditional — acceptable in HK/Macau but dialect-wrong. Confirmed with probe.
+4. **CP437 has no uppercase À É Í Ó Ú.** iconv silently substitutes with `?`. Added `codepages/cp860.ts` (PC860 Portugal, `ESC t 3`) and wired the test page to use it for the Portuguese sample. Not exposed in the public `PrinterCodePage` union — used internally by the builder. To support cp860 as an operator-selectable code page, widen the union + add a DB enum value + update the zod /test schema. Deferred until a shop asks.
+
+### Dev-mode service-worker self-destruct
+
+Symptom: after any server-action edit, the cashier served stale `/_next/static/*` chunks from the SW's `pos-shell-v1` cache, producing runtime errors like "Module factory not available". Classic service-worker cache-first trap.
+
+Fix in `apps/cashier/public/sw.js`:
+- `IS_DEV` check via `self.location.hostname === "localhost" || "127.0.0.1"`.
+- In dev: `install` skips caching; `activate` wipes every cache, unregisters itself, and calls `client.navigate(client.url)` on every controlled tab to drop SW control.
+- CACHE_NAME bumped v1 → v2 so existing SWs trigger activation and purge on next check (driven by the existing `updateViaCache: 'none'` registration flag that always re-fetches the SW file).
+- `apps/cashier/src/app/layout.tsx`: registration inline script gated on `process.env.NODE_ENV !== "production"`. Dev mode never re-registers.
+
+Production retains the full offline-capable SW; dev-mode iteration no longer requires DevTools gymnastics.
+
+### Other
+
+- **`escpos-shared` package.json** — `main` + `types` + `exports` now point at `dist/` (built output) instead of the raw `src/` TS sources. Next.js can't resolve NodeNext-style `.js` import suffixes inside TS source files; tsx-based bridge can. Building once on install works for both consumers. Added `"files": ["dist"]` so only built output ships if the package is ever published. Added dist to gitignore.
+- **`CodePageDef.name` widened** to `string` (was `PrinterCodePage`) so `cp860` fits the interface without joining the public union.
+- **`transport/detect.ts`** — new env var `PRINTER_BRIDGE_ALLOW_NOOP=1` enables the noop transport fallback **without** overriding the loaded config (previously only `PRINTER_BRIDGE_DEV=1` triggered noop, but that flag also replaces config with a stub pointing at the wrong URL). Use on dev Macs running real bridge config but no attached printer.
+
+### Live POS validation
+
+- iPad on same WiFi opens `http://10.10.14.81:3200` — dev cashier renders, Traditional Chinese / Simplified Chinese / English / Portuguese / Japanese all print labels + product names correctly.
+- Price math: DB subtotal 387.00 renders as MOP 387.00 (was MOP 3.87 pre-fix).
+- Cash payment flow: Cash MOP 30.00 + Received MOP 200.00 + Change MOP 170.00 — all three lines present, correctly localized, on paper.
+- Single-row order lifecycle verified: 0037 flipped `new → completed` in place. No duplicate.
+
+### Known cleanup / follow-ups
+
+- **`packages/database/fire-real-receipt.mjs`** — debug helper used during the receipt-builder + DB wiring investigation. Not test infrastructure; could move to `scripts/` or delete. Keeping for now in case we need to re-run during sub-phase I work.
+- **`pos.hkretailai.com` on iPad still blocked** — HTTPS → HTTP mixed content. Sub-phase I's Cloudflare Tunnel (bridge behind `https://print-<slug>.shanhoi.com`) is the real unblock.
+- **Orphan `new` rows from pre-fix testing** — will auto-expire via the 10-min TTL + lazy janitor.
+- **Admin "Test print" button (B5)** still a freshness check (as flagged in the prior session log entry). Unchanged.
+- **`cp860` not in the public enum** — if a shop wants Portuguese-only receipts with PC860 as default, we'd need to widen the `PrinterCodePage` union + DB enum. Not requested yet.
+
+### Operational state at end of extended session
+
+- Admin, cashier, and bridge all still running (ports 3100 / 3200 / 9321).
+- Real Xprinter POS-80 plugged in via USB, connected via node-usb transport.
+- Service worker disabled in dev (self-unregistered).
+- All test runs post-fix produce single-row orders with correct localized receipts.

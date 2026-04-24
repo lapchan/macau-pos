@@ -8,6 +8,7 @@ build/
 out/
 coverage/
 *.log
+*.tsbuildinfo
 package-lock.json
 .DS_Store
 STATE.md

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { cn } from "@/lib/cn";
 import { type CartItem } from "@/data/mock";
 import { type Locale, t, getProductName } from "@/i18n/locales";
@@ -79,6 +79,16 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
   const [prePaymentOrderId, setPrePaymentOrderId] = useState<string | null>(
     resumeOrderId ?? null,
   );
+  // Holds the in-flight createPrePaymentOrder promise so processPayment can
+  // await it on fast-click. Without this, clicking a payment method before
+  // the async order insert resolves races the React state update and falls
+  // through to the legacy createOrder path — producing orphaned "new" rows
+  // alongside the real "completed" ones.
+  const prePaymentPromiseRef = useRef<Promise<{ orderId?: string } | null> | null>(null);
+  // Guards against React Strict Mode's intentional double-invoke of the
+  // mount effect in development. Without this, createPrePaymentOrder fires
+  // twice and we end up with two orphaned "new" rows per checkout.
+  const prePaymentInvokedRef = useRef(false);
   // Intellipay MPM state. Populated when the cashier picks the QR tile and
   // we successfully initiate an MPM payment.
   const [mpmQrDataUrl, setMpmQrDataUrl] = useState<string | null>(null);
@@ -112,8 +122,9 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
   useEffect(() => {
     if (resumeOrderId) return;
     if (!isOnline) return;
-    let cancelled = false;
-    (async () => {
+    if (prePaymentInvokedRef.current) return;
+    prePaymentInvokedRef.current = true;
+    const promise = (async () => {
       const result = await createPrePaymentOrder({
         cart: cart.map((item) => {
           const isCustom = item.id.startsWith("custom_");
@@ -150,14 +161,26 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
         customerId,
         discountMeta: orderDiscount,
       });
-      if (cancelled) return;
       if (result.success) {
-        setPrePaymentOrderId(result.orderId);
-        setOrderNum(result.orderNumber);
+        return { orderId: result.orderId, orderNumber: result.orderNumber };
+      }
+      return null;
+    })();
+    prePaymentPromiseRef.current = promise;
+    // Separately update React state only if the component is still mounted
+    // (protects against "setState on unmounted" warnings while still letting
+    // processPayment read the orderId from the ref even after StrictMode's
+    // simulated unmount).
+    let cancelled = false;
+    promise.then((r) => {
+      if (cancelled) return;
+      if (r) {
+        setPrePaymentOrderId(r.orderId);
+        setOrderNum(r.orderNumber);
       }
       // If createPrePaymentOrder fails (network error, stale session) the
       // modal silently falls back to the legacy path on payment confirm.
-    })();
+    });
     return () => {
       cancelled = true;
     };
@@ -231,16 +254,25 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
     setState("processing");
     const orderInput = buildOrderInput(method);
 
+    // If the mount-time createPrePaymentOrder is still in flight (cashier
+    // tapped a payment method faster than the round-trip), wait for it so
+    // we can flip the original row instead of creating a duplicate.
+    let effectiveOrderId = prePaymentOrderId;
+    if (!effectiveOrderId && prePaymentPromiseRef.current) {
+      const awaited = await prePaymentPromiseRef.current;
+      if (awaited?.orderId) effectiveOrderId = awaited.orderId;
+    }
+
     // Fast path: we successfully created a pre-payment order at mount time,
     // so just flip it to completed and attach a payment row.
-    if (prePaymentOrderId) {
+    if (effectiveOrderId) {
       const result = await new Promise<
         | { success: true; orderNumber: string }
         | { success: false; error: string }
         | null
       >((resolve) => {
         completePrePaymentOrder({
-          orderId: prePaymentOrderId,
+          orderId: effectiveOrderId,
           paymentMethod: method,
           cashReceived: method === "cash" ? cashValue : undefined,
           changeGiven:

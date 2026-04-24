@@ -54,6 +54,7 @@ export type AdminTranslationKeys = {
   "sidebar.customers": string;
   "sidebar.reports": string;
   "sidebar.terminals": string;
+  "sidebar.printers": string;
   "sidebar.aiInsights": string;
   "sidebar.staff": string;
   "sidebar.settings": string;
@@ -688,6 +689,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "sidebar.customers": "Customers",
     "sidebar.reports": "Reports",
     "sidebar.terminals": "Machines / Terminals",
+    "sidebar.printers": "Printers",
     "sidebar.aiInsights": "AI Insights",
     "sidebar.staff": "Staff",
     "sidebar.settings": "Settings",
@@ -1306,6 +1308,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "sidebar.customers": "顧客",
     "sidebar.reports": "報表",
     "sidebar.terminals": "機器 / 終端",
+    "sidebar.printers": "打印機",
     "sidebar.aiInsights": "AI 洞察",
     "sidebar.staff": "員工",
     "sidebar.settings": "設定",
@@ -1911,6 +1914,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "sidebar.customers": "顾客",
     "sidebar.reports": "报表",
     "sidebar.terminals": "机器 / 终端",
+    "sidebar.printers": "打印机",
     "sidebar.aiInsights": "AI 洞察",
     "sidebar.staff": "员工",
     "sidebar.settings": "设置",
@@ -2516,6 +2520,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "sidebar.customers": "Clientes",
     "sidebar.reports": "Relatórios",
     "sidebar.terminals": "Máquinas / Terminais",
+    "sidebar.printers": "Impressoras",
     "sidebar.aiInsights": "Análises IA",
     "sidebar.staff": "Equipa",
     "sidebar.settings": "Definições",
@@ -3121,6 +3126,7 @@ const translations: Record<Locale, AdminTranslationKeys> = {
     "sidebar.customers": "顧客",
     "sidebar.reports": "レポート",
     "sidebar.terminals": "マシン / 端末",
+    "sidebar.printers": "プリンター",
     "sidebar.aiInsights": "AIインサイト",
     "sidebar.staff": "スタッフ",
     "sidebar.settings": "設定",

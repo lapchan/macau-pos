@@ -6,6 +6,7 @@ import {
   orderItems,
   payments,
   shopSettings,
+  users,
   eq,
   and,
 } from "@macau-pos/database";
@@ -23,8 +24,10 @@ export type ReceiptData = {
   taxRate: number;
   orderNumber: string;
   orderDate: Date;
+  cashierName?: string;
   items: {
     name: string;
+    translations?: Record<string, string>;
     quantity: number;
     unitPrice: number;
     lineTotal: number;
@@ -62,6 +65,17 @@ export async function getReceiptData(orderNumber: string): Promise<ReceiptData |
 
   if (!order) return null;
 
+  // Fetch cashier name (order.cashier_id may be null on legacy rows)
+  let cashierName: string | undefined;
+  if (order.cashierId) {
+    const [staff] = await db
+      .select({ name: users.name })
+      .from(users)
+      .where(eq(users.id, order.cashierId))
+      .limit(1);
+    cashierName = staff?.name ?? undefined;
+  }
+
   // Fetch order items
   const items = await db
     .select()
@@ -94,8 +108,10 @@ export async function getReceiptData(orderNumber: string): Promise<ReceiptData |
     taxRate: parseFloat(settings?.taxRate || "0"),
     orderNumber: order.orderNumber,
     orderDate: order.createdAt,
+    cashierName,
     items: items.map((item) => ({
       name: item.name,
+      translations: (item.translations as Record<string, string> | null) ?? undefined,
       quantity: item.quantity,
       unitPrice: parseFloat(item.unitPrice),
       lineTotal: parseFloat(item.lineTotal),

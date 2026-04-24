@@ -1,23 +1,41 @@
 {
-  "name": "@macau-pos/print-server",
+  "name": "@macau-pos/printer-bridge",
   "version": "0.1.0",
-  "private": true,
+  "description": "Cross-platform print-server daemon for Macau POS bridge devices",
   "type": "module",
+  "bin": {
+    "printer-bridge": "./dist/bin/printer-bridge.js"
+  },
+  "main": "./dist/daemon.js",
+  "types": "./dist/daemon.d.ts",
   "scripts": {
-    "dev": "tsx watch src/server.ts",
-    "start": "node dist/server.js",
-    "build": "tsc"
+    "build": "tsc",
+    "start": "node dist/bin/printer-bridge.js start",
+    "dev": "tsx bin/printer-bridge.ts start",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "prepublishOnly": "pnpm build"
+  },
+  "files": [
+    "dist/**",
+    "install/**",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
-    "express": "^4.21.0",
-    "cors": "^2.8.5",
-    "escpos": "^3.0.0-alpha.6",
-    "escpos-usb": "^3.0.0-alpha.4"
+    "@macau-pos/escpos-shared": "workspace:*",
+    "zod": "^3.23.8"
+  },
+  "optionalDependencies": {
+    "usb": "^2.14.0"
   },
   "devDependencies": {
-    "@types/express": "^4.17.21",
-    "@types/cors": "^2.8.17",
+    "@types/node": "^20.0.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.5.0"
+    "typescript": "^5.5.0",
+    "vitest": "^1.6.0"
   }
 }

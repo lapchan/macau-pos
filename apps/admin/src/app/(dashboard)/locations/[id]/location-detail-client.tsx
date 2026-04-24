@@ -21,6 +21,7 @@ import {
   Receipt,
   DollarSign,
   Check,
+  Printer,
 } from "lucide-react";
 import type { Location } from "@macau-pos/database";
 import type { LocationSettings } from "@/lib/location-queries";
@@ -228,6 +229,15 @@ export default function LocationDetailClient({ location, settings, strategies }:
                 {location.isActive ? "Active" : "Inactive"}
               </span>
             </div>
+          </div>
+          <div className="ml-auto">
+            <Link
+              href={`/locations/${location.id}/printer`}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-[13px] font-medium text-text-secondary bg-surface border border-border rounded-[var(--radius-md)] hover:bg-surface-subtle transition-colors"
+            >
+              <Printer className="h-4 w-4" />
+              Network Printer
+            </Link>
           </div>
         </div>
       </div>

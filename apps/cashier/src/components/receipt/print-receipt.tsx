@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { getReceiptData, type ReceiptData } from "@/lib/receipt-queries";
+import { printReceiptToNetwork } from "@/lib/network-printer";
 import { type Locale, t } from "@/i18n/locales";
 import { PAYMENT_METHOD_KEYS } from "@/lib/constants";
 
@@ -125,6 +126,21 @@ export default function PrintReceipt({ receiptData, orderNumber, locale = "tc", 
   const handlePrint = useCallback(async () => {
     setIsPrinting(true);
     try {
+      // Try the network bridge first (sub-phase M prototype). If the bridge
+      // is down or returns an error, fall back to the browser print dialog
+      // so cashiers never lose the ability to print a receipt.
+      if (orderNumber) {
+        // Cashier app's Locale ("en"|"tc"|"sc"|"pt"|"ja") maps 1:1 to
+        // ReceiptLocale. Pass through so the bridge-printed labels match
+        // what the user sees on screen.
+        const net = await printReceiptToNetwork(orderNumber, locale);
+        if (net.ok) {
+          setIsPrinting(false);
+          return;
+        }
+        console.warn("[print-receipt] network print failed, falling back", net);
+      }
+
       let printData = data;
       if (!printData && orderNumber) {
         printData = await getReceiptData(orderNumber);

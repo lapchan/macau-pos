@@ -5,9 +5,9 @@ import type { NextConfig } from "next";
 // we can visually confirm which build is running on a given device.
 const nextConfig: NextConfig = {
   output: "standalone",
-  transpilePackages: ["@macau-pos/database"],
+  transpilePackages: ["@macau-pos/database", "@macau-pos/escpos-shared"],
   serverExternalPackages: ["pg"],
-  allowedDevOrigins: ["127.0.0.1"],
+  allowedDevOrigins: ["127.0.0.1", "10.10.14.81", "localhost"],
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
   env: {

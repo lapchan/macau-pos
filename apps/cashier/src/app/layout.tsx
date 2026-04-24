@@ -50,14 +50,29 @@ export default function RootLayout({
 }
 
 function ServiceWorkerRegistration() {
+  const isDev = process.env.NODE_ENV !== "production";
   return (
     <script
       dangerouslySetInnerHTML={{
         __html: `
           if ('serviceWorker' in navigator) {
-            window.addEventListener('load', function() {
+            window.addEventListener('load', async function() {
+              // Dev mode: unregister any prior SW and purge all caches so
+              // server-action hash mismatches ("module factory not available")
+              // from stale chunk caching never happen during local iteration.
+              // Production keeps the offline-capable SW.
+              if (${isDev}) {
+                try {
+                  var regs = await navigator.serviceWorker.getRegistrations();
+                  await Promise.all(regs.map(function(r) { return r.unregister(); }));
+                  if (window.caches) {
+                    var keys = await caches.keys();
+                    await Promise.all(keys.map(function(k) { return caches.delete(k); }));
+                  }
+                } catch (err) { /* ignore */ }
+                return;
+              }
               navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(function() {
-                // Precache all JS/CSS chunks for offline support
                 var chunks = [];
                 document.querySelectorAll('script[src*="/_next/static/"]').forEach(function(s) { chunks.push(s.src); });
                 document.querySelectorAll('link[href*="/_next/static/"]').forEach(function(l) { chunks.push(l.href); });
