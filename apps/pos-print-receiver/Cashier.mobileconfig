@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Outer profile -->
+    <key>PayloadDisplayName</key>
+    <string>HKRetailAI Cashier</string>
+    <key>PayloadDescription</key>
+    <string>Installs the Cashier web app as a home-screen icon with a stable bundle identifier.</string>
+    <key>PayloadIdentifier</key>
+    <string>com.hkretailai.cashier.profile</string>
+    <key>PayloadOrganization</key>
+    <string>HK RetailAI</string>
+    <key>PayloadRemovalDisallowed</key>
+    <false/>
+    <key>PayloadType</key>
+    <string>Configuration</string>
+    <key>PayloadUUID</key>
+    <string>3F8E1C5A-CASH-IER1-AAAA-000000000001</string>
+    <key>PayloadVersion</key>
+    <integer>1</integer>
+
+    <key>PayloadContent</key>
+    <array>
+        <dict>
+            <!-- Web Clip payload -->
+            <key>PayloadType</key>
+            <string>com.apple.webClip.managed</string>
+            <key>PayloadDisplayName</key>
+            <string>Cashier (Web Clip)</string>
+            <key>PayloadIdentifier</key>
+            <string>com.hkretailai.cashier.webclip</string>
+            <key>PayloadUUID</key>
+            <string>3F8E1C5A-CASH-IER2-BBBB-000000000002</string>
+            <key>PayloadVersion</key>
+            <integer>1</integer>
+
+            <!-- Visible to the user on the home screen -->
+            <key>Label</key>
+            <string>Cashier</string>
+
+            <!-- The URL the home-screen icon launches -->
+            <key>URL</key>
+            <string>https://pos.hkretailai.com</string>
+
+            <!-- Open in standalone PWA mode (no Safari chrome). Honors the
+                 web manifest's apple-mobile-web-app-capable meta. -->
+            <key>FullScreen</key>
+            <true/>
+
+            <!-- Allow user to remove the icon from home screen -->
+            <key>IsRemovable</key>
+            <true/>
+
+            <!-- Don't restrict navigation to the manifest scope -->
+            <key>IgnoreManifestScope</key>
+            <true/>
+        </dict>
+    </array>
+</dict>
+</plist>

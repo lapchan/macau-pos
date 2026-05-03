@@ -13,6 +13,20 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_BUILD_ID: process.env.BUILD_ID || "dev",
   },
+  // Serve the .mobileconfig with the right MIME so iOS Safari recognizes
+  // it as an installable configuration profile (instead of downloading
+  // it as a generic file).
+  async headers() {
+    return [
+      {
+        source: "/:file*\\.mobileconfig",
+        headers: [
+          { key: "Content-Type", value: "application/x-apple-aspen-config; charset=utf-8" },
+          { key: "Content-Disposition", value: "inline" },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
