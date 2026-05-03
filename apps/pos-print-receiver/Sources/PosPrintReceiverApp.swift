@@ -3,9 +3,34 @@
 // printer over TCP, then offer a clear "Return to Cashier" button or auto-return.
 
 import SwiftUI
+import UIKit
+
+/// Captures the launching app's bundle ID so the "Return to Cashier" button
+/// can switch back to the right caller (Safari, a PWA / Web Clip, etc.).
+/// SwiftUI's `.onOpenURL` doesn't surface the launch options — only this
+/// AppDelegate hook does.
+final class AppDelegate: NSObject, UIApplicationDelegate {
+    static let shared = AppDelegate()
+
+    /// Bundle ID of the app that fired the most recent pos-print:// URL.
+    /// Updated on every URL open so it stays current even if the user
+    /// switches contexts between prints.
+    var sourceBundleID: String?
+
+    func application(
+        _ application: UIApplication,
+        open url: URL,
+        options: [UIApplication.OpenURLOptionsKey: Any] = [:]
+    ) -> Bool {
+        let src = options[.sourceApplication] as? String
+        AppDelegate.shared.sourceBundleID = src
+        return true
+    }
+}
 
 @main
 struct PosPrintReceiverApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var state = AppState()
 
     var body: some Scene {
@@ -13,6 +38,10 @@ struct PosPrintReceiverApp: App {
             ContentView()
                 .environmentObject(state)
                 .onOpenURL { url in
+                    // AppDelegate.application(_:open:options:) fired just
+                    // before this and captured sourceApplication. Hand it off
+                    // to AppState so the Return button can use it.
+                    state.sourceBundleID = AppDelegate.shared.sourceBundleID
                     Task {
                         await PrintService.handleURL(url, state: state)
                     }
@@ -35,6 +64,24 @@ final class AppState: ObservableObject {
     @Published var returnUrl: URL?               // Where the cashier was; tap "Return" to go back
     @Published var lastHost: String = ""
     @Published var lastPort: Int = 0
+
+    /// Bundle ID of the app that launched us (Safari, a Web Clip / PWA, etc.).
+    /// Captured by AppDelegate.application(_:open:options:); used by the
+    /// "Return to Cashier" button to switch back to the actual caller.
+    @Published var sourceBundleID: String?
+
+    /// User-configured override. iOS doesn't expose the launching app's
+    /// bundle ID for PWAs (Web Clips), and LSApplicationWorkspace's
+    /// allInstalledApplications is sandboxed. Workaround: user manually
+    /// finds their PWA's bundle ID once (via sysdiagnose / Console.app)
+    /// and pastes it in Settings. Persists to UserDefaults.
+    @Published var manualReturnBundleID: String = "" {
+        didSet { UserDefaults.standard.set(manualReturnBundleID, forKey: "manualReturnBundleID") }
+    }
+
+    init() {
+        manualReturnBundleID = UserDefaults.standard.string(forKey: "manualReturnBundleID") ?? ""
+    }
 
     // Auto-return countdown (nil = not active)
     @Published var autoReturnSecondsRemaining: Int?
