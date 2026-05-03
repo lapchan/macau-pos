@@ -17,6 +17,7 @@ COPY apps/cashier/package.json ./apps/cashier/package.json
 COPY apps/storefront/package.json ./apps/storefront/package.json
 COPY packages/database/package.json ./packages/database/package.json
 COPY packages/i18n/package.json ./packages/i18n/package.json
+COPY packages/escpos-shared/package.json ./packages/escpos-shared/package.json
 RUN pnpm install --frozen-lockfile
 
 # --------------- Builder ---------------
