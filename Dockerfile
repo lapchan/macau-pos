@@ -28,6 +28,9 @@ COPY --from=deps /app/ ./
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV BUILD_ID=${BUILD_ID}
+# escpos-shared exports from `./dist/index.js` (built TS) — its consumers (cashier
+# Next app, print-server daemon) need the built output. Build it first.
+RUN pnpm --filter @macau-pos/escpos-shared build
 RUN pnpm --filter ${APP} build
 
 # --------------- Runner ---------------
