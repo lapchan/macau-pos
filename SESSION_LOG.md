@@ -1782,3 +1782,208 @@ Production retains the full offline-capable SW; dev-mode iteration no longer req
 - Real Xprinter POS-80 plugged in via USB, connected via node-usb transport.
 - Service worker disabled in dev (self-unregistered).
 - All test runs post-fix produce single-row orders with correct localized receipts.
+
+
+## Native iOS Cashier — Capacitor 8 spike (2026-05-02)
+
+> **Note:** This entry is a reconstruction. The original was an uncommitted addition to SESSION_LOG.md (~55 lines) that I accidentally overwrote during the 2026-05-03 planning session. Substantive content recovered from STATE.md history-table row, plus the tail (Known follow-ups + Files left for next session) which I had read into context just before the overwrite. If specific phrasing or detail looks off, the canonical record is STATE.md §"Native iOS Cashier — Capacitor iOS spike" + git history.
+
+### What was built
+
+`apps/cashier-ios-spike/` scaffolded — Vite + Capacitor 8.3.1, bundle id `com.hkretailai.posspike`. Custom Swift TCP plugin (~70 lines) using `Network.framework` `NWConnection`. End-to-end iPad → USB-C/Ethernet dock → CAT5e → Xprinter POS-80 LAN at `192.168.123.100:9100` prints from the Capacitor app. Architecture for "no-router, no-bridge" deployment proven viable.
+
+### Key technical findings (encoded as memory entries, see MEMORY.md)
+
+- **Capacitor 8 + SPM in-app plugins don't auto-register via @objc.** The Cap 5/6 Objective-C-runtime auto-discovery is dead. Manual registration required: subclass `CAPBridgeViewController`, override `capacitorDidLoad()`, call `bridge?.registerPluginInstance(TcpPrintPlugin())`. Update `Main.storyboard` `customClass="ViewController"` with `customModule="App" customModuleProvider="target"`. Without this, JS `registerPlugin<>("TcpPrint")` fails silently with `"TcpPrint" plugin is not implemented on ios`.
+- **iOS Local Network permission required.** `NSLocalNetworkUsageDescription` in `Info.plist` (iOS 14+) — without it, all `NWConnection` to RFC1918 addresses silently fail. iOS shows the prompt on first attempt; user must Allow. Settings → Privacy & Security → Local Network to flip later.
+- **Personal-team signing flow.** Apple ID in Xcode → Settings → Accounts (free, no Developer Program). Bundle IDs personal-team-scoped. iPad needs Developer Mode ON (Settings → Privacy & Security → Developer Mode → ON → restart). First launch shows "Untrusted Developer" — fix at Settings → General → VPN & Device Management → Trust the cert.
+- **Capacitor 8 CLI requires Node ≥22**; repo default is 20.13.1. Use `nvm use 22` for any `cap` command.
+- **Validated control-group:** before the Capacitor spike, the Xprinter's official iOS app printed successfully to the same printer over the same Ethernet link. Confirms hardware/network path is sound.
+
+### What this changes for Module 12 strategy
+
+The "iPad → bridge daemon → printer" architecture (Phases A–H) still has unique value for shops with multiple iPads sharing one printer, remote fleet management via heartbeat, server-driven CF tunnel provisioning, and non-iOS clients. But **Option 1 native iOS is now a real co-architecture for shops that want zero infra** — no Mac mini, no Pi, no CF tunnel.
+
+### Known follow-ups (parked for the planning pass)
+
+- Spike app loads bundled HTML, not `pos.hkretailai.com`. Production wrap (WKWebView pointing at the live cashier) is the single biggest unvalidated thing.
+- CJK encoding in WebView still unsolved (escpos-shared is Node-only via iconv-lite).
+- Per-terminal printer config: hardcoded IP in spike. Prod needs schema (probably extend `terminals.device_info` jsonb, or new table).
+- `capacitor-tcp-socket@7.x` was rejected in favor of hand-rolled Swift (Cap is at 8.3.1; community plugin at v7 risks version drift). Document this choice in module planning so we don't relitigate.
+- `cap` commands need Node 22 — note in project README before next session hits it.
+
+### Files left for next session
+
+- `apps/cashier-ios-spike/` — keep. Reference implementation + control-group for native module planning.
+- iPad: spike app installed, will expire after 7 days (personal-team profile lifetime). Re-sign in Xcode if it stops launching.
+
+
+## Native iOS Cashier — `nm` planning, all phases (2026-05-02 → 2026-05-03)
+
+User invoked `nm Native iOS Cashier` to formalize the native iOS path validated by the 2026-05-02 spike. Full APP_PLANNER walk through Phases 0 → 0.1 → 1 → 2 → 3, then `pr` (Product Review) → blocker fixes → Phase 4 → Executive Summary → final sign-off. **Approved 2026-05-03; cleared for Phase A (Implementer).**
+
+### Planning corpus delivered (8 docs)
+
+| Doc | Section | Key decisions |
+|---|---|---|
+| `PLANNING_NATIVE_IOS_CASHIER.md` | §1 | D1–D7. Bundled static export. Full parity. Native replaces bridge on iOS. Xprinter POS-80 v1. **D7 R1 closed: server-actions → REST `/api/v1/*`** (forced by D3 — server-action IDs hash-build-locked, can't survive bundle/server release decoupling). |
+| `_PHASE_0_1.md` | §2 | 3 personas (cashier / shift-lead / installer). 65 user stories across F1–F25. P0/P1/P2 matrix. ~45 P0 acceptance tests. 10-test QA playbook (~60 min on real hardware). Parity audit. 7 new gaps G1–G7. |
+| `_PHASE_1.md` | §3 | 20 stack decisions. **D8 NEW** — Bearer JWT for native (cookie SameSite=Lax incompatible cross-site, found by grep audit). 12 tech risks TR1–TR12. 4 new gaps G8–G11. All P0 ✅ feasible. |
+| `_PHASE_2.md` | §4 + §5 | 3 new tables (`terminal_printer_settings`, `terminal_install_log`, `native_session_tokens`) + 1 enum + migration 0007. 33-endpoint REST surface. `TcpPrintPlugin` v2 contract (`send` + `testReachable`). Two-tier self-test. **D9–D15** (+ D18 + D19 added post-PR). |
+| `_PHASE_3.md` | §6–§11 | Full system / frontend / backend / integration / security architecture. R8 mechanics (`recommendedBundleApiVersion` + `minSupportedBundleApiVersion`). G1 P-LEAD skip-print. G2 offline-cash-sale queue (new capability beyond web). All P0 scenarios ✅. **D16–D17** (+ D18/D19 retroactive). |
+| `PRODUCT_REVIEW_NATIVE_IOS_CASHIER.md` | — | 🟡 → 🟢. **B1**: Capacitor Preferences = NSUserDefaults NOT Keychain (JWT exposed in iCloud backups). **B2**: server-encoded receipt vs client-encoded inconsistency. Both closed 2026-05-03. 9 majors carried into Phase 4 risk register. |
+| `_PHASE_4.md` | §12–§17 | NFRs (12 perf budgets), deployment plan, risks register, 4-track build order. **OQ1–OQ8** open questions with defaults. Final sign-off gate. |
+| `_SUMMARY.md` | — | Executive handoff. 19 decisions, what's validated vs spike, what's deferred, "what you're agreeing to" checklist. |
+
+### Decisions D1–D19 (all locked)
+
+D1 hardware deployed driver, D2 distribution deferred, D3 bundled static export, D4 full parity, D5 native replaces bridge on iOS, D6 Xprinter POS-80 only, D7 REST `/api/v1/*`, D8 Bearer JWT, D9 dedicated `terminal_printer_settings`, D10 per-user PIN unchanged, D11 two-tier self-test, D12 install-log audit table, D13 JWT + jti revocation, D14 `TcpPrintPlugin` v2 surface, D15 33-endpoint REST, D16 heartbeat version drift, D17 P-LEAD skip-print, **D18 receipt-data template JSON only (PR fix)**, **D19 JWT in iOS Keychain via `capacitor-secure-storage-plugin` (PR fix)**.
+
+### Risks: all closed or routed
+
+All R1–R9 closed. All G1–G11 closed. All B1–B2 closed (2026-05-03). M1–M9 from PR absorbed into build order with effort estimates. TR1/TR2/TR4/TR7 carried into Track 0 spikes (~2.5 days, with documented fallbacks for each).
+
+### Build order — 4 tracks, ~35.5 engineering days
+
+- **Track 0 (kickoff + spikes)** — ~2.5 days work + 1–2 weeks Apple wait. Apple Developer Program enrollment is the calendar critical path.
+- **Track A (server REST migration)** — ~11 days. Service-layer extraction from 6 `*-actions.ts` files; 33 REST routes; Bearer middleware; migration 0007; 3 new background jobs.
+- **Track B (native shell)** — ~17 days. Capacitor 8 scaffold; static export of `apps/cashier`; isomorphic `escpos-shared`; `TcpPrintPlugin` v2; Keychain integration; self-test runner; print-failure UX; offline queue; shift handoff; crash beacon.
+- **Track C (pilot + ship)** — ~5 days work + 2 weeks calendar. TestFlight pilot at one shop, App Store submission.
+
+**Calendar: 5–7 weeks (1 dev) or 3–5 weeks (2 devs running A+B parallel).**
+
+### Notable choices that surfaced during the walk
+
+- **D7 was structurally forced, not chosen for elegance.** Static export + server actions are mutually incompatible across deploys (action IDs are per-build hash-locked; bundle freezes them; server-side rotates them on every redeploy). Realized this in the recommendation pass when user asked for R1 advice.
+- **D8 was discovered, not assumed.** Grep audit found `sameSite: "lax"` in `auth-actions.ts:79,120` — Lax cookies don't ship cross-site from `capacitor://localhost` to `pos.hkretailai.com`. Bearer token is the cleanest fix.
+- **B1 was a real product-review catch.** Phase 3 §10.4 originally claimed "JWT in Capacitor Preferences → Keychain-backed → encrypted by iOS at rest" — `@capacitor/preferences` actually uses `NSUserDefaults`, which IS included in iTunes/iCloud backups. Stolen-iPad-backup is a higher-likelihood vector than jailbreak. Fix was D19 — separate `capacitor-secure-storage-plugin` for the JWT specifically; Preferences keeps non-sensitive state.
+- **Offline cash sales ended up as a *new capability*** vs the web cashier, not just parity. Spike's "no router, no bridge" thesis naturally extends — if the printer is on a private LAN segment, the cashier can keep selling while ECS is unreachable. Local-first IndexedDB queue + idempotent post-reconnect sync. Trade-off: stock decrements only happen server-side, so multi-iPad shops could over-sell during a long outage. Documented as caveat in §6.5.
+
+### Operational note from this session
+
+I overwrote SESSION_LOG.md mid-session by calling `Write` instead of appending — destroyed the uncommitted 2026-05-02 spike-session entry (~55 lines). Recovered the committed history via `git checkout HEAD -- SESSION_LOG.md` and reconstructed the spike entry from STATE.md + a pre-overwrite `Read` snapshot. Acknowledged in the spike entry above. Lesson: use `Bash cat >>` or shell append, never `Write` on append-only files.
+
+### Known follow-ups
+
+- **Track 0 0.1 critical path** — Apple Developer Program enrollment must start when implementation kicks off. Org account is 1–2 weeks. Pre-pitched a `/schedule` agent in 2 weeks to check status; user didn't respond either way, so leaving it un-scheduled.
+- **Module 12 sub-phases I–P** — server-side CF provisioning + install scripts + observability — still pending for the **non-iOS** terminal lane (any future Android/Windows POS would use the bridge daemon stack). Not blocked by this module.
+- **Project rename macau-pos → retailai** — still parked. Affects bundle ID `com.hkretailai.cashier` cleanly if it happens before TestFlight upload; messier after.
+- **Open questions OQ1–OQ8** — final app name, icon, pilot shop selection, beta tester pool, App Privacy Manifest, privacy policy URL all need product-owner answers before Track C C3 (App Store submission).
+
+### Files left for next session
+
+- All 8 planning docs in `docs/01-planning/PLANNING_NATIVE_IOS_CASHIER*.md` and `PRODUCT_REVIEW_NATIVE_IOS_CASHIER.md`
+- Spike `apps/cashier-ios-spike/` — still committed-pending; decision deferred (keep as reference vs fold into `apps/cashier-ios/` production scaffold during Track B B1)
+- STATE.md cleared for Phase A (Implementer) kickoff
+- Tasks #1–#7 all completed
+
+
+## Native iOS Cashier — Phase A + D approved, Phase E schema foundation slice (2026-05-03)
+
+Continuation of the planning session from earlier the same day. Walked the implementer skill phases:
+- **Phase A (Validation)** — `PLAN-13-native-ios-cashier-VALIDATION.md`. 46/46 checks ✅, 12 assumptions documented. Approved.
+- **Phase B + C skipped at user direction.** Pre-coding gate (Phase D) justifies via planning-corpus-as-blueprint — Phase 2 §5 already has the 33-endpoint API surface, Phase 2 §4 has the schema, Phase 4 §15 has the build order, Phase 0.1 §2.4 has the acceptance tests. Risk acknowledgments locked in §D4.
+- **Phase D (Pre-Coding Gate)** — `PLAN-13-native-ios-cashier-GATE.md`. 100%-coverage traceability matrix (§D1) + 35-item build-order checklist with file paths + dependencies + verification (§D2) + 16-item pre-coding checklist + 6 risk acknowledgments. Approved.
+- **Phase E kickoff slice (this session's code work):**
+  - Track 0 0.6: generated `JWT_SECRET` (128 hex chars / 64 bytes) to dev `.env`; added placeholder + docstring to both `.env.example` and `.env.production.example`.
+  - Track A A3 schema foundation: wrote 3 new Drizzle schemas — `packages/database/src/schema/{terminal-printer-settings,terminal-install-log,native-session-tokens}.ts`. Added `last_reported_bundle_api_version` (integer) and `last_reported_app_version` (text) columns to `terminals.ts` per M7 from Product Review. Re-exported from `index.ts`.
+  - **Typecheck clean on all new files** (`pnpm --filter @macau-pos/database exec tsc --noEmit`). One pre-existing error in `src/import-yp.ts` is unrelated.
+
+### Deliberate choices in the schema slice
+
+- **TEXT + CHECK for `terminal_printer_settings.codepage` / `driver_hint` / `outcome`** rather than reusing Module 12's `printer_code_page` / `printer_driver` enums. Reason: native lane needs `auto` codepage (not in existing enum), `cp860` (not in existing), and `xprinter` driver hint (not in existing). Extending the existing enums would couple the bridge-daemon table to the iOS table; keeping them independent matches the planning intent (D9 — distinct tables for distinct lanes).
+- **`terminalInstallEventEnum` extended beyond planning** with `shift_handoff` (M1) and `print_skipped` (D17/G1) values up front, so the enum doesn't need a follow-up `ALTER TYPE ADD VALUE` later.
+- **Did not invoke `drizzle-kit generate`.** That's the user's call — the generated SQL needs review + commit, and the existing 0006 pattern from STATE.md ("applied via psql -1" + manual hash insert) implies the user runs it themselves. Schema files + the generator give them a clean diff to review.
+- **Did not apply to dev DB.** Reversible but a real action; explicit user decision belongs at this gate.
+- **Did not write to `.env.production`.** Production `JWT_SECRET` must be generated *on the server* (`openssl rand -hex 64`) so the secret never traverses local-dev environments.
+
+### Remaining for Phase E completion
+
+1. User runs `pnpm --filter @macau-pos/database exec drizzle-kit generate` → review generated `0007_*.sql` → apply to dev DB via `docker exec macau-pos-db psql -U pos_dev -d macau_pos_dev -1 -f packages/database/drizzle/0007_*.sql` (then insert hash row, matching 0006 pattern).
+2. **Track A A3 completion** — Bearer middleware (accepts `Authorization: Bearer <jwt>` OR existing cookie session); JWT issuer/refresh/revoke service in `apps/cashier/src/lib/services/auth/native-session.service.ts`; `/api/v1/auth/native-session{,/refresh,/logout}` route handlers. ~1.5 days.
+3. **Track A A1** — service-layer extraction from 6 `*-actions.ts` files (~3 days).
+4. **Track B B1 + B2** — production scaffold `apps/cashier-ios/` + Capacitor 8 plugin registration (~1 day combined).
+5. Then Track A A2 (REST routes, ~4 days), Track B B3+B4+B5 (static export + iso escpos + plugin v2, ~4 days), etc.
+
+### Files left for next session
+
+- New schema files committed-pending (along with terminals.ts edits + index.ts edit + .env new line)
+- `.env.example` and `.env.production.example` have new `JWT_SECRET=` placeholder + docstring
+- Migration 0007 SQL **not yet generated** — first thing for next session
+- Dev DB **not yet has the new tables** — apply after generating SQL
+
+### Memory note
+
+Earlier in the same multi-day session I had overwritten SESSION_LOG.md by calling `Write` instead of `cat >>`. Recovered via `git checkout HEAD --` and added `feedback_session_log_append_only.md` to memory. This entry is being appended via `cat >> ... << 'EOF'` per that lesson.
+
+
+## Native iOS Cashier — Phase E push: 9 v1 routes + 2 cron endpoints live on dev DB (2026-05-03)
+
+Continuation of the planning + early-implementation arc. User pushed "go one by one" through 5 substantial slices end-to-end on the live dev DB.
+
+### What shipped this push
+
+**Migrations:**
+- `0007_bitter_shadowcat.sql` — hand-pruned (Drizzle's auto-output included false-positive CREATEs for already-existing 0005/0006 tables because `meta/0005_snapshot.json` + `meta/0006_snapshot.json` are missing — those were "manual-backfill" applies). Stripped to: 1 enum (`terminal_install_event`) + 3 tables (`terminal_printer_settings`, `terminal_install_log`, `native_session_tokens`) + 2 cols on `terminals` (`last_reported_bundle_api_version`, `last_reported_app_version` per M7) + 9 FKs + 6 indexes. Applied via `psql -1` + `INSERT INTO drizzle.__drizzle_migrations` as `manual-backfill-0007-native-ios-cashier`.
+- `0008_tan_black_crow.sql` — clean Drizzle output (since 0007 generated a correct snapshot). `client_crashes` table for M9 crash beacon.
+
+**Service code:**
+- `apps/cashier/src/lib/services/auth/jwt.ts` — pure Node `crypto` HS256 sign/verify (no `jose`/`jsonwebtoken` dep). Alg-confusion guard, constant-time compare.
+- `apps/cashier/src/lib/services/auth/native-session.service.ts` — `issueNativeSession` (with M6 caps: 5 per terminal-user, 10 per user; auto-rotate oldest), `validateNativeSession` (JWT verify + jti revocation lookup + debounced last_used_at), `refreshNativeSession`, `revokeNativeSession`, `revokeAllForTerminal`, `revokeAllForUser`, `expireStaleNativeSessions`, `recordTerminalReportedVersion`.
+- `apps/cashier/src/lib/services/api-version.ts` — `BUNDLE_API_VERSION_LATEST=1`, `BUNDLE_API_VERSION_MIN_SUPPORTED=1` constants.
+- `apps/cashier/src/lib/auth/native-bearer.ts` — `extractBearerToken`, `resolveBearerSession`, `requireNativeSession` middleware helpers.
+- `apps/cashier/src/lib/auth/cron-secret.ts` — `X-Cron-Secret` header validation (timing-safe compare).
+
+**Routes (9 v1 + 2 cron):**
+- POST `/api/v1/auth/native-session` — login (PIN+terminalId or email/phone+password). Validates via existing `loginWith*` helpers, deletes the unused cookie session, mints native JWT.
+- POST `/api/v1/auth/native-session/refresh` — Bearer-gated rotation.
+- POST `/api/v1/auth/native-session/logout` — Bearer-gated revoke; idempotent 204.
+- POST `/api/v1/auth/verify-pin` — Bearer-gated PIN check; tenant-scoped.
+- GET  `/api/v1/terminals/me` — Bearer-gated terminal info (no `?id=` needed; pulled from JWT).
+- POST `/api/v1/terminals/heartbeat` — Bearer-gated; returns `recommendedBundleApiVersion`, `minSupportedBundleApiVersion`, `refreshedToken` when <7d to expiry. M7 column updates.
+- GET  `/api/v1/catalog/manifest` — Bearer-gated. SQL inline-duplicated from cookie route (TODO Track A A1).
+- GET  `/api/v1/catalog/sync` — Bearer-gated full + delta. Same inline-duplication note.
+- POST `/api/v1/clients/crash` — anonymous-OK crash beacon with per-terminal/IP rate limiting (30/min).
+- POST `/api/cron/expire-native-sessions` — secret-gated daily sweep.
+- POST `/api/cron/alert-heartbeat-absence` — secret-gated 5min interval; returns terminals with stale `last_heartbeat_at`.
+
+**Middleware:**
+- `apps/cashier/src/middleware.ts` extended with CORS allowlist for `/api/v1/*`: `capacitor://localhost` + `http://localhost*` + `pos.hkretailai.com` + `admin.hkretailai.com`. OPTIONS preflight + response header attachment. Existing cookie-redirect logic for non-API paths unchanged.
+
+**Env:**
+- `JWT_SECRET` (64-byte hex) generated to `.env`; placeholder + docstring in both `.env.example` files.
+- `CRON_SECRET` (32-byte hex) generated to `.env`; same placeholder pattern.
+
+### Smoke evidence
+
+Every route was curl-tested against the live dev DB before completing the slice. Notable:
+- 5 validation cases on `/native-session`: bad JSON → 400, missing mode → 400, missing terminalId → 400, unknown terminalId → 403 terminal_unlinked, wrong PIN on real terminal → 401 invalid_credentials.
+- 5 verify-pin cases including a **cross-tenant userId attack** that returned the same shape as wrong PIN (no info leak via timing or message diff).
+- Refresh path: confirmed old token rejected with `revoked` reason post-rotation; new token works; DB row shows `revoked_reason='rotated'`.
+- Logout: 204 idempotent; revoked tokens rejected with `revoked` reason.
+- Heartbeat: M7 columns updated after request (`last_reported_bundle_api_version`, `last_reported_app_version`, `last_heartbeat_at`).
+- CORS: capacitor://localhost preflight + actual POST returned correct headers; disallowed origin → 403; pos.hkretailai.com origin reflected.
+- Crash beacon: anonymous + Bearer modes both insert rows; 400 on missing message; 429 path coded but not exercised.
+- Cron endpoints: 403 without `X-Cron-Secret`; 200 with; alert correctly identified 2 stale terminals (T-005 last hb April, T-006 last hb 1.5h prior).
+- v1 catalog sync against CountingStars tenant: 291 products, 38 categories, 19 variants. Delta with old `since` returned 291 products + 44 deleted IDs.
+
+### Known leftovers
+
+- `meta/0005_snapshot.json` and `meta/0006_snapshot.json` are still missing. Drizzle's diff baseline is now correct (0007_snapshot is full + accurate), so future generates work fine. The 0005/0006 history gap is tracked but not blocking.
+- Catalog manifest + sync v1 routes have **inline-duplicated SQL** from the cookie routes. Track A A1 catalog service extraction will dedupe.
+- `apps/cashier/src/app/api/catalog/manifest/route.ts` and `/sync/route.ts` (cookie lane, web cashier) untouched — they continue to work for the web cashier.
+- Production `.env.production` does NOT have `JWT_SECRET` or `CRON_SECRET` set. Both must be generated *on the server* (`openssl rand -hex 64` and `-hex 32` respectively) before any prod deploy of these routes.
+- No drizzle-kit migrate happens automatically; production deploy of 0007 and 0008 will be `psql -1` + manual hash-row insert per the `manual-backfill` pattern.
+- Test JTI rows seeded in dev `native_session_tokens` (~5 rows from smoke testing — revoked, harmless).
+- `apps/cashier/next.config.ts` has a pre-existing typecheck error (`eslint` not in `NextConfig` type) that surfaces every build but is not introduced by this work.
+- Cashier dev server is currently up on port 3200 and was used for smoke testing.
+
+### Files left for next session
+
+- 9 new v1 route files + 2 cron route files under `apps/cashier/src/app/api/v1/` and `apps/cashier/src/app/api/cron/`
+- 5 new schema files in `packages/database/src/schema/` (terminal-printer-settings, terminal-install-log, native-session-tokens, client-crashes; terminals.ts edited; index.ts edited)
+- 5 new lib files under `apps/cashier/src/lib/{services/auth,services/api-version.ts,auth/native-bearer.ts,auth/cron-secret.ts}`
+- 2 new migrations + 1 corrected snapshot in `packages/database/drizzle/`
+- Updated `.env`, `.env.example`, `.env.production.example`
+- Edited `apps/cashier/src/middleware.ts` (CORS for /api/v1/*)
+- Helper script `/tmp/native-jwt-helper.mjs` (smoke test only — not part of repo)
