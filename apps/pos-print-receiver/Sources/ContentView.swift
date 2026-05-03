@@ -6,6 +6,24 @@ struct ContentView: View {
     @EnvironmentObject var state: AppState
     @State private var showSettings = false
 
+    /// Resolves the cashier-supplied hex accent into a SwiftUI Color.
+    /// Falls back to a sensible system blue if the hex is missing/malformed.
+    private var accentColor: Color {
+        if let c = Color(hex: state.accentHex) { return c }
+        return Color(red: 0/255, green: 113/255, blue: 227/255) // #0071e3 (cashier default)
+    }
+
+    /// Localizable label for the payment method id ("cash" → "Cash" / "現金" / etc.)
+    private var paymentLabel: String {
+        switch state.paymentMethod.lowercased() {
+        case "cash": return ["en":"Cash","tc":"現金","sc":"现金","pt":"Numerário","ja":"現金"][state.locale.rawValue] ?? "Cash"
+        case "card", "credit_card", "credit": return ["en":"Card","tc":"信用卡","sc":"信用卡","pt":"Cartão","ja":"カード"][state.locale.rawValue] ?? "Card"
+        case "mpay": return "MPay"
+        case "intellipay", "qr_code", "qr": return ["en":"QR pay","tc":"二維碼","sc":"二维码","pt":"Código QR","ja":"QR決済"][state.locale.rawValue] ?? "QR"
+        default: return state.paymentMethod
+        }
+    }
+
     private var statusColor: Color {
         switch state.lastEventColor {
         case .neutral: return .secondary
@@ -63,14 +81,38 @@ struct ContentView: View {
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
 
-            // Order label (e.g. "CS-260503-0001 · MOP 25.50") — passed through
-            // from the cashier; user-meaningful, kept verbatim.
-            if !state.label.isEmpty {
-                Text(state.label)
-                    .font(.title3)
-                    .foregroundColor(.primary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
+            // Order details — order #, total, payment method, item count,
+            // cashier name. All passed verbatim from the cashier.
+            if !state.label.isEmpty || !state.total.isEmpty {
+                VStack(spacing: 6) {
+                    if !state.label.isEmpty {
+                        Text(state.label)
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                    }
+                    if !state.total.isEmpty {
+                        Text(state.total)
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                    }
+                    HStack(spacing: 12) {
+                        if state.itemCount > 0 {
+                            Label("\(state.itemCount)", systemImage: "bag")
+                        }
+                        if !state.paymentMethod.isEmpty {
+                            Label(paymentLabel, systemImage: "creditcard")
+                        }
+                        if !state.cashier.isEmpty {
+                            Label(state.cashier, systemImage: "person.crop.circle")
+                        }
+                    }
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                }
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 32)
             }
 
             // Idle subtitle when no print has happened yet
@@ -91,6 +133,7 @@ struct ContentView: View {
 
             // "Return to Cashier" — sequence-fires generic Web Clip bundles
             // via private LSApplicationWorkspace; aborts on background.
+            // Background colour matches the cashier's accent.
             Button(action: { returnToCashier() }) {
                 HStack {
                     Image(systemName: "arrow.uturn.backward")
@@ -100,7 +143,7 @@ struct ContentView: View {
                 .fontWeight(.semibold)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 16)
-                .background(Color.blue)
+                .background(accentColor)
                 .foregroundColor(.white)
                 .cornerRadius(14)
             }
@@ -148,14 +191,27 @@ struct ContentView: View {
                     }
                 }
                 .padding(.horizontal, 24)
-                .padding(.bottom, 16)
             }
+
+            // Version footer — short version + build number from Info.plist.
+            Text(versionString)
+                .font(.caption2)
+                .foregroundColor(.secondary.opacity(0.7))
+                .padding(.bottom, 12)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(.systemBackground))
         .sheet(isPresented: $showSettings) {
             SettingsView().environmentObject(state)
         }
+    }
+
+    /// "v1.0.0 (1)" — pulled from CFBundleShortVersionString + CFBundleVersion.
+    private var versionString: String {
+        let info = Bundle.main.infoDictionary
+        let v = info?["CFBundleShortVersionString"] as? String ?? "?"
+        let b = info?["CFBundleVersion"] as? String ?? "?"
+        return "v\(v) (\(b))"
     }
 
     private func formattedTime(_ date: Date?) -> String {

@@ -152,15 +152,31 @@ export default function PrintReceipt({ receiptData, orderNumber, locale = "tc", 
           // Fire-and-forget — Safari opens the iOS print app, app sends bytes
           // to printer, returns to Safari. No success/failure callback. Cashier
           // physically sees the receipt or presses reprint.
+          // Read merchant accent color from CSS at fire time so the print
+          // app's button matches the cashier's theme.
+          const accent =
+            typeof window !== "undefined"
+              ? getComputedStyle(document.documentElement)
+                  .getPropertyValue("--color-pos-accent")
+                  .trim()
+                  .replace(/^#/, "")
+              : "";
+
           const params = new URLSearchParams({
             host: urlScheme.host,
             port: String(urlScheme.port),
             bytes: urlScheme.bytesBase64,
             // For the iOS app's status UI + return-to-cashier button:
             label: urlScheme.label,
+            total: urlScheme.total,
+            cashier: urlScheme.cashier,
+            payment: urlScheme.paymentMethod,
+            items: String(urlScheme.itemCount),
             return: window.location.href,
             // Cashier locale so the print app's UI speaks the same language.
             locale: locale,
+            // Cashier accent color (e.g. "0071e3") so the button matches.
+            accent: accent,
           });
           window.location.href = `pos-print://send?${params.toString()}`;
           setIsPrinting(false);

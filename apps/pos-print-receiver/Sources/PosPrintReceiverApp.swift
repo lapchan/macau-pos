@@ -60,10 +60,17 @@ final class AppState: ObservableObject {
     @Published var lastDurationMs: Int = 0
 
     // Latest print metadata (from URL params)
-    @Published var label: String = ""           // e.g. "CS-260503-0001 · MOP 25.50"
+    @Published var label: String = ""           // e.g. "CS-260503-0001"
+    @Published var total: String = ""            // e.g. "MOP 25.50"
+    @Published var cashier: String = ""          // cashier name
+    @Published var paymentMethod: String = ""    // e.g. "cash"
+    @Published var itemCount: Int = 0
     @Published var returnUrl: URL?               // Where the cashier was; tap "Return" to go back
     @Published var lastHost: String = ""
     @Published var lastPort: Int = 0
+    /// Hex like "0071e3" parsed from cashier's --color-pos-accent CSS var.
+    /// Falls back to system blue if absent / malformed.
+    @Published var accentHex: String = ""
 
     /// Bundle ID of the app that launched us (Safari, a Web Clip / PWA, etc.).
     /// Captured by AppDelegate.application(_:open:options:); used by the

@@ -47,6 +47,11 @@ enum PrintService {
             await MainActor.run {
                 state.locale = parsed.locale
                 state.label = parsed.label
+                state.total = parsed.total
+                state.cashier = parsed.cashier
+                state.paymentMethod = parsed.paymentMethod
+                state.itemCount = parsed.itemCount
+                state.accentHex = parsed.accentHex
                 state.returnUrl = parsed.returnUrl
                 state.lastHost = parsed.host
                 state.lastPort = Int(parsed.port)
@@ -109,8 +114,13 @@ enum PrintService {
         let port: UInt16
         let data: Data
         let label: String
+        let total: String
+        let cashier: String
+        let paymentMethod: String
+        let itemCount: Int
         let returnUrl: URL?
         let locale: AppLocale
+        let accentHex: String
     }
 
     private static func parse(url: URL) throws -> ParsedURL {
@@ -146,10 +156,21 @@ enum PrintService {
         }
 
         let label = qi("label") ?? ""
+        let total = qi("total") ?? ""
+        let cashier = qi("cashier") ?? ""
+        let paymentMethod = qi("payment") ?? ""
+        let itemCount = Int(qi("items") ?? "") ?? 0
         let returnUrl = (qi("return")).flatMap { URL(string: $0) }
         let locale = AppLocale.from(qi("locale"))
+        // Strip leading # if present, accept both 6-char and 8-char (rgba) hex.
+        let accentHex = (qi("accent") ?? "").replacingOccurrences(of: "#", with: "")
 
-        return ParsedURL(host: host, port: port, data: data, label: label, returnUrl: returnUrl, locale: locale)
+        return ParsedURL(
+            host: host, port: port, data: data,
+            label: label, total: total, cashier: cashier,
+            paymentMethod: paymentMethod, itemCount: itemCount,
+            returnUrl: returnUrl, locale: locale, accentHex: accentHex
+        )
     }
 
     private static func sendTCP(host: String, port: UInt16, data: Data, timeoutSec: Double = DEFAULT_TIMEOUT_SEC) async throws {

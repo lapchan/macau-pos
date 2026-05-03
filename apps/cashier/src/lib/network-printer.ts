@@ -126,8 +126,16 @@ export type ReceiptBytesResult =
       port: number;
       bytesBase64: string;
       jobId: string;
-      /** Human-readable summary for the iOS app's status UI. e.g. "CS-260503-0001 · MOP 25.50" */
+      /** Human-readable summary for the iOS app's status UI. e.g. "CS-260503-0001" */
       label: string;
+      /** Total formatted with currency, e.g. "MOP 25.50" */
+      total: string;
+      /** Cashier name */
+      cashier: string;
+      /** Payment method id (cash, mpay, intellipay, etc.) — iOS app translates */
+      paymentMethod: string;
+      /** Number of distinct line items */
+      itemCount: number;
     }
   | { ok: false; error: string; message?: string };
 
@@ -207,15 +215,16 @@ export async function getReceiptBytesForUrlScheme(
     input,
   );
 
-  // Compact human-readable label for the iOS app's status UI. Plan: Option 2 §UI.
-  const label = `${data.orderNumber} · ${data.currency} ${data.total.toFixed(2)}`;
-
   return {
     ok: true,
     host: cfg.host,
     port: cfg.port,
     bytesBase64: Buffer.from(bytes).toString("base64"),
     jobId: randomUUID(),
-    label,
+    label: data.orderNumber,
+    total: `${data.currency} ${data.total.toFixed(2)}`,
+    cashier: data.cashierName ?? "",
+    paymentMethod: data.paymentMethod ?? "",
+    itemCount: data.items.reduce((n, i) => n + i.quantity, 0),
   };
 }
