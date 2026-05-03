@@ -2,7 +2,10 @@
 
 import { useState, useCallback, useRef, useEffect } from "react";
 import { getReceiptData, type ReceiptData } from "@/lib/receipt-queries";
-import { printReceiptToNetwork } from "@/lib/network-printer";
+import {
+  printReceiptToNetwork,
+  getReceiptBytesForUrlScheme,
+} from "@/lib/network-printer";
 import { type Locale, t } from "@/i18n/locales";
 import { PAYMENT_METHOD_KEYS } from "@/lib/constants";
 
@@ -126,19 +129,53 @@ export default function PrintReceipt({ receiptData, orderNumber, locale = "tc", 
   const handlePrint = useCallback(async () => {
     setIsPrinting(true);
     try {
-      // Try the network bridge first (sub-phase M prototype). If the bridge
-      // is down or returns an error, fall back to the browser print dialog
-      // so cashiers never lose the ability to print a receipt.
+      // Cashier locale ("en"|"tc"|"sc"|"pt"|"ja") maps 1:1 to ReceiptLocale.
+      //
+      // Print fallback chain (Option A → Module 12 bridge → iframe):
+      //   1. URL-scheme to "POS Print Receiver" iOS app on the same iPad,
+      //      if `terminals.device_info.printer.method === 'url-scheme'`.
+      //   2. Bridge daemon (Module 12) for terminals without the iOS app
+      //      installed but with a shop-side bridge device.
+      //   3. window.print() iframe — last-resort, always works.
+      const terminalId =
+        typeof window !== "undefined"
+          ? window.localStorage.getItem("pos_terminal_id")
+          : null;
+
+      if (orderNumber && terminalId) {
+        const urlScheme = await getReceiptBytesForUrlScheme(
+          orderNumber,
+          terminalId,
+          locale,
+        );
+        if (urlScheme.ok) {
+          // Fire-and-forget — Safari opens the iOS print app, app sends bytes
+          // to printer, returns to Safari. No success/failure callback. Cashier
+          // physically sees the receipt or presses reprint.
+          const params = new URLSearchParams({
+            host: urlScheme.host,
+            port: String(urlScheme.port),
+            bytes: urlScheme.bytesBase64,
+            // For the iOS app's status UI + return-to-cashier button:
+            label: urlScheme.label,
+            return: window.location.href,
+          });
+          window.location.href = `pos-print://send?${params.toString()}`;
+          setIsPrinting(false);
+          return;
+        }
+        if (urlScheme.error !== "method_not_configured") {
+          console.warn("[print-receipt] url-scheme path failed", urlScheme);
+        }
+      }
+
       if (orderNumber) {
-        // Cashier app's Locale ("en"|"tc"|"sc"|"pt"|"ja") maps 1:1 to
-        // ReceiptLocale. Pass through so the bridge-printed labels match
-        // what the user sees on screen.
         const net = await printReceiptToNetwork(orderNumber, locale);
         if (net.ok) {
           setIsPrinting(false);
           return;
         }
-        console.warn("[print-receipt] network print failed, falling back", net);
+        console.warn("[print-receipt] bridge print failed, falling back", net);
       }
 
       let printData = data;

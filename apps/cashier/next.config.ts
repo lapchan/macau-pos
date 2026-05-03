@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   transpilePackages: ["@macau-pos/database", "@macau-pos/escpos-shared"],
   serverExternalPackages: ["pg"],
-  allowedDevOrigins: ["127.0.0.1", "10.10.14.81", "localhost"],
+  allowedDevOrigins: ["127.0.0.1", "10.10.14.81", "10.10.14.138", "localhost"],
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
   env: {

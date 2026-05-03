@@ -1,0 +1,54 @@
+# xcodegen spec for the POS Print Receiver iOS app.
+# After `brew install xcodegen`, run `xcodegen` in this directory to (re)generate
+# `PosPrintReceiver.xcodeproj`.
+
+name: PosPrintReceiver
+options:
+  bundleIdPrefix: com.hkretailai
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "26.0"
+
+settings:
+  base:
+    SWIFT_VERSION: "5.10"
+    DEVELOPMENT_TEAM: "RNSN4D22CP" # Same personal team used by the cashier-ios-spike
+    CODE_SIGN_STYLE: Automatic
+
+targets:
+  PosPrintReceiver:
+    type: application
+    platform: iOS
+    deploymentTarget: "16.0"
+    bundleId: com.hkretailai.posprint
+    sources:
+      - path: Sources
+    info:
+      path: Resources/Info.plist
+      properties:
+        CFBundleDisplayName: POS Print
+        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "1"
+        UIDeviceFamily:
+          - 2  # iPad only
+        # URL scheme registration — what the web cashier fires
+        CFBundleURLTypes:
+          - CFBundleTypeRole: Editor
+            CFBundleURLName: com.hkretailai.posprint
+            CFBundleURLSchemes:
+              - pos-print
+        # iOS 14+ requires this for any LAN access (NWConnection to RFC1918)
+        NSLocalNetworkUsageDescription: "Send receipt data to your shop's local printer. The app does not collect, store, or transmit any data over the internet."
+        # iPad orientations — match cashier ergonomic
+        "UISupportedInterfaceOrientations~ipad":
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+        UILaunchScreen:
+          UIColorName: SystemBackground
+    settings:
+      base:
+        TARGETED_DEVICE_FAMILY: "2"  # iPad
+        SWIFT_EMIT_LOC_STRINGS: "YES"
+        ENABLE_HARDENED_RUNTIME: "YES"

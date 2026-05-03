@@ -106,3 +106,116 @@ export async function printReceiptToNetwork(
     durationMs: payload?.durationMs ?? 0,
   };
 }
+
+// ─── Option A — URL-scheme print receiver ────────────────────────────
+// For iPads with the "POS Print Receiver" iOS app installed. Server builds
+// the same ESC/POS bytes as the bridge path above, but returns them to the
+// cashier (instead of posting to a bridge daemon). The cashier fires
+// `pos-print://send?host=…&port=…&bytes=BASE64` to hand off to the iOS app,
+// which writes bytes directly to the LAN printer over TCP.
+//
+// Per-terminal config lives in `terminals.device_info.printer.{host,port}` —
+// no schema change needed.
+
+import { db, terminals, eq } from "@macau-pos/database";
+
+export type ReceiptBytesResult =
+  | {
+      ok: true;
+      host: string;
+      port: number;
+      bytesBase64: string;
+      jobId: string;
+      /** Human-readable summary for the iOS app's status UI. e.g. "CS-260503-0001 · MOP 25.50" */
+      label: string;
+    }
+  | { ok: false; error: string; message?: string };
+
+interface DeviceInfoPrinterConfig {
+  method?: "url-scheme" | "bridge";
+  host?: string;
+  port?: number;
+}
+
+export async function getReceiptBytesForUrlScheme(
+  orderNumber: string,
+  terminalId: string,
+  locale: ReceiptLocale = "tc",
+): Promise<ReceiptBytesResult> {
+  // Terminal-scoped printer config — caller must pass terminalId so the same
+  // server can serve different printers per cashier station.
+  const [term] = await db
+    .select({ deviceInfo: terminals.deviceInfo })
+    .from(terminals)
+    .where(eq(terminals.id, terminalId))
+    .limit(1);
+
+  if (!term) {
+    return { ok: false, error: "terminal_not_found" };
+  }
+
+  const cfg = (term.deviceInfo as { printer?: DeviceInfoPrinterConfig } | null)?.printer;
+  // Only succeed if terminal is explicitly configured for URL-scheme. Other
+  // methods (bridge, none) → return error so the caller can try its fallback.
+  if (cfg?.method !== "url-scheme") {
+    return { ok: false, error: "method_not_configured" };
+  }
+  if (!cfg.host || !cfg.port) {
+    return {
+      ok: false,
+      error: "incomplete_printer_config",
+      message:
+        "Terminal has method='url-scheme' but missing host/port in device_info.printer",
+    };
+  }
+
+  const data = await getReceiptData(orderNumber);
+  if (!data) return { ok: false, error: "order_not_found" };
+
+  const input: ReceiptInput = {
+    shopName: data.shopName,
+    shopAddress: data.showAddress ? data.shopAddress : undefined,
+    shopPhone: data.showPhone ? data.shopPhone : undefined,
+    orderNumber: data.orderNumber,
+    timestamp: data.orderDate,
+    cashierName: data.cashierName,
+    items: data.items.map((i) => {
+      const localized = i.translations?.[locale] ?? i.name;
+      return {
+        name: i.variantName ? `${localized} · ${i.variantName}` : localized,
+        quantity: i.quantity,
+        unitPrice: i.unitPrice,
+        lineTotal: i.lineTotal,
+        discount:
+          i.discountAmount > 0 ? (i.discountNote ?? String(i.discountAmount)) : undefined,
+      };
+    }),
+    subtotal: data.subtotal,
+    discountAmount: data.discountAmount > 0 ? data.discountAmount : undefined,
+    taxAmount: data.showTax && data.taxAmount > 0 ? data.taxAmount : undefined,
+    total: data.total,
+    paymentMethod: data.paymentMethod,
+    cashReceived: data.cashReceived,
+    change: data.changeGiven,
+    footer: data.receiptFooter,
+    currency: data.currency,
+    locale,
+  };
+
+  const bytes = buildReceipt(
+    { driver: "generic", paperWidth: 80, codePage: "gb18030" },
+    input,
+  );
+
+  // Compact human-readable label for the iOS app's status UI. Plan: Option 2 §UI.
+  const label = `${data.orderNumber} · ${data.currency} ${data.total.toFixed(2)}`;
+
+  return {
+    ok: true,
+    host: cfg.host,
+    port: cfg.port,
+    bytesBase64: Buffer.from(bytes).toString("base64"),
+    jobId: randomUUID(),
+    label,
+  };
+}
