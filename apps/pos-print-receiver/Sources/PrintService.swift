@@ -131,8 +131,16 @@ enum PrintService {
             throw PrintError.invalidScheme
         }
         let items = comps.queryItems ?? []
+        // Raw value (used for the base64 `bytes` blob — must keep `+` intact
+        // since base64 alphabet uses it).
         func qi(_ name: String) -> String? {
             items.first(where: { $0.name == name })?.value
+        }
+        // Text value — URLSearchParams encodes spaces as `+` per
+        // form-URL-encoded spec; iOS's URLComponents only decodes `%20`,
+        // not `+`. So plain-text fields need the substitution.
+        func qt(_ name: String) -> String? {
+            qi(name)?.replacingOccurrences(of: "+", with: " ")
         }
 
         guard let host = qi("host"), !host.isEmpty else {
@@ -155,15 +163,15 @@ enum PrintService {
             throw PrintError.dataTooLarge(data.count)
         }
 
-        let label = qi("label") ?? ""
-        let total = qi("total") ?? ""
-        let cashier = qi("cashier") ?? ""
-        let paymentMethod = qi("payment") ?? ""
-        let itemCount = Int(qi("items") ?? "") ?? 0
-        let returnUrl = (qi("return")).flatMap { URL(string: $0) }
-        let locale = AppLocale.from(qi("locale"))
+        let label = qt("label") ?? ""
+        let total = qt("total") ?? ""
+        let cashier = qt("cashier") ?? ""
+        let paymentMethod = qt("payment") ?? ""
+        let itemCount = Int(qt("items") ?? "") ?? 0
+        let returnUrl = (qt("return")).flatMap { URL(string: $0) }
+        let locale = AppLocale.from(qt("locale"))
         // Strip leading # if present, accept both 6-char and 8-char (rgba) hex.
-        let accentHex = (qi("accent") ?? "").replacingOccurrences(of: "#", with: "")
+        let accentHex = (qt("accent") ?? "").replacingOccurrences(of: "#", with: "")
 
         return ParsedURL(
             host: host, port: port, data: data,
