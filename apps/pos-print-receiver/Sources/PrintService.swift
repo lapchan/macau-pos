@@ -5,7 +5,7 @@ import Foundation
 import Network
 import SwiftUI
 
-enum PrintError: Error, LocalizedError {
+enum PrintError: Error {
     case invalidScheme
     case missingParam(String)
     case invalidPort
@@ -16,17 +16,18 @@ enum PrintError: Error, LocalizedError {
     case writeFailed(String)
     case localNetworkDenied
 
-    var errorDescription: String? {
+    /// Localized message for the user-facing UI. Caller passes current locale.
+    func userMessage(_ locale: AppLocale) -> String {
         switch self {
-        case .invalidScheme: return "Not a pos-print URL"
-        case .missingParam(let p): return "Missing param: \(p)"
-        case .invalidPort: return "Invalid port"
-        case .base64Decode: return "Could not decode bytes"
-        case .dataTooLarge(let n): return "Payload too large: \(n) bytes (max 64 KB)"
-        case .timeout: return "Printer connection timed out"
-        case .connectionFailed(let m): return "Connection failed: \(m)"
-        case .writeFailed(let m): return "Write failed: \(m)"
-        case .localNetworkDenied: return "Local Network permission denied"
+        case .invalidScheme: return t(.errInvalidURL, locale)
+        case .missingParam: return t(.errMissingParam, locale)
+        case .invalidPort: return t(.errInvalidPort, locale)
+        case .base64Decode: return t(.errBase64, locale)
+        case .dataTooLarge: return t(.errTooLarge, locale)
+        case .timeout: return t(.errTimeout, locale)
+        case .connectionFailed: return t(.errConnection, locale)
+        case .writeFailed: return t(.errWrite, locale)
+        case .localNetworkDenied: return t(.errPermission, locale)
         }
     }
 }
@@ -41,7 +42,10 @@ enum PrintService {
             let parsed = try parse(url: url)
 
             // Stash metadata before TCP attempt so the UI shows context even on failure.
+            // Locale is captured early so error messages localize correctly even
+            // if the TCP write itself fails.
             await MainActor.run {
+                state.locale = parsed.locale
                 state.label = parsed.label
                 state.returnUrl = parsed.returnUrl
                 state.lastHost = parsed.host
@@ -53,7 +57,7 @@ enum PrintService {
             let elapsedMs = Int(Date().timeIntervalSince(started) * 1000)
 
             await MainActor.run {
-                state.lastEvent = "Receipt printed"
+                state.lastEvent = t(.receiptPrinted, parsed.locale)
                 state.lastEventColor = .success
                 state.lastPrintAt = Date()
                 state.lastBytes = parsed.data.count
@@ -74,13 +78,14 @@ enum PrintService {
                 // of staying alive between prints.
             }
         } catch let err as PrintError {
-            let msg = err.errorDescription ?? "Unknown error"
+            let locale = await MainActor.run { state.locale }
+            let msg = err.userMessage(locale)
             await MainActor.run {
                 state.lastEvent = msg
                 state.lastEventColor = .error
                 state.appendHistory(.init(
                     timestamp: Date(),
-                    label: state.label.isEmpty ? "(unknown)" : state.label,
+                    label: state.label,
                     bytes: 0,
                     durationMs: 0,
                     success: false,
@@ -90,9 +95,9 @@ enum PrintService {
                 state.autoReturnSecondsRemaining = nil
             }
         } catch {
-            let msg = "Unexpected: \(error.localizedDescription)"
+            let locale = await MainActor.run { state.locale }
             await MainActor.run {
-                state.lastEvent = msg
+                state.lastEvent = t(.errUnknown, locale)
                 state.lastEventColor = .error
                 state.autoReturnSecondsRemaining = nil
             }
@@ -105,6 +110,7 @@ enum PrintService {
         let data: Data
         let label: String
         let returnUrl: URL?
+        let locale: AppLocale
     }
 
     private static func parse(url: URL) throws -> ParsedURL {
@@ -141,8 +147,9 @@ enum PrintService {
 
         let label = qi("label") ?? ""
         let returnUrl = (qi("return")).flatMap { URL(string: $0) }
+        let locale = AppLocale.from(qi("locale"))
 
-        return ParsedURL(host: host, port: port, data: data, label: label, returnUrl: returnUrl)
+        return ParsedURL(host: host, port: port, data: data, label: label, returnUrl: returnUrl, locale: locale)
     }
 
     private static func sendTCP(host: String, port: UInt16, data: Data, timeoutSec: Double = DEFAULT_TIMEOUT_SEC) async throws {

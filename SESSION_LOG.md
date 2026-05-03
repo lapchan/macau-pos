@@ -1987,3 +1987,57 @@ Every route was curl-tested against the live dev DB before completing the slice.
 - Updated `.env`, `.env.example`, `.env.production.example`
 - Edited `apps/cashier/src/middleware.ts` (CORS for /api/v1/*)
 - Helper script `/tmp/native-jwt-helper.mjs` (smoke test only — not part of repo)
+
+
+## Option A — URL-scheme iOS print receiver, end-to-end production deploy (2026-05-03, evening)
+
+User pivoted away from the full Native iOS Cashier module (shelved on `feature/native-ios-cashier-track-a` branch) and asked for a minimal iOS print receiver instead. Built and deployed end-to-end. Working on real hardware: iPad → URL scheme → tiny iOS app → Xprinter LAN print + drawer kick → button-mimic-of-iOS-pill back to PWA, no reload, no app kill.
+
+### What shipped (commits on main)
+
+- `1aba2dc` — server-action `getReceiptBytesForUrlScheme` + cashier UI URL-scheme branch + tiny iOS app at `apps/pos-print-receiver/` (~250 LOC Swift, no Capacitor, xcodegen project spec).
+- `c4f8564` — Dockerfile fix #1: copy `escpos-shared/package.json` in deps stage (had been missed when Module 12 added the package).
+- `e720466` — Dockerfile fix #2: build escpos-shared before app build (its package.json points to `./dist/index.js` which doesn't exist without a build step).
+- `9224d21` — Cashier.mobileconfig (signed-domain Web Clip profile) + Next.js header rule for `application/x-apple-aspen-config` MIME so iOS Safari recognizes it as installable.
+- `fc5fd2e` — final iOS app polish: AppDelegate sourceApplication capture, settings UI for manual bundle-id override, and the Web Clip bundle ID sequence (`com.apple.webapp.managed`, `com.apple.webapp`, `com.apple.webclip`, fallbacks) with `applicationState != .active` guard so the chain aborts after a successful PWA foreground.
+
+### Production state
+- ECS at 47.83.141.219: cashier rebuilt + restarted with all of the above. `https://pos.hkretailai.com` live.
+- Production T-001 (`c044d94c-...`, "賈梅士店收銀台") configured: `device_info.printer = {method:"url-scheme", host:"192.168.123.100", port:9100}`.
+- iOS app installed on dock iPad via Xcode personal-team signing (cert expires ~7 days from 2026-05-03).
+- Cashier PWA installed via `https://pos.hkretailai.com/Cashier.mobileconfig` profile install — no Add-to-Home-Screen UX, no "Open in app?" prompt for URL-scheme launches.
+
+### The iteration trail (notable findings, abridged)
+
+- **iOS Safari URL-scheme prompt** can't be programmatically bypassed — but profile-installed Web Clips silently fire URL schemes (no prompt). User installed via `Cashier.mobileconfig` once that was discovered.
+- **Activation handler bug** — every activation overwrites `terminals.device_info` with browser metadata, wiping printer config. Workaround documented in STATE.md; underlying bug not fixed in this push.
+- **Capacitor Preferences cookie SameSite=Lax** — discovered to be incompatible cross-site from `capacitor://localhost` (would have driven the full-native-cashier auth path D8); not relevant for Option A which keeps cookie auth same-origin.
+- **Cashier dev `next.config.ts` allowedDevOrigins** had stale Mac IP (`10.10.14.81`). Updated to `10.10.14.138` for current Mac. Production unaffected.
+- **`UIApplication.suspend`** sends app to home screen, NOT back to caller. Different from what the iOS pill does.
+- **`exit(0)`** does return to caller from memory — but kills our app, defeating purpose of staying alive between prints.
+- **`UIApplication.open(returnUrl)`** returns to right app but reloads — Safari doesn't have a "switch to existing tab" optimization for `open(url)` calls.
+- **`UIApplicationOpenURLOptionsKey.sourceApplication`** returns `nil` when launched from a PWA (Apple deprecated for privacy in iOS 13+; AppDelegate captures it but for PWAs it's unset).
+- **`LSApplicationWorkspace.allInstalledApplications()`** is sandboxed on modern iOS — returns 0 entries for third-party apps. Cannot enumerate Web Clips.
+- **`devicectl` and `ideviceinstaller`** also don't expose Web Clips. Apple has walled them off from every public/semi-public app-discovery API.
+- **The breakthrough finding** (after web research): per Apple's MDM documentation, ALL Web Clips share generic bundle IDs — `com.apple.webapp` for Add-to-Home-Screen, `com.apple.webapp.managed` for profile-installed. Since the iPad has exactly one Web Clip, opening either via `LSApplicationWorkspace.openApplicationWithBundleID:` foregrounds it. Solves the "return to PWA" problem for our case.
+- **Sequencing fires bounced to Safari** initially because `DispatchQueue.main.asyncAfter` blocks ran during iOS's grace window even after our app was foregrounded another. Fix: check `UIApplication.shared.applicationState != .active` before each fire — if backgrounded, abort the chain.
+
+### Honest UX limitations as of close
+
+- **App Store distribution would require Universal Links** (LSApplicationWorkspace + private bundle IDs are App Store-flagged). For personal-team / TestFlight / B2B internal MDM, fine.
+- **If a second Web Clip is ever added to this iPad**, the generic-bundle-id approach becomes ambiguous — opening `com.apple.webapp.managed` would foreground "any" Web Clip, possibly the wrong one. Settings UI provides manual override path but discoverability of a specific Web Clip's bundle ID remains unsolved on modern iOS.
+- **iOS auto-update of personal-team signing** — cert expires ~7 days from build. Need re-sign or migrate to Apple Developer Program for stable signing.
+
+### Files left for next session
+- All commits pushed to `origin/main`.
+- `apps/cashier-ios-spike/` — still committed-pending (pre-existing reference).
+- `feature/native-ios-cashier-track-a` — dormant branch with full native cashier planning + ~16 v1 routes + auth + migrations 0007/0008. Resume only if scope justifies.
+- Dev DB has migration 0007 + 0008 applied but their schema files aren't on `main` (only on the feature branch). Don't run `drizzle-kit generate` on main without first dropping those tables.
+- Pre-existing modifications still untouched: `.skills/*`, `apps/cashier/next-env.d.ts`, `pnpm-lock.yaml`.
+
+### Next-session candidates (user-suggested or natural follow-ups)
+- Theme + i18n for the iOS print app to match the cashier (5 locales: EN/TC/SC/PT/JP, color theme `--color-pos-accent`)
+- iOS app cert renewal before personal-team expiry (7 days)
+- Apple Developer Program enrollment for App Store distribution path + Universal Links
+- Activation-handler bug: stop overwriting `terminals.device_info`; merge instead
+- Production rollout to non-CountingStars tenants (verify deploy doesn't break existing bridge-daemon path — it shouldn't since the URL-scheme path is gated on `device_info.printer.method`)

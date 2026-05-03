@@ -79,8 +79,19 @@ final class AppState: ObservableObject {
         didSet { UserDefaults.standard.set(manualReturnBundleID, forKey: "manualReturnBundleID") }
     }
 
+    /// Current locale — driven by the cashier's `&locale=...` URL param so
+    /// the print app speaks the same language the cashier was running in.
+    /// Defaults to English; persists to UserDefaults so the idle/ready
+    /// screen between prints stays in the right language.
+    @Published var locale: AppLocale = .en {
+        didSet { UserDefaults.standard.set(locale.rawValue, forKey: "appLocale") }
+    }
+
     init() {
         manualReturnBundleID = UserDefaults.standard.string(forKey: "manualReturnBundleID") ?? ""
+        if let raw = UserDefaults.standard.string(forKey: "appLocale") {
+            locale = AppLocale.from(raw)
+        }
     }
 
     // Auto-return countdown (nil = not active)

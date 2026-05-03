@@ -159,6 +159,8 @@ export default function PrintReceipt({ receiptData, orderNumber, locale = "tc", 
             // For the iOS app's status UI + return-to-cashier button:
             label: urlScheme.label,
             return: window.location.href,
+            // Cashier locale so the print app's UI speaks the same language.
+            locale: locale,
           });
           window.location.href = `pos-print://send?${params.toString()}`;
           setIsPrinting(false);

@@ -22,11 +22,20 @@ struct ContentView: View {
         }
     }
 
+    /// Idle/ready headline — when no print has happened yet, show a friendly
+    /// "Ready" instead of an empty event string.
+    private var headlineText: String {
+        if state.lastEvent.isEmpty || state.lastEventColor == .neutral {
+            return t(.ready, state.locale)
+        }
+        return state.lastEvent
+    }
+
     var body: some View {
         VStack(spacing: 24) {
-            // Top header
+            // Top header — app title localized; gear opens settings.
             HStack {
-                Text("POS Print")
+                Text(t(.appTitle, state.locale))
                     .font(.headline)
                     .foregroundColor(.secondary)
                 Spacer()
@@ -46,15 +55,16 @@ struct ContentView: View {
                 .font(.system(size: 84, weight: .light))
                 .foregroundColor(statusColor)
 
-            // Headline
-            Text(state.lastEvent)
+            // Headline — localized status (Ready / Receipt printed / error)
+            Text(headlineText)
                 .font(.title2)
                 .fontWeight(.semibold)
                 .foregroundColor(statusColor)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, 32)
 
-            // Order label (e.g. "CS-260503-0001 · MOP 25.50")
+            // Order label (e.g. "CS-260503-0001 · MOP 25.50") — passed through
+            // from the cashier; user-meaningful, kept verbatim.
             if !state.label.isEmpty {
                 Text(state.label)
                     .font(.title3)
@@ -63,43 +73,28 @@ struct ContentView: View {
                     .padding(.horizontal, 32)
             }
 
-            // Print details
-            if state.lastEventColor == .success {
-                VStack(spacing: 4) {
-                    Text("\(state.lastBytes) bytes → \(state.lastHost):\(state.lastPort)")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                    Text("Took \(state.lastDurationMs) ms · \(formattedTime(state.lastPrintAt))")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                }
+            // Idle subtitle when no print has happened yet
+            if state.lastEventColor == .neutral {
+                Text(t(.awaitingPrintJob, state.locale))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
             }
 
+            // Last-print timestamp only — no host/port, no byte counts, no ms.
+            if state.lastEventColor == .success, let last = state.lastPrintAt {
+                Text(formattedTime(last))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
 
             Spacer(minLength: 0)
 
-            // "Return to Cashier" — replicates the iOS "← Safari" pill via
-            // private LSApplicationWorkspace.openApplicationWithBundleID:.
-            // Switches back to whichever app launched us — Safari proper,
-            // OR a PWA / Web Clip with its own bundle ID. We capture the
-            // source via AppDelegate.application(_:open:options:) so the
-            // back button matches the iOS pill exactly.
-            //
-            // Caveat: LSApplicationWorkspace is a private framework. Safe for
-            // personal-team / TestFlight / ad-hoc; flagged by App Store
-            // static analysis.
-            // "Return to Cashier" — try a sequence of bundle IDs in order.
-            // Per Apple's MDM docs, all Web Clips share `com.apple.webapp`
-            // and profile-installed ones specifically use
-            // `com.apple.webapp.managed`. Since the iPad has exactly ONE
-            // Web Clip (the cashier), opening any of these should return
-            // to it. If those fail, fall back to source/Safari.
-            Button(action: {
-                returnToCashier()
-            }) {
+            // "Return to Cashier" — sequence-fires generic Web Clip bundles
+            // via private LSApplicationWorkspace; aborts on background.
+            Button(action: { returnToCashier() }) {
                 HStack {
                     Image(systemName: "arrow.uturn.backward")
-                    Text("Return to Cashier")
+                    Text(t(.returnToCashier, state.locale))
                 }
                 .font(.title3)
                 .fontWeight(.semibold)
@@ -111,20 +106,22 @@ struct ContentView: View {
             }
             .padding(.horizontal, 32)
 
-            // Fallback hint for the rare case both private API + URL routing
-            // fail (older iOS / new restrictions).
+            // Hint pointing to the iOS pill — works as backup if the button
+            // ever fails (e.g., new iOS restrictions on private APIs).
             HStack(spacing: 6) {
                 Image(systemName: "info.circle")
                     .font(.caption2)
-                Text("If button doesn't work: tap “← Cashier” pill at top-left")
+                Text(t(.pillHint, state.locale))
                     .font(.caption2)
             }
             .foregroundColor(.secondary)
+            .padding(.horizontal, 16)
+            .multilineTextAlignment(.center)
 
-            // History (last 5)
+            // History — last 5 prints, just timestamp + label, no debug numbers.
             if !state.history.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Recent prints")
+                    Text(t(.recentPrints, state.locale))
                         .font(.caption)
                         .fontWeight(.semibold)
                         .foregroundColor(.secondary)
@@ -137,15 +134,11 @@ struct ContentView: View {
                                 .font(.caption2)
                                 .foregroundColor(.secondary)
                                 .frame(width: 60, alignment: .leading)
-                            Text(entry.label.isEmpty ? "(no label)" : entry.label)
+                            Text(entry.label)
                                 .font(.caption)
                                 .lineLimit(1)
                             Spacer()
-                            if entry.success {
-                                Text("\(entry.bytes)B · \(entry.durationMs)ms")
-                                    .font(.caption2)
-                                    .foregroundColor(.secondary)
-                            } else if let e = entry.errorText {
+                            if !entry.success, let e = entry.errorText {
                                 Text(e)
                                     .font(.caption2)
                                     .foregroundColor(.red)
