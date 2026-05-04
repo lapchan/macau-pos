@@ -126,6 +126,49 @@ export default function PrintReceipt({ receiptData, orderNumber, locale = "tc", 
     return html;
   }, [locale]);
 
+  // Poll the cashier server for the iOS print app's result. The iOS app
+  // POSTs to /api/print-result/<jobId> after each TCP attempt; we surface
+  // errors via a banner so cashiers don't have to glance at the print app.
+  const pollPrintResult = useCallback(async (jobId: string) => {
+    if (!jobId) return;
+    const maxAttempts = 12; // ~12s with 1s gaps
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise((r) => setTimeout(r, 1000));
+      try {
+        const res = await fetch(`/api/print-result/${jobId}`);
+        if (!res.ok) continue;
+        const data = (await res.json()) as
+          | { status: "pending" | "expired" }
+          | { status: "ok"; durationMs?: number; bytesWritten?: number }
+          | { status: "error"; errorCode?: string; errorMessage?: string };
+        if (data.status === "ok") {
+          return; // silent success — iOS app will already have shown its own toast
+        }
+        if (data.status === "error") {
+          const msg = ("errorMessage" in data && data.errorMessage) ||
+            ("errorCode" in data && data.errorCode) || t(locale, "printerError");
+          // Show a non-blocking error toast/banner. Reuses the same
+          // mechanism as other cashier errors — alert() is the fallback
+          // if no toast lib is wired here. Extend later.
+          if (typeof window !== "undefined") {
+            const text = `${t(locale, "printFailed")}: ${msg}`;
+            console.warn("[print-receipt] iOS app reported error:", data);
+            // Lightweight UX: a toast div appended to the body. Removable.
+            const div = document.createElement("div");
+            div.textContent = text;
+            div.style.cssText = "position:fixed;top:24px;left:50%;transform:translateX(-50%);background:#dc2626;color:#fff;padding:12px 20px;border-radius:12px;font-size:14px;font-weight:600;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.15);max-width:90vw";
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 6000);
+          }
+          return;
+        }
+        if (data.status === "expired") return;
+      } catch {
+        // Network blip; continue polling.
+      }
+    }
+  }, [locale]);
+
   const handlePrint = useCallback(async () => {
     setIsPrinting(true);
     try {
@@ -177,8 +220,13 @@ export default function PrintReceipt({ receiptData, orderNumber, locale = "tc", 
             locale: locale,
             // Cashier accent color (e.g. "0071e3") so the button matches.
             accent: accent,
+            // jobId — iOS app POSTs result keyed on this; we poll below.
+            jobId: urlScheme.jobId,
           });
           window.location.href = `pos-print://send?${params.toString()}`;
+          // Start a background poll for the print result. iOS app POSTs to
+          // /api/print-result/<jobId>; we poll for ~10s and surface errors.
+          pollPrintResult(urlScheme.jobId);
           setIsPrinting(false);
           return;
         }

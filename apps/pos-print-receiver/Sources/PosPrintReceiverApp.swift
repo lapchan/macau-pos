@@ -68,6 +68,8 @@ final class AppState: ObservableObject {
     @Published var returnUrl: URL?               // Where the cashier was; tap "Return" to go back
     @Published var lastHost: String = ""
     @Published var lastPort: Int = 0
+    /// jobId minted by the cashier server-action; we POST result back keyed on this
+    @Published var jobId: String = ""
     /// Hex like "0071e3" parsed from cashier's --color-pos-accent CSS var.
     /// Falls back to system blue if absent / malformed.
     @Published var accentHex: String = ""

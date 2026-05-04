@@ -252,6 +252,8 @@ type TranslationKeys = {
   receiptThankYou: string;
   receiptReprint: string;
   receiptPrinting: string;
+  printFailed: string;
+  printerError: string;
 
   // History page
   orderHistory: string;
@@ -537,6 +539,8 @@ const translations: Record<Locale, TranslationKeys> = {
     receiptThankYou: "多謝光臨！",
     receiptReprint: "重印收據",
     receiptPrinting: "列印中...",
+    printFailed: "列印失敗",
+    printerError: "打印機錯誤",
     orderHistory: "訂單紀錄",
     historyOrders: "張訂單",
     noOrdersYet: "暫無訂單",
@@ -812,6 +816,8 @@ const translations: Record<Locale, TranslationKeys> = {
     receiptThankYou: "感谢光临！",
     receiptReprint: "重印收据",
     receiptPrinting: "打印中...",
+    printFailed: "打印失败",
+    printerError: "打印机错误",
     orderHistory: "订单记录",
     historyOrders: "张订单",
     noOrdersYet: "暂无订单",
@@ -1087,6 +1093,8 @@ const translations: Record<Locale, TranslationKeys> = {
     receiptThankYou: "Thank you!",
     receiptReprint: "Reprint receipt",
     receiptPrinting: "Printing...",
+    printFailed: "Print failed",
+    printerError: "Printer error",
     orderHistory: "Order History",
     historyOrders: "orders",
     noOrdersYet: "No orders yet",
@@ -1362,6 +1370,8 @@ const translations: Record<Locale, TranslationKeys> = {
     receiptThankYou: "Obrigado!",
     receiptReprint: "Reimprimir recibo",
     receiptPrinting: "A imprimir...",
+    printFailed: "Falha de impressão",
+    printerError: "Erro da impressora",
     orderHistory: "Histórico de Pedidos",
     historyOrders: "pedidos",
     noOrdersYet: "Sem pedidos ainda",
@@ -1637,6 +1647,8 @@ const translations: Record<Locale, TranslationKeys> = {
     receiptThankYou: "ありがとうございました！",
     receiptReprint: "レシート再印刷",
     receiptPrinting: "印刷中...",
+    printFailed: "印刷失敗",
+    printerError: "プリンターエラー",
     orderHistory: "注文履歴",
     historyOrders: "件の注文",
     noOrdersYet: "注文はまだありません",
