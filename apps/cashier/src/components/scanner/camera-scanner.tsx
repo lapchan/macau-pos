@@ -37,15 +37,45 @@ export default function CameraScanner({ locale, onScan, onClose }: Props) {
 
     const startScanner = async () => {
       try {
-        const { Html5Qrcode } = await import("html5-qrcode");
-        scanner = new Html5Qrcode("camera-scanner-viewport");
+        const { Html5Qrcode, Html5QrcodeSupportedFormats } = await import("html5-qrcode");
+        // Explicit format list + native BarcodeDetector API (iOS 17+) — the
+        // zxing-js fallback misses Macau Pass / Alipay / WeChat CODE128 wallet
+        // barcodes on iPad Safari. Listing all the wallet-relevant formats
+        // (1D wallet barcodes + 2D QR for Union Pay / WeChat Pay) means a
+        // single scanner handles both CPM input modes the cashier sees.
+        scanner = new Html5Qrcode(
+          "camera-scanner-viewport",
+          {
+            formatsToSupport: [
+              Html5QrcodeSupportedFormats.QR_CODE,
+              Html5QrcodeSupportedFormats.CODE_128,
+              Html5QrcodeSupportedFormats.CODE_39,
+              Html5QrcodeSupportedFormats.EAN_13,
+              Html5QrcodeSupportedFormats.EAN_8,
+              Html5QrcodeSupportedFormats.UPC_A,
+              Html5QrcodeSupportedFormats.UPC_E,
+              Html5QrcodeSupportedFormats.ITF,
+              Html5QrcodeSupportedFormats.DATA_MATRIX,
+              Html5QrcodeSupportedFormats.PDF_417,
+            ],
+            verbose: false,
+            useBarCodeDetectorIfSupported: true,
+          } as any,
+        );
         scannerRef.current = scanner;
 
         await scanner.start(
           { facingMode },
           {
             fps: 10,
-            qrbox: { width: 280, height: 160 },
+            // Wider rectangle covers both the wallet barcode (top) and QR
+            // (bottom) without needing to re-aim. Square ratio drops back to
+            // qrbox bounds when not scanning a wallet.
+            qrbox: (vw: number, vh: number) => {
+              const w = Math.min(vw - 40, 520);
+              const h = Math.min(vh - 80, 360);
+              return { width: w, height: h };
+            },
             aspectRatio: 1.0,
           },
           handleScanSuccess,
