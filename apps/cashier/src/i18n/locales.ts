@@ -212,6 +212,8 @@ type TranslationKeys = {
   paymentSubScanWallet: string;
   scanWalletPrompt: string;
   scanWalletHint: string;
+  useCamera: string;
+  notWalletQr: string;
   cashPayment: string;
   readyToTap: string;
   presentCard: string;
@@ -503,6 +505,8 @@ const translations: Record<Locale, TranslationKeys> = {
     paymentSubScanWallet: "掃描客戶二維碼",
     scanWalletPrompt: "請掃描客戶錢包二維碼",
     scanWalletHint: "將掃碼器對準客戶手機屏幕",
+    useCamera: "使用相機",
+    notWalletQr: "這不是錢包二維碼",
     cashPayment: "現金付款",
     readyToTap: "準備拍卡",
     presentCard: "請出示信用卡或手機",
@@ -780,6 +784,8 @@ const translations: Record<Locale, TranslationKeys> = {
     paymentSubScanWallet: "扫描客户二维码",
     scanWalletPrompt: "请扫描客户钱包二维码",
     scanWalletHint: "将扫码器对准客户手机屏幕",
+    useCamera: "使用相机",
+    notWalletQr: "这不是钱包二维码",
     cashPayment: "现金付款",
     readyToTap: "准备拍卡",
     presentCard: "请出示信用卡或手机",
@@ -1057,6 +1063,8 @@ const translations: Record<Locale, TranslationKeys> = {
     paymentSubScanWallet: "Scan customer QR",
     scanWalletPrompt: "Scan customer's wallet QR code",
     scanWalletHint: "Point the scanner at the customer's phone",
+    useCamera: "Use camera",
+    notWalletQr: "Not a wallet QR code",
     cashPayment: "Cash",
     readyToTap: "Ready to tap",
     presentCard: "Present card or device",
@@ -1334,6 +1342,8 @@ const translations: Record<Locale, TranslationKeys> = {
     paymentSubScanWallet: "Escanear QR do cliente",
     scanWalletPrompt: "Escaneie o QR code da carteira do cliente",
     scanWalletHint: "Aponte o leitor para o celular do cliente",
+    useCamera: "Usar câmara",
+    notWalletQr: "Não é um QR de carteira",
     cashPayment: "Dinheiro",
     readyToTap: "Pronto para aproximar",
     presentCard: "Apresente o cartão ou dispositivo",
@@ -1611,6 +1621,8 @@ const translations: Record<Locale, TranslationKeys> = {
     paymentSubScanWallet: "お客様のQRを読取",
     scanWalletPrompt: "お客様のウォレットQRをスキャンしてください",
     scanWalletHint: "スキャナをお客様の画面に向けてください",
+    useCamera: "カメラを使用",
+    notWalletQr: "ウォレットQRではありません",
     cashPayment: "現金",
     readyToTap: "タッチしてください",
     presentCard: "カードまたはデバイスをかざしてください",

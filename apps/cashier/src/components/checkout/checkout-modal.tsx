@@ -26,6 +26,8 @@ import { useBarcodeScanner, isWalletAuthCode } from "@/lib/use-barcode-scanner";
 import { enqueueOrder } from "@/lib/offline-queue";
 import PrintReceipt from "@/components/receipt/print-receipt";
 import type { ReceiptData } from "@/lib/receipt-queries";
+import dynamic from "next/dynamic";
+const CameraScanner = dynamic(() => import("@/components/scanner/camera-scanner"), { ssr: false });
 
 type CheckoutState =
   | "review"
@@ -96,6 +98,12 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
   const [mpmError, setMpmError] = useState<string | null>(null);
   // CPM (scan customer wallet) state.
   const [cpqrScanning, setCpqrScanning] = useState(false);
+  // Whether the in-app camera scanner overlay is open (alternative to the
+  // USB scanner gun — uses the iPad back camera via Html5Qrcode).
+  const [cpqrCameraOpen, setCpqrCameraOpen] = useState(false);
+  // Brief in-camera message shown when the cashier accidentally scans a
+  // product barcode while in CPM mode (cleared after 1.5s).
+  const [cpqrCameraHint, setCpqrCameraHint] = useState<string | null>(null);
 
   const handleClose = useCallback(() => {
     // Leave any "new" pre-payment order in place — the lazy janitor
@@ -822,6 +830,13 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
                 </p>
                 <p className={cn("text-[18px] font-semibold mb-1", text)}>{t(locale, "scanWalletPrompt")}</p>
                 <p className={cn("text-[14px]", textSec)}>{t(locale, "scanWalletHint")}</p>
+                <button
+                  onClick={() => { setCpqrCameraHint(null); setCpqrCameraOpen(true); }}
+                  className={cn("mt-6 h-11 px-6 rounded-[var(--radius-md)] text-[14px] font-semibold border transition-all active:scale-[0.97] flex items-center gap-2", border, text, darkMode ? "hover:bg-zinc-800" : "hover:bg-pos-surface-active")}
+                >
+                  <ScanLine className="h-4 w-4" />
+                  {t(locale, "useCamera")}
+                </button>
               </div>
             )}
 
@@ -1095,6 +1110,33 @@ export default function CheckoutModal({ cart, locale, onClose, onComplete, custo
           <span>{isOnline ? t(locale, "terminalConnected") : t(locale, "terminalOffline")}</span>
         </div>
       </div>
+
+      {/* CPM camera scanner overlay — alternative to the USB scanner gun.
+          Only fires handleCpmScan when the decoded string is a wallet auth
+          code; a regular product barcode shows a brief hint and keeps scanning. */}
+      {cpqrCameraOpen && (
+        <CameraScanner
+          locale={locale}
+          onScan={(code) => {
+            if (isWalletAuthCode(code)) {
+              setCpqrCameraOpen(false);
+              setCpqrCameraHint(null);
+              handleCpmScan(code);
+            } else {
+              setCpqrCameraHint(t(locale, "notWalletQr"));
+              setTimeout(() => setCpqrCameraHint(null), 1500);
+            }
+          }}
+          onClose={() => { setCpqrCameraOpen(false); setCpqrCameraHint(null); }}
+        />
+      )}
+      {cpqrCameraOpen && cpqrCameraHint && (
+        <div className="fixed inset-x-0 top-20 z-[60] flex justify-center pointer-events-none">
+          <div className="px-4 py-2 rounded-full bg-red-500 text-white text-[14px] font-medium shadow-lg">
+            {cpqrCameraHint}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
