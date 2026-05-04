@@ -131,6 +131,29 @@ struct ContentView: View {
 
             Spacer(minLength: 0)
 
+            // "Test connection" — only shown after an error so the user can
+            // verify the printer is reachable again (e.g. after plugging the
+            // cable back in) without firing a real sale. Hidden on success
+            // and idle states to keep the UI clean.
+            if state.lastEventColor == .error && !state.lastHost.isEmpty {
+                Button(action: {
+                    Task { await PrintService.testConnection(state: state) }
+                }) {
+                    HStack {
+                        Image(systemName: "arrow.clockwise")
+                        Text(t(.testConnection, state.locale))
+                    }
+                    .font(.body)
+                    .fontWeight(.medium)
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 12)
+                    .background(accentColor.opacity(0.1))
+                    .foregroundColor(accentColor)
+                    .cornerRadius(12)
+                }
+                .padding(.horizontal, 32)
+            }
+
             // "Return to Cashier" — sequence-fires generic Web Clip bundles
             // via private LSApplicationWorkspace; aborts on background.
             // Background colour matches the cashier's accent.

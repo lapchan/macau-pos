@@ -226,6 +226,45 @@ enum PrintService {
         )
     }
 
+    /// TCP probe — open a connection to the last known printer host:port and
+    /// immediately close. Used by the "Test connection" button to recover
+    /// from a stale error state without making the user trigger a real sale.
+    /// Updates AppState with success or the same error mapping as a real
+    /// print attempt.
+    static func testConnection(state: AppState) async {
+        let host = await MainActor.run { state.lastHost }
+        let port = await MainActor.run { state.lastPort }
+        let locale = await MainActor.run { state.locale }
+        guard !host.isEmpty, port > 0, port <= 65535 else {
+            await MainActor.run {
+                state.lastEvent = t(.errInvalidURL, locale)
+                state.lastEventColor = .error
+            }
+            return
+        }
+        await MainActor.run {
+            state.lastEvent = t(.testing, locale)
+            state.lastEventColor = .neutral
+        }
+        do {
+            try await probeReachable(host: host, port: UInt16(port), timeoutSec: 3)
+            await MainActor.run {
+                state.lastEvent = t(.printerReady, locale)
+                state.lastEventColor = .success
+            }
+        } catch let err as PrintError {
+            await MainActor.run {
+                state.lastEvent = err.userMessage(locale)
+                state.lastEventColor = .error
+            }
+        } catch {
+            await MainActor.run {
+                state.lastEvent = t(.errUnknown, locale)
+                state.lastEventColor = .error
+            }
+        }
+    }
+
     /// POST the print result back to the cashier server keyed by jobId.
     /// Fire-and-forget. Cashier polls the matching GET endpoint to surface
     /// success/error in its UI. Returns immediately; uses a shared default
@@ -262,6 +301,54 @@ enum PrintService {
         req.httpBody = try? JSONSerialization.data(withJSONObject: body)
 
         URLSession.shared.dataTask(with: req).resume()
+    }
+
+    /// Connect-and-close TCP probe — used by the "Test connection" button
+    /// to verify the printer is reachable without sending any bytes.
+    /// Throws the same PrintError types as sendTCP for consistent UI mapping.
+    private static func probeReachable(host: String, port: UInt16, timeoutSec: Double) async throws {
+        let endpointHost = NWEndpoint.Host(host)
+        let endpointPort = NWEndpoint.Port(rawValue: port)!
+        let conn = NWConnection(host: endpointHost, port: endpointPort, using: .tcp)
+
+        try await withCheckedThrowingContinuation { (cont: CheckedContinuation<Void, Error>) in
+            let timeout = DispatchWorkItem {
+                conn.cancel()
+                cont.resume(throwing: PrintError.timeout)
+            }
+            DispatchQueue.global().asyncAfter(deadline: .now() + timeoutSec, execute: timeout)
+
+            var resumed = false
+            func resumeOnce(_ result: Result<Void, Error>) {
+                guard !resumed else { return }
+                resumed = true
+                timeout.cancel()
+                conn.cancel()
+                switch result {
+                case .success: cont.resume()
+                case .failure(let e): cont.resume(throwing: e)
+                }
+            }
+
+            conn.stateUpdateHandler = { state in
+                switch state {
+                case .ready:
+                    resumeOnce(.success(()))
+                case .failed(let err):
+                    let msg = err.localizedDescription
+                    if msg.contains("denied") || msg.contains("entitlement") {
+                        resumeOnce(.failure(PrintError.localNetworkDenied))
+                    } else {
+                        resumeOnce(.failure(PrintError.connectionFailed(msg)))
+                    }
+                case .cancelled:
+                    break
+                default:
+                    break
+                }
+            }
+            conn.start(queue: .global())
+        }
     }
 
     private static func sendTCP(host: String, port: UInt16, data: Data, timeoutSec: Double = DEFAULT_TIMEOUT_SEC) async throws {

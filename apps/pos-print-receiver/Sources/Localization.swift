@@ -48,6 +48,9 @@ enum L10n {
     case errWrite
     case errPermission
     case errUnknown
+    case testConnection
+    case testing
+    case printerReady
 }
 
 // Compact translation table. Each L10n key maps to a 5-tuple in
@@ -80,6 +83,9 @@ private let strings: [L10n: (String, String, String, String, String)] = [
     .errWrite:                ("Write failed",       "寫入失敗",         "写入失败",         "Falha de escrita",   "書き込みに失敗"),
     .errPermission:           ("Local Network permission denied", "本機網絡權限被拒絕", "本机网络权限被拒绝", "Permissão de rede local negada", "ローカルネットワークの許可が拒否されました"),
     .errUnknown:              ("Unknown error",      "未知錯誤",         "未知错误",         "Erro desconhecido",  "不明なエラー"),
+    .testConnection:          ("Test connection",    "測試連線",         "测试连接",         "Testar ligação",     "接続をテスト"),
+    .testing:                 ("Testing…",           "測試中…",          "测试中…",          "A testar…",          "テスト中…"),
+    .printerReady:            ("Printer reachable",  "打印機可用",       "打印机可用",       "Impressora disponível", "プリンター接続済み"),
 ]
 
 func t(_ key: L10n, _ locale: AppLocale = .en) -> String {
